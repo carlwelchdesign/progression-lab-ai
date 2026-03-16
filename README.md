@@ -22,10 +22,12 @@ The app also visualizes suggested voicings on **piano and guitar**, making it us
 ## Tech Stack
 
 * **Next.js**
+* **React**
 * **TypeScript**
 * **OpenAI API**
 * **piano-chart**
 * **svguitar**
+* **MaterialUI**
 
 ## Example Workflow
 
