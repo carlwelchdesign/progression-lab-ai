@@ -119,7 +119,7 @@ export default function HomePage() {
   return (
     <main className="page">
       <div className="hero">
-        <h1>ChordLab</h1>
+        <h1>ProgressionLab</h1>
         <p>
           Enter a few chords, a mood, and a mode. Get back progression ideas,
           structure suggestions, and simple guitar/piano diagrams.
