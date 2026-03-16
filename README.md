@@ -4,6 +4,8 @@
 
 The app also visualizes suggested voicings on **piano and guitar**, making it useful for musicians, producers, and songwriters.
 
+<img width="977" height="476" alt="image" src="https://github.com/user-attachments/assets/c42eb8a1-b5bd-4b82-ac14-a40f246e44de" />
+
 ## Features
 
 * AI-generated chord continuation suggestions
@@ -13,6 +15,9 @@ The app also visualizes suggested voicings on **piano and guitar**, making it us
 * Guitar chord diagrams
 * Support for musical modes and scales
 * Genre-aware harmony generation
+
+<img width="984" height="1316" alt="image" src="https://github.com/user-attachments/assets/d3bec33a-e5ca-4997-b09e-5690f0fe705f" />
+<img width="963" height="441" alt="image" src="https://github.com/user-attachments/assets/c517aa90-538a-4fd5-9c57-640e67361f82" />
 
 ## Tech Stack
 
