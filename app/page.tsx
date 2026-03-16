@@ -1,9 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Container,
+  Stack,
+  Typography,
+} from '@mui/material';
 
 import GuitarChordDiagram from '../components/GuitarChordDiagram';
 import PianoChordDiagram from '../components/PianoChordDiagram';
+import AppCard from '../components/ui/AppCard';
+import AppSelectField from '../components/ui/AppSelectField';
+import AppTextField from '../components/ui/AppTextField';
 import type {
   Adventurousness,
   ChordSuggestionResponse,
@@ -117,225 +128,278 @@ export default function HomePage() {
   };
 
   return (
-    <main className="page">
-      <div className="hero">
-        <h1>ProgressionLab</h1>
-        <p>
-          Enter a few chords, a mood, and a mode. Get back progression ideas,
-          structure suggestions, and simple guitar/piano diagrams.
-        </p>
-      </div>
+    <Container component="main" maxWidth="lg" sx={{ py: 6 }}>
+      <Stack spacing={3}>
+        <Box id="generator">
+          <Typography variant="h3" component="h1" gutterBottom>
+            ProgressionLab-AI
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Enter a few chords, a mood, and a mode. Get back progression ideas,
+            structure suggestions, and simple guitar/piano diagrams.
+          </Typography>
+        </Box>
 
-      <section className="panel">
-        <div className="form-grid">
-          <label>
-            Seed chords
-            <input
+        <AppCard>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                md: 'repeat(2, minmax(0, 1fr))',
+              },
+              gap: 2,
+            }}
+          >
+            <AppTextField
+              label="Seed chords"
               value={seedChords}
               onChange={(e) => setSeedChords(e.target.value)}
               placeholder="Fmaj7, F#m7"
             />
-          </label>
 
-          <label>
-            Mood
-            <input
+            <AppTextField
+              label="Mood"
               value={mood}
               onChange={(e) => setMood(e.target.value)}
               placeholder="dreamy, dark, hopeful"
             />
-          </label>
 
-          <label>
-            Mode / scale
-            <select
+            <AppSelectField
+              label="Mode / scale"
               value={mode}
               onChange={(e) => setMode(e.target.value)}
-            >
-              {MODE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {mode === 'custom' ? (
-            <label>
-              Custom mode / scale
-              <input
+              options={MODE_OPTIONS}
+            />
+
+            {mode === 'custom' ? (
+              <AppTextField
+                label="Custom mode / scale"
                 value={customMode}
                 onChange={(e) => setCustomMode(e.target.value)}
                 placeholder="Hungarian minor, altered scale, etc."
               />
-            </label>
-          ) : null}
-          <label>
-            Genre
-            <select
+            ) : null}
+
+            <AppSelectField
+              label="Genre"
               value={genre}
               onChange={(e) => setGenre(e.target.value)}
-            >
-              {GENRE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              options={GENRE_OPTIONS}
+            />
 
-          {genre === 'custom' ? (
-            <label>
-              Custom genre
-              <input
+            {genre === 'custom' ? (
+              <AppTextField
+                label="Custom genre"
                 value={customGenre}
                 onChange={(e) => setCustomGenre(e.target.value)}
                 placeholder="UK garage, synthwave, bossa nova, etc."
               />
-            </label>
-          ) : null}
+            ) : null}
 
-          <label>
-            Instrument
-            <select
+            <AppSelectField
+              label="Instrument"
               value={instrument}
               onChange={(e) =>
                 setInstrument(e.target.value as InstrumentPreference)
               }
-            >
-              <option value="both">Both</option>
-              <option value="guitar">Guitar</option>
-              <option value="piano">Piano</option>
-            </select>
-          </label>
+              options={[
+                { value: 'both', label: 'Both' },
+                { value: 'guitar', label: 'Guitar' },
+                { value: 'piano', label: 'Piano' },
+              ]}
+            />
 
-          <label>
-            Adventurousness
-            <select
+            <AppSelectField
+              label="Adventurousness"
               value={adventurousness}
               onChange={(e) =>
                 setAdventurousness(e.target.value as Adventurousness)
               }
+              options={[
+                { value: 'safe', label: 'Safe' },
+                { value: 'balanced', label: 'Balanced' },
+                { value: 'surprising', label: 'Surprising' },
+              ]}
+            />
+          </Box>
+
+          <Stack spacing={2} sx={{ mt: 3 }}>
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              disabled={loading}
             >
-              <option value="safe">Safe</option>
-              <option value="balanced">Balanced</option>
-              <option value="surprising">Surprising</option>
-            </select>
-          </label>
-        </div>
+              {loading ? 'Generating...' : 'Generate Ideas'}
+            </Button>
 
-        <button className="primary-button" onClick={handleSubmit} disabled={loading}>
-          {loading ? 'Generating...' : 'Generate Ideas'}
-        </button>
+            {error ? <Alert severity="error">{error}</Alert> : null}
+          </Stack>
+        </AppCard>
 
-        {error ? <p className="error-text">{error}</p> : null}
-      </section>
-
-      {data ? (
-        <>
-          <section className="panel">
-            <h2>Next chord suggestions</h2>
-            <div className="cards">
-              {data.nextChordSuggestions.map((item) => (
-                <div
-                  key={`${item.chord}-${item.functionExplanation}`}
-                  className="card"
-                >
-                  <h3>{item.chord}</h3>
-                  <p>{item.functionExplanation}</p>
-                  {item.romanNumeral ? (
-                    <p>
-                      <strong>Roman numeral:</strong> {item.romanNumeral}
-                    </p>
-                  ) : null}
-                  <p>
-                    <strong>Tension:</strong> {item.tensionLevel}/5
-                  </p>
-                  <p>
-                    <strong>Confidence:</strong> {item.confidence}/5
-                  </p>
-                  {item.voicingHint ? (
-                    <p>
-                      <strong>Voicing hint:</strong> {item.voicingHint}
-                    </p>
-                  ) : null}
-                  {item.pianoVoicing ? (
-                    <div>
-                      <p>
-                        <strong>Left hand:</strong> {item.pianoVoicing.leftHand.join(', ')}
-                      </p>
-                      <p>
-                        <strong>Right hand:</strong> {item.pianoVoicing.rightHand.join(', ')}
-                      </p>
-                    </div>
-                  ) : null}
-
-                  <div className="diagram-row">
-                    {item.guitarVoicing && (
-                      <GuitarChordDiagram
-                        title={item.guitarVoicing.title}
-                        position={
-                          typeof item.guitarVoicing.position === 'number' &&
-                            item.guitarVoicing.position >= 1
-                            ? item.guitarVoicing.position
-                            : 1
-                        }
-                        fingers={item.guitarVoicing.fingers.map((finger) =>
-                          finger.finger
-                            ? [finger.string, finger.fret, finger.finger]
-                            : [finger.string, finger.fret]
-                        )}
-                        barres={item.guitarVoicing.barres.map((barre) => ({
-                          fromString: barre.fromString,
-                          toString: barre.toString,
-                          fret: barre.fret,
-                          text: barre.text ?? undefined,
-                        }))}
-                      />
-                    )}
-                    {item.pianoVoicing ? (
-                      <div style={{ width: '700px' }}>
-                        <PianoChordDiagram
-                          leftHand={item.pianoVoicing.leftHand}
-                          rightHand={item.pianoVoicing.rightHand}
-                        />
-                      </div>
-
+        {data ? (
+          <>
+            <Box component="section" id="suggestions">
+              <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
+                Next chord suggestions
+              </Typography>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    md: 'repeat(1, minmax(0, 1fr))',
+                  },
+                  gap: 2,
+                }}
+              >
+                {data.nextChordSuggestions.map((item) => (
+                  <AppCard
+                    key={`${item.chord}-${item.functionExplanation}`}
+                  >
+                    <Typography variant="h6" component="h3" gutterBottom>
+                      {item.chord}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1.5 }}>
+                      {item.functionExplanation}
+                    </Typography>
+                    {item.romanNumeral ? (
+                      <Typography variant="body2">
+                        <strong>Roman numeral:</strong> {item.romanNumeral}
+                      </Typography>
                     ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+                    <Typography variant="body2">
+                      <strong>Tension:</strong> {item.tensionLevel}/5
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Confidence:</strong> {item.confidence}/5
+                    </Typography>
+                    {item.voicingHint ? (
+                      <Typography variant="body2">
+                        <strong>Voicing hint:</strong> {item.voicingHint}
+                      </Typography>
+                    ) : null}
+                    {item.pianoVoicing ? (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="body2">
+                          <strong>Left hand:</strong> {item.pianoVoicing.leftHand.join(', ')}
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Right hand:</strong> {item.pianoVoicing.rightHand.join(', ')}
+                        </Typography>
+                      </Box>
+                    ) : null}
 
-          <section className="panel">
-            <h2>Progression ideas</h2>
-            <div className="cards">
-              {data.progressionIdeas.map((idea) => (
-                <div key={idea.label} className="card">
-                  <h3>{idea.label}</h3>
-                  <p className="progression-line">{idea.chords.join(' → ')}</p>
-                  <p>{idea.feel}</p>
-                  {idea.performanceTip ? <p>{idea.performanceTip}</p> : null}
-                </div>
-              ))}
-            </div>
-          </section>
+                    <Box
+                      sx={{
+                        mt: 2,
+                        display: 'grid',
+                        gridTemplateColumns: {
+                          xs: '1fr',
+                          lg: '220px minmax(0, 1fr)',
+                        },
+                        gap: 2,
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        justifyItems: 'center',
+                      }}
+                    >
+                      {item.guitarVoicing && (
+                        <GuitarChordDiagram
+                          title={item.guitarVoicing.title}
+                          position={
+                            typeof item.guitarVoicing.position === 'number' &&
+                            item.guitarVoicing.position >= 1
+                              ? item.guitarVoicing.position
+                              : 1
+                          }
+                          fingers={item.guitarVoicing.fingers.map((finger) =>
+                            finger.finger
+                              ? [finger.string, finger.fret, finger.finger]
+                              : [finger.string, finger.fret]
+                          )}
+                          barres={item.guitarVoicing.barres.map((barre) => ({
+                            fromString: barre.fromString,
+                            toString: barre.toString,
+                            fret: barre.fret,
+                            text: barre.text ?? undefined,
+                          }))}
+                        />
+                      )}
+                      {item.pianoVoicing ? (
+                        <Box sx={{ width: '100%', width: '700px', alignSelf: 'center' }}>
+                          <PianoChordDiagram
+                            leftHand={item.pianoVoicing.leftHand}
+                            rightHand={item.pianoVoicing.rightHand}
+                          />
+                        </Box>
+                      ) : null}
+                    </Box>
+                  </AppCard>
+                ))}
+              </Box>
+            </Box>
 
-          <section className="panel">
-            <h2>Structure suggestions</h2>
-            <div className="cards">
-              {data.structureSuggestions.map((section) => (
-                <div key={`${section.section}-${section.bars}`} className="card">
-                  <h3>
-                    {section.section} · {section.bars} bars
-                  </h3>
-                  <p>{section.harmonicIdea}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        </>
-      ) : null}
-    </main>
+            <Box component="section" id="progressions">
+              <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
+                Progression ideas
+              </Typography>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    md: 'repeat(3, minmax(0, 1fr))',
+                  },
+                  gap: 2,
+                }}
+              >
+                {data.progressionIdeas.map((idea) => (
+                  <AppCard key={idea.label}>
+                    <Typography variant="h6" component="h3" gutterBottom>
+                      {idea.label}
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 1 }}>
+                      {idea.chords.join(' → ')}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      {idea.feel}
+                    </Typography>
+                    {idea.performanceTip ? (
+                      <Typography variant="body2">{idea.performanceTip}</Typography>
+                    ) : null}
+                  </AppCard>
+                ))}
+              </Box>
+            </Box>
+
+            <Box component="section" id="structure">
+              <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
+                Structure suggestions
+              </Typography>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    md: 'repeat(3, minmax(0, 1fr))',
+                  },
+                  gap: 2,
+                }}
+              >
+                {data.structureSuggestions.map((section) => (
+                  <AppCard key={`${section.section}-${section.bars}`}>
+                    <Typography variant="h6" component="h3" gutterBottom>
+                      {section.section} · {section.bars} bars
+                    </Typography>
+                    <Typography variant="body2">{section.harmonicIdea}</Typography>
+                  </AppCard>
+                ))}
+              </Box>
+            </Box>
+          </>
+        ) : null}
+      </Stack>
+    </Container>
   );
 }

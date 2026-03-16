@@ -15,9 +15,9 @@ jest.mock('../components/PianoChordDiagram', () => {
   };
 });
 
-jest.mock('../components/ChordSuggestions', () => {
-  return function MockChordSuggestions() {
-    return <div data-testid="chord-suggestions" />;
+jest.mock('../components/ui/ThemeModeToggle', () => {
+  return function MockThemeModeToggle() {
+    return <div data-testid="theme-mode-toggle" />;
   };
 });
 

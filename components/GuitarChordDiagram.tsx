@@ -1,5 +1,6 @@
 'use client';
 
+import { Box } from '@mui/material';
 import { useEffect, useId } from 'react';
 import { SVGuitarChord } from 'svguitar';
 
@@ -81,10 +82,5 @@ export default function GuitarChordDiagram({
     }
   }, [id, title, fingers, barres, position]);
 
-  return (
-    <div
-      id={`guitar-chart-${id}`}
-      style={{ minHeight: 220, minWidth: 160 }}
-    />
-  );
+  return <Box id={`guitar-chart-${id}`} sx={{ minHeight: 220, minWidth: 160 }} />;
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { Box } from '@mui/material';
 import { useEffect, useRef } from 'react';
 import { Instrument } from 'piano-chart';
 
@@ -35,5 +36,5 @@ export default function PianoChordDiagram({ leftHand, rightHand }: Props) {
     };
   }, [leftHand, rightHand]);
 
-  return <div ref={ref} />;
+  return <Box ref={ref} />;
 }
