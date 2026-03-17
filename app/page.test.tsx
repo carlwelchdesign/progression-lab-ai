@@ -21,6 +21,11 @@ jest.mock('../components/ui/ThemeModeToggle', () => {
   };
 });
 
+jest.mock('../lib/audio', () => ({
+  playChordVoicing: jest.fn(),
+  playProgression: jest.fn(),
+}));
+
 const mockResponse = {
   inputSummary: {
     seedChords: ['Fmaj7', 'F#m7'],
@@ -59,6 +64,7 @@ const mockResponse = {
       chords: ['Fmaj7', 'G7', 'Am7', 'Cmaj7'],
       feel: 'Uplifting and fluid',
       performanceTip: 'Push chord 2 slightly ahead of the beat.',
+      pianoVoicings: [],
     },
   ],
   structureSuggestions: [
@@ -117,7 +123,7 @@ describe('HomePage', () => {
       expect(screen.getByText('Next chord suggestions')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('G7')).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: 'G7' })[0]).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith('/api/chord-suggestions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
