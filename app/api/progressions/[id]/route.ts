@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getSessionFromRequest } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import type { UpdateProgressionRequest } from '../../../../lib/types';
-
-const DEMO_USER_ID = 'demo-user-id';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = getSessionFromRequest(_request);
+    if (!session) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const progression = await prisma.progression.findFirst({
       where: {
         id,
-        userId: DEMO_USER_ID,
+        userId: session.userId,
       },
     });
 
@@ -40,9 +44,29 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = getSessionFromRequest(request);
+    if (!session) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = (await request.json()) as UpdateProgressionRequest;
     const { title, chords, pianoVoicings, feel, scale, notes, tags, isPublic } = body;
+
+    const existing = await prisma.progression.findFirst({
+      where: {
+        id,
+        userId: session.userId,
+      },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { message: 'Progression not found' },
+        { status: 404 }
+      );
+    }
 
     const progression = await prisma.progression.update({
       where: { id },
@@ -73,10 +97,25 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = getSessionFromRequest(_request);
+    if (!session) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
-    await prisma.progression.delete({
-      where: { id },
+    const result = await prisma.progression.deleteMany({
+      where: {
+        id,
+        userId: session.userId,
+      },
     });
+
+    if (result.count === 0) {
+      return NextResponse.json(
+        { message: 'Progression not found' },
+        { status: 404 }
+      );
+    }
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {

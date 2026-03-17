@@ -14,7 +14,6 @@ import AddIcon from '@mui/icons-material/Add';
 import Link from 'next/link';
 
 import ProgressionCard from '../../components/ProgressionCard';
-import SaveProgressionDialog from '../../components/SaveProgressionDialog';
 import {
   deleteProgression,
   getMyProgressions,
@@ -25,7 +24,7 @@ export default function MyProgressionsPage() {
   const [progressions, setProgressions] = useState<Progression[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [requiresAuth, setRequiresAuth] = useState(false);
 
   useEffect(() => {
     loadProgressions();
@@ -35,10 +34,15 @@ export default function MyProgressionsPage() {
     try {
       setLoading(true);
       setError('');
+      setRequiresAuth(false);
       const data = await getMyProgressions();
       setProgressions(data);
     } catch (err) {
-      setError((err as Error).message || 'Failed to load progressions');
+      const message = (err as Error).message || 'Failed to load progressions';
+      if (message.toLowerCase().includes('unauthorized')) {
+        setRequiresAuth(true);
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -87,6 +91,15 @@ export default function MyProgressionsPage() {
         {error && (
           <Alert severity="error" onClose={() => setError('')}>
             {error}
+            {requiresAuth ? (
+              <Box sx={{ mt: 1 }}>
+                <Link href="/auth" passHref>
+                  <Button variant="contained" size="small">
+                    Login to continue
+                  </Button>
+                </Link>
+              </Box>
+            ) : null}
           </Alert>
         )}
 
@@ -126,13 +139,6 @@ export default function MyProgressionsPage() {
         )}
       </Stack>
 
-      {/* Save dialog - not used in this page but keeping for consistency */}
-      <SaveProgressionDialog
-        open={showSaveDialog}
-        onClose={() => setShowSaveDialog(false)}
-        onSuccess={loadProgressions}
-        chords={[]}
-      />
     </Container>
   );
 }

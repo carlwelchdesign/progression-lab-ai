@@ -82,6 +82,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [data, setData] = useState<ChordSuggestionResponse | null>(null);
+  const [isLoadedFromSavedProgression, setIsLoadedFromSavedProgression] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [selectedProgressionChords, setSelectedProgressionChords] = useState<ChordItem[]>([]);
   const [selectedProgressionVoicings, setSelectedProgressionVoicings] = useState<ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings']>([]);
@@ -121,6 +122,7 @@ export default function HomePage() {
       }
 
       if (chordNames.length > 0) {
+        setIsLoadedFromSavedProgression(true);
         const loadedVoicings = Array.isArray(parsed.pianoVoicings)
           ? parsed.pianoVoicings
           : [];
@@ -157,6 +159,7 @@ export default function HomePage() {
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
+    setIsLoadedFromSavedProgression(false);
 
     const resolvedMode = mode === 'custom' ? customMode.trim() : mode;
     const resolvedGenre = genre === 'custom' ? customGenre.trim() : genre;
@@ -342,131 +345,133 @@ export default function HomePage() {
 
         {data && !loading ? (
           <>
-            <Box component="section" id="suggestions">
-              <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-                Next chord suggestions
-              </Typography>
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: {
-                    xs: '1fr',
-                    md: 'repeat(1, minmax(0, 1fr))',
-                  },
-                  gap: 2,
-                }}
-              >
-                {data.nextChordSuggestions.map((item) => (
-                  <AppCard
-                    key={`${item.chord}-${item.functionExplanation}`}
-                  >
-                    <Typography variant="h6" component="h3" gutterBottom>
-                      {item.chord}
-                    </Typography>
-                    <Typography variant="body2" sx={{ mb: 1.5 }}>
-                      {item.functionExplanation}
-                    </Typography>
-                    {item.romanNumeral ? (
-                      <Typography variant="body2">
-                        <strong>Roman numeral:</strong> {item.romanNumeral}
-                      </Typography>
-                    ) : null}
-                    <Typography variant="body2">
-                      <strong>Tension:</strong> {item.tensionLevel}/5
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Confidence:</strong> {item.confidence}/5
-                    </Typography>
-                    {item.voicingHint ? (
-                      <Typography variant="body2">
-                        <strong>Voicing hint:</strong> {item.voicingHint}
-                      </Typography>
-                    ) : null}
-                    {item.pianoVoicing ? (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={() =>
-                            playChordVoicing({
-                              leftHand: item.pianoVoicing?.leftHand ?? [],
-                              rightHand: item.pianoVoicing?.rightHand ?? [],
-                            })
-                          }
-                        >
-                          Play chord
-                        </Button>
-                      </div>
-                    ) : null}
-                    {item.pianoVoicing ? (
-                      <Box sx={{ mt: 1 }}>
-                        <Typography variant="body2">
-                          <strong>Left hand:</strong> {item.pianoVoicing.leftHand.join(', ')}
-                        </Typography>
-                        <Typography variant="body2">
-                          <strong>Right hand:</strong> {item.pianoVoicing.rightHand.join(', ')}
-                        </Typography>
-                      </Box>
-                    ) : null}
-
-                    <Box
-                      sx={{
-                        mt: 2,
-                        display: {
-                          xs: 'block',
-                          lg: 'grid',
-                        },
-                        gridTemplateColumns: {
-                          xs: '1fr',
-                          lg: '220px minmax(0, 1fr)',
-                        },
-                        gap: 2,
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        justifyItems: 'center',
-                      }}
+            {!isLoadedFromSavedProgression ? (
+              <Box component="section" id="suggestions">
+                <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
+                  Next chord suggestions
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr',
+                      md: 'repeat(1, minmax(0, 1fr))',
+                    },
+                    gap: 2,
+                  }}
+                >
+                  {data.nextChordSuggestions.map((item) => (
+                    <AppCard
+                      key={`${item.chord}-${item.functionExplanation}`}
                     >
-                      {item.guitarVoicing && (
-                        <GuitarChordDiagram
-                          title={item.guitarVoicing.title}
-                          position={
-                            typeof item.guitarVoicing.position === 'number' &&
-                            item.guitarVoicing.position >= 1
-                              ? item.guitarVoicing.position
-                              : 1
-                          }
-                          fingers={item.guitarVoicing.fingers.map((finger) =>
-                            finger.finger
-                              ? [finger.string, finger.fret, finger.finger]
-                              : [finger.string, finger.fret]
-                          )}
-                          barres={item.guitarVoicing.barres.map((barre) => ({
-                            fromString: barre.fromString,
-                            toString: barre.toString,
-                            fret: barre.fret,
-                            text: barre.text ?? undefined,
-                          }))}
-                        />
-                      )}
+                      <Typography variant="h6" component="h3" gutterBottom>
+                        {item.chord}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 1.5 }}>
+                        {item.functionExplanation}
+                      </Typography>
+                      {item.romanNumeral ? (
+                        <Typography variant="body2">
+                          <strong>Roman numeral:</strong> {item.romanNumeral}
+                        </Typography>
+                      ) : null}
+                      <Typography variant="body2">
+                        <strong>Tension:</strong> {item.tensionLevel}/5
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>Confidence:</strong> {item.confidence}/5
+                      </Typography>
+                      {item.voicingHint ? (
+                        <Typography variant="body2">
+                          <strong>Voicing hint:</strong> {item.voicingHint}
+                        </Typography>
+                      ) : null}
                       {item.pianoVoicing ? (
-                        <Box
-                          sx={{
-                            width: '100%',
-                            maxWidth: { xs: '100%', lg: '700px' },
-                            alignSelf: 'center',
-                          }}
-                        >
-                          <PianoChordDiagram
-                            leftHand={item.pianoVoicing.leftHand}
-                            rightHand={item.pianoVoicing.rightHand}
-                          />
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() =>
+                              playChordVoicing({
+                                leftHand: item.pianoVoicing?.leftHand ?? [],
+                                rightHand: item.pianoVoicing?.rightHand ?? [],
+                              })
+                            }
+                          >
+                            Play chord
+                          </Button>
+                        </div>
+                      ) : null}
+                      {item.pianoVoicing ? (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="body2">
+                            <strong>Left hand:</strong> {item.pianoVoicing.leftHand.join(', ')}
+                          </Typography>
+                          <Typography variant="body2">
+                            <strong>Right hand:</strong> {item.pianoVoicing.rightHand.join(', ')}
+                          </Typography>
                         </Box>
                       ) : null}
-                    </Box>
-                  </AppCard>
-                ))}
+
+                      <Box
+                        sx={{
+                          mt: 2,
+                          display: {
+                            xs: 'block',
+                            lg: 'grid',
+                          },
+                          gridTemplateColumns: {
+                            xs: '1fr',
+                            lg: '220px minmax(0, 1fr)',
+                          },
+                          gap: 2,
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          justifyItems: 'center',
+                        }}
+                      >
+                        {item.guitarVoicing && (
+                          <GuitarChordDiagram
+                            title={item.guitarVoicing.title}
+                            position={
+                              typeof item.guitarVoicing.position === 'number' &&
+                              item.guitarVoicing.position >= 1
+                                ? item.guitarVoicing.position
+                                : 1
+                            }
+                            fingers={item.guitarVoicing.fingers.map((finger) =>
+                              finger.finger
+                                ? [finger.string, finger.fret, finger.finger]
+                                : [finger.string, finger.fret]
+                            )}
+                            barres={item.guitarVoicing.barres.map((barre) => ({
+                              fromString: barre.fromString,
+                              toString: barre.toString,
+                              fret: barre.fret,
+                              text: barre.text ?? undefined,
+                            }))}
+                          />
+                        )}
+                        {item.pianoVoicing ? (
+                          <Box
+                            sx={{
+                              width: '100%',
+                              maxWidth: { xs: '100%', lg: '700px' },
+                              alignSelf: 'center',
+                            }}
+                          >
+                            <PianoChordDiagram
+                              leftHand={item.pianoVoicing.leftHand}
+                              rightHand={item.pianoVoicing.rightHand}
+                            />
+                          </Box>
+                        ) : null}
+                      </Box>
+                    </AppCard>
+                  ))}
+                </Box>
               </Box>
-            </Box>
+            ) : null}
 
             <Box component="section" id="progressions">
               <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
@@ -605,30 +610,32 @@ export default function HomePage() {
               </Box>
             </Box>
 
-            <Box component="section" id="structure">
-              <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-                Structure suggestions
-              </Typography>
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: {
-                    xs: '1fr',
-                    md: 'repeat(3, minmax(0, 1fr))',
-                  },
-                  gap: 2,
-                }}
-              >
-                {data.structureSuggestions.map((section) => (
-                  <AppCard key={`${section.section}-${section.bars}`}>
-                    <Typography variant="h6" component="h3" gutterBottom>
-                      {section.section} · {section.bars} bars
-                    </Typography>
-                    <Typography variant="body2">{section.harmonicIdea}</Typography>
-                  </AppCard>
-                ))}
+            {!isLoadedFromSavedProgression ? (
+              <Box component="section" id="structure">
+                <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
+                  Structure suggestions
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr',
+                      md: 'repeat(3, minmax(0, 1fr))',
+                    },
+                    gap: 2,
+                  }}
+                >
+                  {data.structureSuggestions.map((section) => (
+                    <AppCard key={`${section.section}-${section.bars}`}>
+                      <Typography variant="h6" component="h3" gutterBottom>
+                        {section.section} · {section.bars} bars
+                      </Typography>
+                      <Typography variant="body2">{section.harmonicIdea}</Typography>
+                    </AppCard>
+                  ))}
+                </Box>
               </Box>
-            </Box>
+            ) : null}
 
             <SaveProgressionDialog
               open={saveDialogOpen}

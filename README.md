@@ -58,6 +58,9 @@ Create a `.env.local` file:
 
 ```
 OPENAI_API_KEY=your_key_here
+OPENAI_MODEL=gpt-5.4
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/progression_lab
+AUTH_SECRET=replace_with_a_long_random_string
 ```
 
 Then visit:
@@ -84,6 +87,17 @@ http://localhost:3000
 * Save and share progressions
 * Chord progression templates
 * Custom tuning support
+
+## Authentication
+
+The app now includes a simple cookie-based auth system:
+
+* `POST /api/auth/register`
+* `POST /api/auth/login`
+* `POST /api/auth/logout`
+* `GET /api/auth/me`
+
+Progression CRUD routes are user-scoped and require authentication.
 
 ## Architecture Overview
 

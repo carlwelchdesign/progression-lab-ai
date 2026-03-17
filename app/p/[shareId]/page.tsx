@@ -12,10 +12,12 @@ import {
   Typography,
 } from '@mui/material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import Link from 'next/link';
 
 import ProgressionCard from '../../../components/ProgressionCard';
 import { getSharedProgression } from '../../../lib/api/progressions';
+import { playProgression } from '../../../lib/audio';
 import type { Progression } from '../../../lib/types';
 
 export default function SharedProgressionPage() {
@@ -92,6 +94,19 @@ export default function SharedProgressionPage() {
               canDelete={false}
               onOpen={handleOpen}
             />
+
+            {progression.pianoVoicings && progression.pianoVoicings.length > 0 ? (
+              <Button
+                variant="outlined"
+                size="large"
+                startIcon={<PlayArrowIcon />}
+                onClick={() => playProgression(progression.pianoVoicings ?? [])}
+                fullWidth
+                sx={{ py: 2 }}
+              >
+                Play progression
+              </Button>
+            ) : null}
 
             <Button
               variant="contained"

@@ -14,7 +14,7 @@ import {
   Toolbar,
   Typography,
 } from '@mui/material';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import ThemeModeToggle from './ui/ThemeModeToggle';
 
@@ -31,6 +31,36 @@ const NAV_ITEMS = [
 
 export default function AppShell({ children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (mounted) {
+          setIsAuthenticated(response.ok);
+        }
+      } catch {
+        if (mounted) {
+          setIsAuthenticated(false);
+        }
+      }
+    };
+
+    loadAuth();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    setIsAuthenticated(false);
+    window.location.href = '/auth';
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -61,6 +91,18 @@ export default function AppShell({ children }: Props) {
                   {item.label}
                 </Button>
               ))}
+              <Button href="/progressions" color="inherit">
+                My Progressions
+              </Button>
+              {isAuthenticated ? (
+                <Button onClick={handleLogout} color="inherit">
+                  Logout
+                </Button>
+              ) : (
+                <Button href="/auth" color="inherit">
+                  Login
+                </Button>
+              )}
               <ThemeModeToggle />
             </Box>
 
@@ -95,6 +137,23 @@ export default function AppShell({ children }: Props) {
                 <ListItemText primary={item.label} />
               </ListItemButton>
             ))}
+            <ListItemButton component="a" href="/progressions" onClick={() => setMobileOpen(false)}>
+              <ListItemText primary="My Progressions" />
+            </ListItemButton>
+            {isAuthenticated ? (
+              <ListItemButton
+                onClick={() => {
+                  setMobileOpen(false);
+                  handleLogout();
+                }}
+              >
+                <ListItemText primary="Logout" />
+              </ListItemButton>
+            ) : (
+              <ListItemButton component="a" href="/auth" onClick={() => setMobileOpen(false)}>
+                <ListItemText primary="Login" />
+              </ListItemButton>
+            )}
           </List>
         </Box>
       </Drawer>

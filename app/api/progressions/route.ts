@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getSessionFromRequest } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
 import type { CreateProgressionRequest } from '../../../lib/types';
 
-const DEMO_USER_ID = 'demo-user-id';
-
 export async function POST(request: NextRequest) {
   try {
+    const session = getSessionFromRequest(request);
+    if (!session) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = (await request.json()) as CreateProgressionRequest;
     const {
       title,
@@ -36,7 +40,7 @@ export async function POST(request: NextRequest) {
         notes,
         tags,
         isPublic,
-        userId: DEMO_USER_ID,
+        userId: session.userId,
       },
     });
 
@@ -50,10 +54,15 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const session = getSessionFromRequest(request);
+    if (!session) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
     const progressions = await prisma.progression.findMany({
-      where: { userId: DEMO_USER_ID },
+      where: { userId: session.userId },
       orderBy: { updatedAt: 'desc' },
     });
 
