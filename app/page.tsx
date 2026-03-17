@@ -302,7 +302,10 @@ export default function HomePage() {
                     <Box
                       sx={{
                         mt: 2,
-                        display: 'grid',
+                        display: {
+                          xs: 'block',
+                          lg: 'grid',
+                        },
                         gridTemplateColumns: {
                           xs: '1fr',
                           lg: '220px minmax(0, 1fr)',

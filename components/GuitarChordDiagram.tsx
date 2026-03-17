@@ -7,17 +7,17 @@ import { SVGuitarChord } from 'svguitar';
 type Finger = [number, number | 'x', string?];
 
 type Barre = {
-    fromString: number;
-    toString: number;
-    fret: number;
-    text?: string;
+  fromString: number;
+  toString: number;
+  fret: number;
+  text?: string;
 };
 
 type Props = {
-    title: string;
-    fingers: Finger[];
-    barres?: Barre[];
-    position?: number | null;
+  title: string;
+  fingers: Finger[];
+  barres?: Barre[];
+  position?: number | null;
 };
 
 export default function GuitarChordDiagram({
@@ -38,8 +38,20 @@ export default function GuitarChordDiagram({
 
     container.innerHTML = '';
 
+    const hasOpenStrings = fingers.some((f) => f[1] === 0);
+
+    const numericFrets = fingers
+      .map((f) => (typeof f[1] === 'number' ? f[1] : null))
+      .filter((f): f is number => f !== null);
+
+    const minFret = numericFrets.length > 0 ? Math.min(...numericFrets) : 1;
+
     const normalizedPosition =
-            typeof position === 'number' && position >= 1 ? position : 1;
+      hasOpenStrings || minFret <= 1
+        ? 1
+        : typeof position === 'number' && position >= 1
+          ? position
+          : minFret;
 
     try {
       new SVGuitarChord(selector)
@@ -48,14 +60,11 @@ export default function GuitarChordDiagram({
           frets: 6,
           position: normalizedPosition,
           tuning: ['E', 'A', 'D', 'G', 'B', 'E'],
-
-          fingerSize:1,
-
-          // DARK THEME COLORS
+          fingerSize: 1,
           backgroundColor: 'transparent',
           color: '#fff',
-          fingerColor: '#3b82f6',      // blue finger dots
-          fingerTextColor: '#ffffff',  // finger numbers
+          fingerColor: '#3b82f6',
+          fingerTextColor: '#ffffff',
         })
         .chord({
           title,
