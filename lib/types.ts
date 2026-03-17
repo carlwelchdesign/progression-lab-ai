@@ -68,6 +68,7 @@ export type ChordItem = {
 export type ProgressionPayload = {
   title: string;
   chords: ChordItem[];
+  pianoVoicings?: PianoVoicing[];
   feel?: string;
   scale?: string;
   notes?: string;
@@ -84,6 +85,7 @@ export type Progression = {
   userId: string;
   title: string;
   chords: ChordItem[];
+  pianoVoicings?: PianoVoicing[];
   feel?: string;
   scale?: string;
   notes?: string;

@@ -27,6 +27,7 @@ model Progression {
   userId     String
   title      String
   chords     Json
+  pianoVoicings Json?
   feel       String?
   scale      String?
   notes      String?

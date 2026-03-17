@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import {
   Alert,
@@ -84,7 +84,75 @@ export default function HomePage() {
   const [data, setData] = useState<ChordSuggestionResponse | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [selectedProgressionChords, setSelectedProgressionChords] = useState<ChordItem[]>([]);
+  const [selectedProgressionVoicings, setSelectedProgressionVoicings] = useState<ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings']>([]);
   const [selectedProgressionFeel, setSelectedProgressionFeel] = useState('');
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem('loadedProgression');
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        title?: string;
+        chords?: Array<{ name?: string } | string>;
+        pianoVoicings?: ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings'];
+        feel?: string;
+        scale?: string;
+      };
+
+      const chordNames = (parsed.chords ?? [])
+        .map((chord) =>
+          typeof chord === 'string' ? chord : (chord.name ?? '').trim()
+        )
+        .filter(Boolean);
+
+      if (chordNames.length > 0) {
+        setSeedChords(chordNames.join(', '));
+      }
+
+      if (parsed.feel) {
+        setMood(parsed.feel);
+      }
+
+      if (parsed.scale) {
+        setMode(parsed.scale);
+      }
+
+      if (chordNames.length > 0) {
+        const loadedVoicings = Array.isArray(parsed.pianoVoicings)
+          ? parsed.pianoVoicings
+          : [];
+
+        setData((prev) => ({
+          inputSummary: {
+            seedChords: chordNames,
+            mood: parsed.feel ?? prev?.inputSummary.mood ?? null,
+            mode: parsed.scale ?? prev?.inputSummary.mode ?? null,
+            genre: prev?.inputSummary.genre ?? null,
+            instrument: prev?.inputSummary.instrument ?? null,
+            adventurousness: prev?.inputSummary.adventurousness ?? null,
+          },
+          nextChordSuggestions: prev?.nextChordSuggestions ?? [],
+          progressionIdeas: [
+            {
+              label: parsed.title || 'Loaded progression',
+              chords: chordNames,
+              feel: parsed.feel || 'Loaded from saved progression',
+              performanceTip: null,
+              pianoVoicings: loadedVoicings,
+            },
+          ],
+          structureSuggestions: prev?.structureSuggestions ?? [],
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to load saved progression from session storage:', err);
+    } finally {
+      sessionStorage.removeItem('loadedProgression');
+    }
+  }, []);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -458,6 +526,7 @@ export default function HomePage() {
                               setSelectedProgressionChords(
                                 idea.chords.map((chord) => ({ name: chord, beats: 1 }))
                               );
+                              setSelectedProgressionVoicings(idea.pianoVoicings);
                               setSelectedProgressionFeel(idea.feel);
                               setSaveDialogOpen(true);
                             }}
@@ -565,6 +634,7 @@ export default function HomePage() {
               open={saveDialogOpen}
               onClose={() => setSaveDialogOpen(false)}
               chords={selectedProgressionChords}
+              pianoVoicings={selectedProgressionVoicings}
               feel={selectedProgressionFeel}
               scale={mode === 'custom' ? customMode : mode}
               onSuccess={() => {

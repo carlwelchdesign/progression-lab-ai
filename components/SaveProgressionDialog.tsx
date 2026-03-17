@@ -14,13 +14,14 @@ import {
 } from '@mui/material';
 
 import { createProgression } from '../lib/api/progressions';
-import type { ChordItem } from '../lib/types';
+import type { ChordItem, PianoVoicing } from '../lib/types';
 
 type SaveProgressionDialogProps = {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
   chords: ChordItem[];
+  pianoVoicings?: PianoVoicing[];
   feel?: string;
   scale?: string;
 };
@@ -30,6 +31,7 @@ export default function SaveProgressionDialog({
   onClose,
   onSuccess,
   chords,
+  pianoVoicings,
   feel: defaultFeel,
   scale: defaultScale,
 }: SaveProgressionDialogProps) {
@@ -53,6 +55,7 @@ export default function SaveProgressionDialog({
       await createProgression({
         title: title.trim(),
         chords,
+        pianoVoicings,
         feel: defaultFeel,
         scale: defaultScale,
         notes: notes.trim() || undefined,

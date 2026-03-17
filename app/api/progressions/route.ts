@@ -8,7 +8,16 @@ const DEMO_USER_ID = 'demo-user-id';
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CreateProgressionRequest;
-    const { title, chords, feel, scale, notes, tags = [], isPublic = false } = body;
+    const {
+      title,
+      chords,
+      pianoVoicings,
+      feel,
+      scale,
+      notes,
+      tags = [],
+      isPublic = false,
+    } = body;
 
     if (!title || !chords) {
       return NextResponse.json(
@@ -21,6 +30,7 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         chords,
+        pianoVoicings,
         feel,
         scale,
         notes,

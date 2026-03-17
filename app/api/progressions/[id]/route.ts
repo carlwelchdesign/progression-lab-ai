@@ -42,13 +42,14 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = (await request.json()) as UpdateProgressionRequest;
-    const { title, chords, feel, scale, notes, tags, isPublic } = body;
+    const { title, chords, pianoVoicings, feel, scale, notes, tags, isPublic } = body;
 
     const progression = await prisma.progression.update({
       where: { id },
       data: {
         ...(title !== undefined && { title }),
         ...(chords !== undefined && { chords }),
+        ...(pianoVoicings !== undefined && { pianoVoicings }),
         ...(feel !== undefined && { feel }),
         ...(scale !== undefined && { scale }),
         ...(notes !== undefined && { notes }),
