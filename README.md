@@ -282,5 +282,4 @@ The current architecture allows for several natural extensions:
 
 ## Author
 
-Carl Welch
-Senior Product Engineer
+**Carl Welch:** Senior Product Engineer

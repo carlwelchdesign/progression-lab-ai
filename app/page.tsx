@@ -6,9 +6,11 @@ import {
   Alert,
   Box,
   Button,
+  CircularProgress,
   Container,
   Stack,
   Typography,
+  Divider,
 } from '@mui/material';
 
 import GuitarChordDiagram from '../components/GuitarChordDiagram';
@@ -21,6 +23,7 @@ import type {
   ChordSuggestionResponse,
   InstrumentPreference
 } from '../lib/types';
+import { playChordVoicing, playProgression } from '../lib/audio';
 
 const MODE_OPTIONS = [
   { value: 'ionian', label: 'Ionian (Major)' },
@@ -246,7 +249,25 @@ export default function HomePage() {
           </Stack>
         </AppCard>
 
-        {data ? (
+        {loading && (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              py: 8,
+              gap: 2,
+            }}
+          >
+            <CircularProgress />
+            <Typography variant="body1" color="text.secondary">
+              Generating suggestions...
+            </Typography>
+          </Box>
+        )}
+
+        {data && !loading ? (
           <>
             <Box component="section" id="suggestions">
               <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
@@ -287,6 +308,22 @@ export default function HomePage() {
                       <Typography variant="body2">
                         <strong>Voicing hint:</strong> {item.voicingHint}
                       </Typography>
+                    ) : null}
+                    {item.pianoVoicing ? (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={() =>
+                            playChordVoicing({
+                              leftHand: item.pianoVoicing?.leftHand ?? [],
+                              rightHand: item.pianoVoicing?.rightHand ?? [],
+                            })
+                          }
+                        >
+                          Play chord
+                        </Button>
+                      </div>
                     ) : null}
                     {item.pianoVoicing ? (
                       <Box sx={{ mt: 1 }}>
@@ -356,6 +393,7 @@ export default function HomePage() {
               <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
                 Progression ideas
               </Typography>
+
               <Box
                 sx={{
                   display: 'grid',
@@ -368,18 +406,107 @@ export default function HomePage() {
               >
                 {data.progressionIdeas.map((idea) => (
                   <AppCard key={idea.label}>
-                    <Typography variant="h6" component="h3" gutterBottom>
-                      {idea.label}
-                    </Typography>
-                    <Typography variant="body1" sx={{ mb: 1 }}>
-                      {idea.chords.join(' → ')}
-                    </Typography>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                      {idea.feel}
-                    </Typography>
-                    {idea.performanceTip ? (
-                      <Typography variant="body2">{idea.performanceTip}</Typography>
-                    ) : null}
+                    <Stack spacing={2}>
+                      <Box>
+                        <Typography variant="h6" component="h3" gutterBottom>
+                          {idea.label}
+                        </Typography>
+
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            fontWeight: 600,
+                            color: 'primary.main',
+                          }}
+                        >
+                          {idea.chords.join(' → ')}
+                        </Typography>
+                      </Box>
+
+                      <Typography variant="body2">{idea.feel}</Typography>
+
+                      {idea.performanceTip ? (
+                        <Typography variant="body2" color="text.secondary">
+                          {idea.performanceTip}
+                        </Typography>
+                      ) : null}
+
+                      {idea.pianoVoicings.length > 0 ? (
+                        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => playProgression(idea.pianoVoicings)}
+                          >
+                            Play progression
+                          </Button>
+                        </Stack>
+                      ) : null}
+
+                      <Stack spacing={2}>
+                        {idea.chords.map((chord, index) => {
+                          const voicing = idea.pianoVoicings[index];
+
+                          return (
+                            <Box key={`${idea.label}-${chord}-${index}`}>
+                              {index > 0 ? <Divider sx={{ mb: 2 }} /> : null}
+
+                              <Stack spacing={1.5}>
+                                <Typography variant="subtitle1" component="h4">
+                                  {chord}
+                                </Typography>
+
+                                {voicing ? (
+                                  <>
+                                    <Stack spacing={0.5}>
+                                      <Typography variant="body2">
+                                        <Box component="span" sx={{ fontWeight: 700 }}>
+                                          LH:
+                                        </Box>{' '}
+                                        {voicing.leftHand.join(', ')}
+                                      </Typography>
+
+                                      <Typography variant="body2">
+                                        <Box component="span" sx={{ fontWeight: 700 }}>
+                                          RH:
+                                        </Box>{' '}
+                                        {voicing.rightHand.join(', ')}
+                                      </Typography>
+                                    </Stack>
+
+                                    <Box sx={{ pt: 1 }}>
+                                      <PianoChordDiagram
+                                        leftHand={voicing.leftHand}
+                                        rightHand={voicing.rightHand}
+                                      />
+                                    </Box>
+
+                                    <Stack direction="row" spacing={1}>
+                                      <Button
+                                        variant="outlined"
+                                        size="small"
+                                        onClick={() =>
+                                          playChordVoicing({
+                                            leftHand: voicing.leftHand,
+                                            rightHand: voicing.rightHand,
+                                          })
+                                        }
+                                      >
+                                        Play chord
+                                      </Button>
+                                    </Stack>
+                                  </>
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary">
+                                    No voicing available.
+                                  </Typography>
+                                )}
+                              </Stack>
+                            </Box>
+                          );
+                        })}
+                      </Stack>
+                    </Stack>
                   </AppCard>
                 ))}
               </Box>

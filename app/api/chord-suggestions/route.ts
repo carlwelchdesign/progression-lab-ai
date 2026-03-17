@@ -130,7 +130,7 @@ const chordSuggestionSchema = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['label', 'chords', 'feel', 'performanceTip'],
+        required: ['label', 'chords', 'feel', 'performanceTip', 'pianoVoicings'],
         properties: {
           label: { type: 'string' },
           chords: {
@@ -139,6 +139,24 @@ const chordSuggestionSchema = {
           },
           feel: { type: 'string' },
           performanceTip: { type: ['string', 'null'] },
+          pianoVoicings: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['leftHand', 'rightHand'],
+              properties: {
+                leftHand: {
+                  type: 'array',
+                  items: { type: 'string' },
+                },
+                rightHand: {
+                  type: 'array',
+                  items: { type: 'string' },
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -214,6 +232,20 @@ Rules:
 - finger is "1", "2", "3", "4", or null.
 - include barres when needed.
 - if no practical voicing is available, return null.
+
+For each progression idea, also return pianoVoicings.
+
+Rules:
+- pianoVoicings must have the same number of entries as chords
+- each voicing must correspond to the chord at the same index
+- each voicing must use scientific pitch notation with octave numbers
+- each voicing must include:
+  - leftHand: 1 to 2 notes in a lower register
+  - rightHand: 3 to 5 notes in a practical upper register
+- favor smooth voice leading across the progression
+- make the voicings playable and stylistically appropriate for the requested genre and mood
+
+When returning progressionIdeas, ensure pianoVoicings.length exactly matches chords.length.
     `.trim();
 
     const input = JSON.stringify({

@@ -21,7 +21,8 @@
     "piano-chart": "^1.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "svguitar": "^2.5.1"
+    "svguitar": "^2.5.1",
+    "tone": "^15.1.22"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

@@ -62,10 +62,10 @@ describe('GuitarChordDiagram', () => {
       expect.stringMatching(/^#guitar-chart-/)
     );
     expect(mockConfigure).toHaveBeenCalledWith(
-      expect.objectContaining({ position: 1, strings: 6, frets: 6 })
+      expect.objectContaining({ position: 2, strings: 6, frets: 6 })
     );
     expect(mockChord).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'G7', position: 1 })
+      expect.objectContaining({ title: 'G7', position: 2 })
     );
     expect(mockDraw).toHaveBeenCalledTimes(1);
   });

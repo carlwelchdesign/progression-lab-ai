@@ -33,6 +33,14 @@ export type NextChordSuggestion = {
   guitarVoicing: GuitarVoicing | null;
 };
 
+export type ProgressionIdea = {
+  label: string;
+  chords: string[];
+  feel: string;
+  performanceTip: string | null;
+  pianoVoicings: PianoVoicing[];
+};
+
 export type ChordSuggestionResponse = {
   inputSummary: {
     seedChords: string[];
@@ -43,12 +51,7 @@ export type ChordSuggestionResponse = {
     adventurousness: Adventurousness | null;
   };
   nextChordSuggestions: NextChordSuggestion[];
-  progressionIdeas: Array<{
-    label: string;
-    chords: string[];
-    feel: string;
-    performanceTip: string | null;
-  }>;
+  progressionIdeas: ProgressionIdea[];
   structureSuggestions: Array<{
     section: 'verse' | 'pre-chorus' | 'chorus' | 'bridge' | 'outro';
     bars: number;
