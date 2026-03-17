@@ -58,3 +58,37 @@ export type ChordSuggestionResponse = {
     harmonicIdea: string;
   }>;
 };
+
+// Progression database types
+export type ChordItem = {
+  name: string;
+  beats: number;
+};
+
+export type ProgressionPayload = {
+  title: string;
+  chords: ChordItem[];
+  feel?: string;
+  scale?: string;
+  notes?: string;
+  tags?: string[];
+  isPublic?: boolean;
+};
+
+export type CreateProgressionRequest = ProgressionPayload;
+export type UpdateProgressionRequest = Partial<ProgressionPayload>;
+
+export type Progression = {
+  id: string;
+  shareId: string;
+  userId: string;
+  title: string;
+  chords: ChordItem[];
+  feel?: string;
+  scale?: string;
+  notes?: string;
+  tags: string[];
+  isPublic: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};

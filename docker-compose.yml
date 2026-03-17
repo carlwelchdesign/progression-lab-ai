@@ -6,10 +6,29 @@ services:
     container_name: music-chord-app
     ports:
       - '3000:3000'
+    depends_on:
+      - db
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4}
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/progression_lab
     volumes:
       - .:/app
       - /app/node_modules
       - /app/.next
+
+  db:
+    image: postgres:16
+    container_name: progression-lab-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: progression_lab
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

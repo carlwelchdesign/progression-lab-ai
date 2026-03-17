@@ -18,8 +18,10 @@ import PianoChordDiagram from '../components/PianoChordDiagram';
 import AppCard from '../components/ui/AppCard';
 import AppSelectField from '../components/ui/AppSelectField';
 import AppTextField from '../components/ui/AppTextField';
+import SaveProgressionDialog from '../components/SaveProgressionDialog';
 import type {
   Adventurousness,
+  ChordItem,
   ChordSuggestionResponse,
   InstrumentPreference
 } from '../lib/types';
@@ -80,6 +82,9 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [data, setData] = useState<ChordSuggestionResponse | null>(null);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [selectedProgressionChords, setSelectedProgressionChords] = useState<ChordItem[]>([]);
+  const [selectedProgressionFeel, setSelectedProgressionFeel] = useState('');
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -446,6 +451,19 @@ export default function HomePage() {
                           >
                             Play progression
                           </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              setSelectedProgressionChords(
+                                idea.chords.map((chord) => ({ name: chord, beats: 1 }))
+                              );
+                              setSelectedProgressionFeel(idea.feel);
+                              setSaveDialogOpen(true);
+                            }}
+                          >
+                            Save
+                          </Button>
                         </Stack>
                       ) : null}
 
@@ -542,6 +560,18 @@ export default function HomePage() {
                 ))}
               </Box>
             </Box>
+
+            <SaveProgressionDialog
+              open={saveDialogOpen}
+              onClose={() => setSaveDialogOpen(false)}
+              chords={selectedProgressionChords}
+              feel={selectedProgressionFeel}
+              scale={mode === 'custom' ? customMode : mode}
+              onSuccess={() => {
+                setSaveDialogOpen(false);
+                alert('Progression saved!');
+              }}
+            />
           </>
         ) : null}
       </Stack>
