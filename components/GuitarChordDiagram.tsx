@@ -91,5 +91,20 @@ export default function GuitarChordDiagram({
     }
   }, [id, title, fingers, barres, position]);
 
-  return <Box id={`guitar-chart-${id}`} sx={{ minHeight: 220, minWidth: 160 }} />;
+  return (
+    <Box
+      id={`guitar-chart-${id}`}
+      sx={{
+        minHeight: { xs: 180, sm: 220 },
+        minWidth: { xs: 120, sm: 160 },
+        width: { xs: 120, sm: 160 },
+        mx: 'auto',
+        '& svg': {
+          width: { xs: 120, sm: 160 },
+          height: 'auto',
+          display: 'block',
+        },
+      }}
+    />
+  );
 }
