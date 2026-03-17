@@ -15,6 +15,7 @@ The app also visualizes suggested voicings on **piano and guitar**, making it us
 * Guitar chord diagrams
 * Support for musical modes and scales
 * Genre-aware harmony generation
+* Audio playback of chord voicings using Tone.js
 
 <img width="984" height="1316" alt="image" src="https://github.com/user-attachments/assets/d3bec33a-e5ca-4997-b09e-5690f0fe705f" />
 <img width="963" height="441" alt="image" src="https://github.com/user-attachments/assets/c517aa90-538a-4fd5-9c57-640e67361f82" />
@@ -25,9 +26,10 @@ The app also visualizes suggested voicings on **piano and guitar**, making it us
 * **React**
 * **TypeScript**
 * **OpenAI API**
-* **piano-chart**
-* **svguitar**
-* **MaterialUI**
+* **Tone.js** — Web audio synthesis and playback
+* **piano-chart** — Interactive piano keyboard visualization
+* **svguitar** — Guitar chord diagram rendering
+* **Material UI** — Component library and theming
 
 ## Example Workflow
 
@@ -77,11 +79,11 @@ http://localhost:3000
 
 ## Future Improvements
 
-* MIDI playback of generated chords
-* Audio preview of voicings
-* Voice leading optimization
+* Advanced voice leading optimization
 * Progression export to MIDI / DAW
 * Save and share progressions
+* Chord progression templates
+* Custom tuning support
 
 ## Architecture Overview
 
