@@ -4,7 +4,7 @@ Progression Lab AI is an AI-assisted harmony exploration tool for generating cho
 
 It includes playable voicings, piano and guitar visualizations, account-based progression saving, and public progression sharing.
 
-<img width="1220" height="560" alt="image" src="https://github.com/user-attachments/assets/504bbeda-646c-4620-bd18-158be6b9ff3c" />
+<img width="1220" height="563" alt="image" src="https://github.com/user-attachments/assets/85725fe3-5c7f-4ad5-b908-a71aacb7ed23" />
 
 ## Features
 
@@ -20,7 +20,9 @@ It includes playable voicings, piano and guitar visualizations, account-based pr
 * Load saved/shared progressions back into the main lab
 
 <img width="1196" height="1199" alt="image" src="https://github.com/user-attachments/assets/939b31a5-1d79-407e-94b6-764e708cb45e" />
-<img width="1215" height="1254" alt="image" src="https://github.com/user-attachments/assets/5bf1697b-b886-439a-bbe0-724fee98e8f9" />
+<img width="1205" height="1312" alt="image" src="https://github.com/user-attachments/assets/512da646-58e5-439b-8155-c33a09b3d469" />
+<img width="1212" height="228" alt="image" src="https://github.com/user-attachments/assets/70be79ef-3a30-4b70-854b-c900e5f63fb6" />
+
 
 ## Tech Stack
 
