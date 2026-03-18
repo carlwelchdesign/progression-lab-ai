@@ -31,7 +31,7 @@ const NAV_ITEMS = [
   { label: 'Structure', href: '/#structure' },
 ];
 
-export default function AppShell({ children }: Props) {
+export default function AppWrapper({ children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isAuthenticated, isLoading, logout } = useAuth();
 

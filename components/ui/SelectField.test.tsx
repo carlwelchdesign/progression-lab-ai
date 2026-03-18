@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import AppSelectField from './AppSelectField';
+import SelectField from './SelectField';
 
-describe('AppSelectField', () => {
+describe('SelectField', () => {
   const mockOptions = [
     { value: 'option1', label: 'Option 1' },
     { value: 'option2', label: 'Option 2' },
@@ -11,12 +11,12 @@ describe('AppSelectField', () => {
   ];
 
   it('renders with label', () => {
-    render(<AppSelectField label="Test Select" options={mockOptions} />);
+    render(<SelectField label="Test Select" options={mockOptions} />);
     expect(screen.getByLabelText('Test Select')).toBeInTheDocument();
   });
 
   it('renders all options', () => {
-    const { container } = render(<AppSelectField label="Select" options={mockOptions} />);
+    const { container } = render(<SelectField label="Select" options={mockOptions} />);
     const select = container.querySelector('select') as HTMLSelectElement;
     expect(select.options.length).toBe(3);
     expect(select.options[0]).toHaveTextContent('Option 1');
@@ -26,7 +26,7 @@ describe('AppSelectField', () => {
 
   it('selects option by value', async () => {
     const { container } = render(
-      <AppSelectField label="Select" options={mockOptions} value="option2" onChange={() => {}} />,
+      <SelectField label="Select" options={mockOptions} value="option2" onChange={() => {}} />,
     );
     const select = container.querySelector('select') as HTMLSelectElement;
     expect(select.value).toBe('option2');
@@ -36,12 +36,7 @@ describe('AppSelectField', () => {
     const user = userEvent.setup();
     const handleChange = jest.fn();
     const { container } = render(
-      <AppSelectField
-        label="Select"
-        options={mockOptions}
-        value="option1"
-        onChange={handleChange}
-      />,
+      <SelectField label="Select" options={mockOptions} value="option1" onChange={handleChange} />,
     );
 
     const select = container.querySelector('select') as HTMLSelectElement;
@@ -50,25 +45,25 @@ describe('AppSelectField', () => {
   });
 
   it('applies fullWidth from AppTextField', () => {
-    const { container } = render(<AppSelectField label="Select" options={mockOptions} />);
+    const { container } = render(<SelectField label="Select" options={mockOptions} />);
     const formControl = container.querySelector('.MuiFormControl-root');
     expect(formControl).toHaveClass('MuiFormControl-fullWidth');
   });
 
   it('uses native select', () => {
-    const { container } = render(<AppSelectField label="Select" options={mockOptions} />);
+    const { container } = render(<SelectField label="Select" options={mockOptions} />);
     const select = container.querySelector('select');
     expect(select).toBeInTheDocument();
   });
 
   it('renders with disabled prop', () => {
-    const { container } = render(<AppSelectField label="Select" options={mockOptions} disabled />);
+    const { container } = render(<SelectField label="Select" options={mockOptions} disabled />);
     const select = container.querySelector('select') as HTMLSelectElement;
     expect(select).toBeDisabled();
   });
 
   it('renders empty when no options provided', () => {
-    const { container } = render(<AppSelectField label="Select" options={[]} />);
+    const { container } = render(<SelectField label="Select" options={[]} />);
     const select = container.querySelector('select') as HTMLSelectElement;
     expect(select.options.length).toBe(0);
   });

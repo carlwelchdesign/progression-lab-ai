@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Alert, Box, Button, CircularProgress, Container, Stack, Typography } from '@mui/material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -14,6 +14,7 @@ import type { Progression } from '../../../lib/types';
 
 export default function SharedProgressionPage() {
   const params = useParams();
+  const router = useRouter();
   const shareId = params?.shareId as string;
 
   const [progression, setProgression] = useState<Progression | null>(null);
@@ -42,7 +43,7 @@ export default function SharedProgressionPage() {
   const handleOpen = () => {
     // Store in sessionStorage and navigate to lab
     sessionStorage.setItem('loadedProgression', JSON.stringify(progression));
-    window.location.href = '/';
+    router.push('/');
   };
 
   return (

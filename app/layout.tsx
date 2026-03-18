@@ -1,7 +1,7 @@
 import './globals.css';
 import type { ReactNode } from 'react';
 
-import AppShell from '../components/AppShell';
+import AppWrapper from '../components/AppWrapper';
 import AppThemeProvider from '../components/AppThemeProvider';
 import { AuthProvider } from '../lib/authContext';
 import type { Metadata } from 'next';
@@ -58,7 +58,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <AppThemeProvider>
           <AuthProvider>
-            <AppShell>{children}</AppShell>
+            <AppWrapper>{children}</AppWrapper>
           </AuthProvider>
         </AppThemeProvider>
       </body>

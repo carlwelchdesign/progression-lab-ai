@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm, Controller } from 'react-hook-form';
 import {
   Alert,
   Box,
@@ -10,37 +11,51 @@ import {
   CardContent,
   Container,
   Stack,
-  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import { useAuth } from '../../lib/authContext';
+import TextField from '../../components/ui/TextField';
 
 type AuthMode = 'login' | 'register';
+
+type AuthFormData = {
+  name: string;
+  email: string;
+  password: string;
+};
 
 export default function AuthPage() {
   const router = useRouter();
   const { refresh } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [apiError, setApiError] = useState('');
+  const {
+    control,
+    handleSubmit,
+    formState: { isSubmitting, errors },
+    reset,
+  } = useForm<AuthFormData>({
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+    },
+    mode: 'onChange',
+  });
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    setError('');
+  const onSubmit = async (data: AuthFormData) => {
+    setApiError('');
 
     try {
       const response = await fetch(`/api/auth/${mode}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
-          email,
-          password,
+          name: data.name,
+          email: data.email,
+          password: data.password,
         }),
       });
 
@@ -53,9 +68,7 @@ export default function AuthPage() {
       await refresh();
       router.push('/progressions');
     } catch (err) {
-      setError((err as Error).message || 'Authentication failed');
-    } finally {
-      setLoading(false);
+      setApiError((err as Error).message || 'Authentication failed');
     }
   };
 
@@ -63,7 +76,7 @@ export default function AuthPage() {
     <Container maxWidth="sm" sx={{ py: 8 }}>
       <Card variant="outlined">
         <CardContent>
-          <Stack spacing={3}>
+          <Stack spacing={3} component="form" onSubmit={handleSubmit(onSubmit)}>
             <Box>
               <Typography variant="h4" component="h1" gutterBottom>
                 Account
@@ -79,7 +92,8 @@ export default function AuthPage() {
               onChange={(_e, value: AuthMode | null) => {
                 if (value) {
                   setMode(value);
-                  setError('');
+                  setApiError('');
+                  reset(); // Reset form when switching modes
                 }
               }}
               size="small"
@@ -89,39 +103,83 @@ export default function AuthPage() {
             </ToggleButtonGroup>
 
             {mode === 'register' ? (
-              <TextField
-                label="Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                fullWidth
+              <Controller
+                name="name"
+                control={control}
+                rules={{
+                  required: 'Name is required',
+                  minLength: {
+                    value: 2,
+                    message: 'Name must be at least 2 characters',
+                  },
+                }}
+                render={({ field, fieldState: { error } }) => (
+                  <TextField
+                    label="Name"
+                    {...field}
+                    disabled={isSubmitting}
+                    error={!!error}
+                    helperText={error?.message}
+                  />
+                )}
               />
             ) : null}
 
-            <TextField
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              fullWidth
+            <Controller
+              name="email"
+              control={control}
+              rules={{
+                required: 'Email is required',
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: 'Please enter a valid email address',
+                },
+              }}
+              render={({ field, fieldState: { error } }) => (
+                <TextField
+                  label="Email"
+                  type="email"
+                  {...field}
+                  disabled={isSubmitting}
+                  error={!!error}
+                  helperText={error?.message}
+                />
+              )}
             />
 
-            <TextField
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              fullWidth
-              helperText={mode === 'register' ? 'Minimum 8 characters' : undefined}
+            <Controller
+              name="password"
+              control={control}
+              rules={{
+                required: 'Password is required',
+                ...(mode === 'register' && {
+                  minLength: {
+                    value: 8,
+                    message: 'Password must be at least 8 characters',
+                  },
+                }),
+              }}
+              render={({ field, fieldState: { error } }) => (
+                <TextField
+                  label="Password"
+                  type="password"
+                  {...field}
+                  disabled={isSubmitting}
+                  error={!!error}
+                  helperText={
+                    error?.message || (mode === 'register' ? 'Minimum 8 characters' : undefined)
+                  }
+                />
+              )}
             />
-
-            {error ? <Alert severity="error">{error}</Alert> : null}
+            {apiError ? <Alert severity="error">{apiError}</Alert> : null}
 
             <Button
               variant="contained"
-              onClick={handleSubmit}
-              disabled={loading || !email.trim() || !password.trim()}
+              type="submit"
+              disabled={isSubmitting || Object.keys(errors).length > 0}
             >
-              {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
+              {isSubmitting ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
             </Button>
           </Stack>
         </CardContent>

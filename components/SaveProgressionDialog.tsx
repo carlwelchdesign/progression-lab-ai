@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import {
   Autocomplete,
   Button,
@@ -13,7 +14,10 @@ import {
   Stack,
   Switch,
   TextField,
+  Alert,
 } from '@mui/material';
+
+import AppTextField from './ui/TextField';
 
 import { createProgression } from '../lib/api/progressions';
 import { getTagChipSx, PRESET_TAG_OPTIONS, sanitizeTags } from '../lib/tagMetadata';
@@ -29,6 +33,13 @@ type SaveProgressionDialogProps = {
   scale?: string;
 };
 
+type SaveProgressionFormData = {
+  title: string;
+  notes: string;
+  tags: string[];
+  isPublic: boolean;
+};
+
 export default function SaveProgressionDialog({
   open,
   onClose,
@@ -38,46 +49,50 @@ export default function SaveProgressionDialog({
   feel: defaultFeel,
   scale: defaultScale,
 }: SaveProgressionDialogProps) {
-  const [title, setTitle] = useState('');
-  const [notes, setNotes] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-  const [isPublic, setIsPublic] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting, errors },
+  } = useForm<SaveProgressionFormData>({
+    defaultValues: {
+      title: '',
+      notes: '',
+      tags: [],
+      isPublic: false,
+    },
+    mode: 'onChange',
+  });
 
-  const handleSave = async () => {
-    if (!title.trim()) {
-      setError('Title is required');
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open) {
+      reset();
+    }
+  }, [open, reset]);
+
+  const onSubmit = async (data: SaveProgressionFormData) => {
+    if (!data.title.trim()) {
       return;
     }
 
-    setLoading(true);
-    setError('');
-
     try {
       await createProgression({
-        title: title.trim(),
+        title: data.title.trim(),
         chords,
         pianoVoicings,
         feel: defaultFeel,
         scale: defaultScale,
-        notes: notes.trim() || undefined,
-        tags: sanitizeTags(tags),
-        isPublic,
+        notes: data.notes.trim() || undefined,
+        tags: sanitizeTags(data.tags),
+        isPublic: data.isPublic,
       });
-
-      // Reset form
-      setTitle('');
-      setNotes('');
-      setTags([]);
-      setIsPublic(false);
 
       onSuccess?.();
       onClose();
     } catch (err) {
-      setError((err as Error).message || 'Failed to save progression');
-    } finally {
-      setLoading(false);
+      // Error is handled by the form submission
+      console.error('Failed to save progression:', err);
     }
   };
 
@@ -85,84 +100,120 @@ export default function SaveProgressionDialog({
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Save Progression</DialogTitle>
       <DialogContent>
-        <Stack spacing={2} sx={{ mt: 2 }}>
-          <TextField
-            label="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Late Night Groove"
-            fullWidth
-            disabled={loading}
-            error={!!error && !title.trim()}
-          />
-
-          <TextField
-            label="Notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Try with syncopated bass..."
-            fullWidth
-            multiline
-            rows={3}
-            disabled={loading}
-          />
-
-          <Autocomplete<string, true, false, true>
-            multiple
-            freeSolo
-            options={PRESET_TAG_OPTIONS}
-            value={tags}
-            onChange={(_, value) => {
-              setTags(sanitizeTags(value));
+        <Stack spacing={2} sx={{ mt: 2 }} component="form">
+          <Controller
+            name="title"
+            control={control}
+            rules={{
+              required: 'Title is required',
+              minLength: {
+                value: 2,
+                message: 'Title must be at least 2 characters',
+              },
+              maxLength: {
+                value: 100,
+                message: 'Title must be less than 100 characters',
+              },
             }}
-            filterSelectedOptions
-            disabled={loading}
-            renderTags={(value, getTagProps) =>
-              value.map((option, index) => {
-                const { key, ...tagProps } = getTagProps({ index });
-                return (
-                  <Chip
-                    key={key}
-                    label={option}
-                    size="small"
-                    variant="outlined"
-                    sx={getTagChipSx(option)}
-                    {...tagProps}
-                  />
-                );
-              })
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Tags"
-                placeholder="Select or type tags"
-                helperText="Choose from preset genre/feeling tags or add your own"
-                fullWidth
+            render={({ field, fieldState: { error } }) => (
+              <AppTextField
+                label="Title"
+                {...field}
+                placeholder="Late Night Groove"
+                disabled={isSubmitting}
+                error={!!error}
+                helperText={error?.message}
               />
             )}
           />
 
-          <FormControlLabel
-            control={
-              <Switch
-                checked={isPublic}
-                onChange={(e) => setIsPublic(e.target.checked)}
-                disabled={loading}
+          <Controller
+            name="notes"
+            control={control}
+            render={({ field }) => (
+              <AppTextField
+                label="Notes"
+                {...field}
+                placeholder="Try with syncopated bass..."
+                multiline
+                rows={3}
+                disabled={isSubmitting}
               />
-            }
-            label="Make public & shareable"
+            )}
           />
 
-          {error && <span style={{ color: 'red', fontSize: '0.875rem' }}>{error}</span>}
+          <Controller
+            name="tags"
+            control={control}
+            render={({ field: { value, onChange } }) => (
+              <Autocomplete<string, true, false, true>
+                multiple
+                freeSolo
+                options={PRESET_TAG_OPTIONS}
+                value={value}
+                onChange={(_, newValue) => {
+                  onChange(sanitizeTags(newValue));
+                }}
+                filterSelectedOptions
+                disabled={isSubmitting}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return (
+                      <Chip
+                        key={key}
+                        label={option}
+                        size="small"
+                        variant="outlined"
+                        sx={getTagChipSx(option)}
+                        {...tagProps}
+                      />
+                    );
+                  })
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Tags"
+                    placeholder="Select or type tags"
+                    helperText="Choose from preset genre/feeling tags or add your own"
+                    fullWidth
+                  />
+                )}
+              />
+            )}
+          />
+
+          <Controller
+            name="isPublic"
+            control={control}
+            render={({ field: { value, onChange } }) => (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={value}
+                    onChange={(e) => onChange(e.target.checked)}
+                    disabled={isSubmitting}
+                  />
+                }
+                label="Make public & shareable"
+              />
+            )}
+          />
+
+          {errors.title && <Alert severity="error">{errors.title.message}</Alert>}
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
+        <Button onClick={onClose} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button onClick={handleSave} variant="contained" disabled={loading || !title.trim()}>
-          {loading ? 'Saving...' : 'Save'}
+        <Button
+          onClick={handleSubmit(onSubmit)}
+          variant="contained"
+          disabled={isSubmitting || Object.keys(errors).length > 0}
+        >
+          {isSubmitting ? 'Saving...' : 'Save'}
         </Button>
       </DialogActions>
     </Dialog>

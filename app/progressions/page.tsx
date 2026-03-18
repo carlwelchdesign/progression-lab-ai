@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm, Controller } from 'react-hook-form';
 import { Alert, Box, Button, CircularProgress, Container, Stack, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import Link from 'next/link';
 
 import ProgressionCard from '../../components/ProgressionCard';
-import AppTextField from '../../components/ui/AppTextField';
+import TextField from '../../components/ui/TextField';
 import {
   deleteProgression,
   getMyProgressions,
@@ -16,6 +17,11 @@ import {
 import type { Progression } from '../../lib/types';
 
 type ViewMode = 'mine' | 'public';
+
+type FilterFormData = {
+  tagQuery: string;
+  keyQuery: string;
+};
 
 function getFirstChordName(progression: Progression): string {
   const firstChord = progression.chords?.[0] as { name?: string } | string | undefined;
@@ -36,10 +42,18 @@ export default function MyProgressionsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('mine');
   const [myProgressions, setMyProgressions] = useState<Progression[]>([]);
   const [publicProgressions, setPublicProgressions] = useState<Progression[]>([]);
-  const [tagQuery, setTagQuery] = useState('');
-  const [keyQuery, setKeyQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const { control, watch } = useForm<FilterFormData>({
+    defaultValues: {
+      tagQuery: '',
+      keyQuery: '',
+    },
+  });
+
+  const tagQuery = watch('tagQuery');
+  const keyQuery = watch('keyQuery');
 
   useEffect(() => {
     const loadMyProgressions = async () => {
@@ -119,7 +133,7 @@ export default function MyProgressionsPage() {
   const handleOpen = (progression: Progression) => {
     // Store in sessionStorage and navigate to lab
     sessionStorage.setItem('loadedProgression', JSON.stringify(progression));
-    window.location.href = '/';
+    router.push('/');
   };
 
   return (
@@ -171,17 +185,23 @@ export default function MyProgressionsPage() {
               gap: 1,
             }}
           >
-            <AppTextField
-              label="Search tags"
-              value={tagQuery}
-              onChange={(event) => setTagQuery(event.target.value)}
-              placeholder="house, cinematic, jazz..."
+            <Controller
+              name="tagQuery"
+              control={control}
+              render={({ field }) => (
+                <TextField label="Search tags" {...field} placeholder="house, cinematic, jazz..." />
+              )}
             />
-            <AppTextField
-              label="Search key (first chord)"
-              value={keyQuery}
-              onChange={(event) => setKeyQuery(event.target.value)}
-              placeholder="C, F#m, Bb..."
+            <Controller
+              name="keyQuery"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  label="Search key (first chord)"
+                  {...field}
+                  placeholder="C, F#m, Bb..."
+                />
+              )}
             />
           </Box>
         </Stack>

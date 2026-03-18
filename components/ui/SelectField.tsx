@@ -1,24 +1,24 @@
 import type { TextFieldProps } from '@mui/material';
 
-import AppTextField from './AppTextField';
+import TextField from './TextField';
 
 type Option = {
   value: string;
   label: string;
 };
 
-type AppSelectFieldProps = Omit<TextFieldProps, 'select' | 'children'> & {
+type SelectFieldProps = Omit<TextFieldProps, 'select' | 'children'> & {
   options: Option[];
 };
 
-export default function AppSelectField({ options, ...props }: AppSelectFieldProps) {
+export default function SelectField({ options, ...props }: SelectFieldProps) {
   return (
-    <AppTextField select SelectProps={{ native: true }} {...props}>
+    <TextField select SelectProps={{ native: true }} {...props}>
       {options.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>
       ))}
-    </AppTextField>
+    </TextField>
   );
 }

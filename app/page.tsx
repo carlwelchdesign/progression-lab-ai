@@ -2,24 +2,30 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { useForm, Controller } from 'react-hook-form';
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
+  Chip,
   CircularProgress,
   Container,
   Stack,
+  TextField as MuiTextField,
   Typography,
   Divider,
 } from '@mui/material';
 
 import GuitarChordDiagram from '../components/GuitarChordDiagram';
 import PianoChordDiagram from '../components/PianoChordDiagram';
-import AppCard from '../components/ui/AppCard';
-import AppSelectField from '../components/ui/AppSelectField';
-import AppTextField from '../components/ui/AppTextField';
+import Card from '../components/ui/Card';
+import SelectField from '../components/ui/SelectField';
+import TextField from '../components/ui/TextField';
 import SaveProgressionDialog from '../components/SaveProgressionDialog';
 import SuccessSnackbar from '../components/ui/SuccessSnackbar';
+import { CHORD_OPTIONS, GENRE_OPTIONS, MODE_OPTIONS, MOOD_OPTIONS } from '../lib/formOptions';
+import { getChordChipSx, getMoodChipSx } from '../lib/tagMetadata';
 import type {
   Adventurousness,
   ChordItem,
@@ -27,48 +33,6 @@ import type {
   InstrumentPreference,
 } from '../lib/types';
 import { playChordVoicing, playProgression } from '../lib/audio';
-
-const MODE_OPTIONS = [
-  { value: 'ionian', label: 'Ionian (Major)' },
-  { value: 'dorian', label: 'Dorian' },
-  { value: 'phrygian', label: 'Phrygian' },
-  { value: 'lydian', label: 'Lydian' },
-  { value: 'mixolydian', label: 'Mixolydian' },
-  { value: 'aeolian', label: 'Aeolian (Natural Minor)' },
-  { value: 'locrian', label: 'Locrian' },
-  { value: 'major pentatonic', label: 'Major Pentatonic' },
-  { value: 'minor pentatonic', label: 'Minor Pentatonic' },
-  { value: 'harmonic minor', label: 'Harmonic Minor' },
-  { value: 'melodic minor', label: 'Melodic Minor' },
-  { value: 'blues', label: 'Blues' },
-  { value: 'whole tone', label: 'Whole Tone' },
-  { value: 'diminished', label: 'Diminished' },
-  { value: 'chromatic', label: 'Chromatic' },
-  { value: 'custom', label: 'Custom' },
-];
-
-const GENRE_OPTIONS = [
-  { value: 'house', label: 'House' },
-  { value: 'piano house', label: 'Piano House' },
-  { value: 'deep house', label: 'Deep House' },
-  { value: 'disco house', label: 'Disco House' },
-  { value: 'tech house', label: 'Tech House' },
-  { value: 'funk / disco', label: 'Funk / Disco' },
-  { value: 'pop', label: 'Pop' },
-  { value: 'indie pop', label: 'Indie Pop' },
-  { value: 'r&b / neo soul', label: 'R&B / Neo Soul' },
-  { value: 'jazz', label: 'Jazz' },
-  { value: 'lo-fi', label: 'Lo-fi' },
-  { value: 'ambient', label: 'Ambient' },
-  { value: 'cinematic', label: 'Cinematic' },
-  { value: 'edm', label: 'EDM' },
-  { value: 'afro house', label: 'Afro House' },
-  { value: 'progressive house', label: 'Progressive House' },
-  { value: 'hip-hop', label: 'Hip-Hop' },
-  { value: 'rock', label: 'Rock' },
-  { value: 'folk', label: 'Folk' },
-  { value: 'custom', label: 'Custom' },
-];
 
 const GENERATOR_CACHE_KEY = 'generatorCache';
 
@@ -84,15 +48,42 @@ type GeneratorCache = {
   data: ChordSuggestionResponse;
 };
 
+type GeneratorFormData = {
+  seedChords: string;
+  mood: string;
+  mode: string;
+  customMode: string;
+  genre: string;
+  customGenre: string;
+  instrument: InstrumentPreference;
+  adventurousness: Adventurousness;
+};
+
 export default function HomePage() {
-  const [seedChords, setSeedChords] = useState('Fmaj7, F#m7');
-  const [mood, setMood] = useState('dreamy, emotional, uplifting');
-  const [mode, setMode] = useState('lydian');
-  const [customMode, setCustomMode] = useState('');
-  const [genre, setGenre] = useState('piano house');
-  const [customGenre, setCustomGenre] = useState('');
-  const [instrument, setInstrument] = useState<InstrumentPreference>('both');
-  const [adventurousness, setAdventurousness] = useState<Adventurousness>('balanced');
+  const {
+    control,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { isSubmitting, errors },
+  } = useForm<GeneratorFormData>({
+    defaultValues: {
+      seedChords: '',
+      mood: '',
+      mode: '',
+      customMode: '',
+      genre: '',
+      customGenre: '',
+      instrument: 'both',
+      adventurousness: 'balanced',
+    },
+    mode: 'onChange',
+  });
+
+  const mode = watch('mode');
+  const genre = watch('genre');
+  const customMode = watch('customMode');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [data, setData] = useState<ChordSuggestionResponse | null>(null);
@@ -125,15 +116,24 @@ export default function HomePage() {
             .filter(Boolean);
 
           if (chordNames.length > 0) {
-            setSeedChords(chordNames.join(', '));
+            reset({
+              seedChords: chordNames.join(', '),
+              mood: parsed.feel || '',
+              mode: parsed.scale || 'lydian',
+              customMode: '',
+              genre: 'custom',
+              customGenre: '',
+              instrument: 'both',
+              adventurousness: 'balanced',
+            });
           }
 
           if (parsed.feel) {
-            setMood(parsed.feel);
+            // Mood is already set via reset above
           }
 
           if (parsed.scale) {
-            setMode(parsed.scale);
+            // Mode is already set via reset above
           }
 
           if (chordNames.length > 0) {
@@ -180,14 +180,17 @@ export default function HomePage() {
       try {
         const parsedCache = JSON.parse(rawGeneratorCache) as GeneratorCache;
 
-        setSeedChords(parsedCache.seedChords);
-        setMood(parsedCache.mood);
-        setMode(parsedCache.mode);
-        setCustomMode(parsedCache.customMode);
-        setGenre(parsedCache.genre);
-        setCustomGenre(parsedCache.customGenre);
-        setInstrument(parsedCache.instrument);
-        setAdventurousness(parsedCache.adventurousness);
+        reset({
+          seedChords: parsedCache.seedChords,
+          mood: parsedCache.mood,
+          mode: parsedCache.mode,
+          customMode: parsedCache.customMode,
+          genre: parsedCache.genre,
+          customGenre: parsedCache.customGenre,
+          instrument: parsedCache.instrument,
+          adventurousness: parsedCache.adventurousness,
+        });
+
         setIsLoadedFromSavedProgression(false);
         setData(parsedCache.data);
       } catch (err) {
@@ -197,42 +200,42 @@ export default function HomePage() {
     } finally {
       setIsRestoringState(false);
     }
-  }, []);
+  }, [reset]);
 
-  const handleSubmit = async () => {
-    setLoading(true);
+  const onSubmit = async (formData: GeneratorFormData) => {
     setError('');
     setIsLoadedFromSavedProgression(false);
 
-    const resolvedMode = mode === 'custom' ? customMode.trim() : mode;
-    const resolvedGenre = genre === 'custom' ? customGenre.trim() : genre;
+    const resolvedMode = formData.mode === 'custom' ? formData.customMode.trim() : formData.mode;
+    const resolvedGenre =
+      formData.genre === 'custom' ? formData.customGenre.trim() : formData.genre;
 
     if (!resolvedMode) {
       setError('Please enter a custom mode or scale.');
-      setLoading(false);
       return;
     }
 
     if (!resolvedGenre) {
       setError('Please enter a custom genre.');
-      setLoading(false);
       return;
     }
+
+    setLoading(true);
 
     try {
       const response = await fetch('/api/chord-suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          seedChords: seedChords
+          seedChords: formData.seedChords
             .split(',')
             .map((chord) => chord.trim())
             .filter(Boolean),
-          mood,
+          mood: formData.mood,
           mode: resolvedMode,
           genre: resolvedGenre,
-          instrument,
-          adventurousness,
+          instrument: formData.instrument,
+          adventurousness: formData.adventurousness,
         }),
       });
 
@@ -244,14 +247,14 @@ export default function HomePage() {
       setData(json);
 
       const cachePayload: GeneratorCache = {
-        seedChords,
-        mood,
-        mode,
-        customMode,
-        genre,
-        customGenre,
-        instrument,
-        adventurousness,
+        seedChords: formData.seedChords,
+        mood: formData.mood,
+        mode: formData.mode,
+        customMode: formData.customMode,
+        genre: formData.genre,
+        customGenre: formData.customGenre,
+        instrument: formData.instrument,
+        adventurousness: formData.adventurousness,
         data: json,
       };
 
@@ -317,8 +320,10 @@ export default function HomePage() {
           </Typography>
         </Box>
 
-        <AppCard>
+        <Card>
           <Box
+            component="form"
+            onSubmit={handleSubmit(onSubmit)}
             sx={{
               display: 'grid',
               gridTemplateColumns: {
@@ -327,84 +332,230 @@ export default function HomePage() {
               },
               gap: 2,
             }}
+            id="generator-form"
           >
-            <AppTextField
-              label="Seed chords"
-              value={seedChords}
-              onChange={(e) => setSeedChords(e.target.value)}
-              placeholder="Fmaj7, F#m7"
+            <Controller
+              name="seedChords"
+              control={control}
+              rules={{
+                required: 'Seed chords are required',
+                validate: (value) => {
+                  return value.trim().length > 0 || 'Please enter at least one chord';
+                },
+              }}
+              render={({ field: { value, onChange }, fieldState: { error } }) => {
+                const chordArray = value
+                  .split(',')
+                  .map((c) => c.trim())
+                  .filter(Boolean);
+                return (
+                  <Autocomplete<string, true, false, true>
+                    multiple
+                    freeSolo
+                    options={CHORD_OPTIONS}
+                    value={chordArray}
+                    onChange={(_, newValue) => {
+                      onChange(newValue.join(', '));
+                    }}
+                    disabled={isSubmitting || loading}
+                    renderTags={(tagValue, getTagProps) =>
+                      tagValue.map((option, index) => {
+                        const { key, ...tagProps } = getTagProps({ index });
+                        return (
+                          <Chip
+                            key={key}
+                            label={option}
+                            size="small"
+                            variant="outlined"
+                            sx={getChordChipSx(option)}
+                            {...tagProps}
+                          />
+                        );
+                      })
+                    }
+                    renderInput={(params) => (
+                      <MuiTextField
+                        {...params}
+                        label="Seed chords"
+                        placeholder={chordArray.length > 0 ? '' : 'Fmaj7, F#m7'}
+                        fullWidth
+                        variant="outlined"
+                        InputLabelProps={{ shrink: true }}
+                        error={!!error}
+                        helperText={error?.message}
+                      />
+                    )}
+                  />
+                );
+              }}
             />
 
-            <AppTextField
-              label="Mood"
-              value={mood}
-              onChange={(e) => setMood(e.target.value)}
-              placeholder="dreamy, dark, hopeful"
+            <Controller
+              name="mood"
+              control={control}
+              rules={{
+                required: 'Mood is required',
+              }}
+              render={({ field: { value, onChange }, fieldState: { error } }) => {
+                const moodArray = value
+                  .split(',')
+                  .map((m) => m.trim())
+                  .filter(Boolean);
+                return (
+                  <Autocomplete<string, true, false, true>
+                    multiple
+                    freeSolo
+                    options={MOOD_OPTIONS}
+                    value={moodArray}
+                    onChange={(_, newValue) => {
+                      onChange(newValue.join(', '));
+                    }}
+                    disabled={isSubmitting || loading}
+                    renderTags={(tagValue, getTagProps) =>
+                      tagValue.map((option, index) => {
+                        const { key, ...tagProps } = getTagProps({ index });
+                        return (
+                          <Chip
+                            key={key}
+                            label={option}
+                            size="small"
+                            variant="outlined"
+                            sx={getMoodChipSx(option)}
+                            {...tagProps}
+                          />
+                        );
+                      })
+                    }
+                    renderInput={(params) => (
+                      <MuiTextField
+                        {...params}
+                        label="Mood"
+                        placeholder={moodArray.length > 0 ? '' : 'dreamy, dark, hopeful'}
+                        fullWidth
+                        variant="outlined"
+                        InputLabelProps={{ shrink: true }}
+                        error={!!error}
+                        helperText={error?.message}
+                      />
+                    )}
+                  />
+                );
+              }}
             />
 
-            <AppSelectField
-              label="Mode / scale"
-              value={mode}
-              onChange={(e) => setMode(e.target.value)}
-              options={MODE_OPTIONS}
+            <Controller
+              name="mode"
+              control={control}
+              render={({ field }) => (
+                <SelectField
+                  label="Mode / scale"
+                  {...field}
+                  options={MODE_OPTIONS}
+                  disabled={isSubmitting || loading}
+                />
+              )}
             />
 
             {mode === 'custom' ? (
-              <AppTextField
-                label="Custom mode / scale"
-                value={customMode}
-                onChange={(e) => setCustomMode(e.target.value)}
-                placeholder="Hungarian minor, altered scale, etc."
+              <Controller
+                name="customMode"
+                control={control}
+                rules={{
+                  required: 'Please enter a custom mode or scale',
+                }}
+                render={({ field, fieldState: { error } }) => (
+                  <TextField
+                    label="Custom mode / scale"
+                    {...field}
+                    placeholder="Hungarian minor, altered scale, etc."
+                    disabled={isSubmitting || loading}
+                    error={!!error}
+                    helperText={error?.message}
+                  />
+                )}
               />
             ) : null}
 
-            <AppSelectField
-              label="Genre"
-              value={genre}
-              onChange={(e) => setGenre(e.target.value)}
-              options={GENRE_OPTIONS}
+            <Controller
+              name="genre"
+              control={control}
+              render={({ field }) => (
+                <SelectField
+                  label="Genre"
+                  {...field}
+                  options={GENRE_OPTIONS}
+                  disabled={isSubmitting || loading}
+                />
+              )}
             />
 
             {genre === 'custom' ? (
-              <AppTextField
-                label="Custom genre"
-                value={customGenre}
-                onChange={(e) => setCustomGenre(e.target.value)}
-                placeholder="UK garage, synthwave, bossa nova, etc."
+              <Controller
+                name="customGenre"
+                control={control}
+                rules={{
+                  required: 'Please enter a custom genre',
+                }}
+                render={({ field, fieldState: { error } }) => (
+                  <TextField
+                    label="Custom genre"
+                    {...field}
+                    placeholder="UK garage, synthwave, bossa nova, etc."
+                    disabled={isSubmitting || loading}
+                    error={!!error}
+                    helperText={error?.message}
+                  />
+                )}
               />
             ) : null}
 
-            <AppSelectField
-              label="Instrument"
-              value={instrument}
-              onChange={(e) => setInstrument(e.target.value as InstrumentPreference)}
-              options={[
-                { value: 'both', label: 'Both' },
-                { value: 'guitar', label: 'Guitar' },
-                { value: 'piano', label: 'Piano' },
-              ]}
+            <Controller
+              name="instrument"
+              control={control}
+              render={({ field }) => (
+                <SelectField
+                  label="Instrument"
+                  {...field}
+                  options={[
+                    { value: 'both', label: 'Both' },
+                    { value: 'guitar', label: 'Guitar' },
+                    { value: 'piano', label: 'Piano' },
+                  ]}
+                  disabled={isSubmitting || loading}
+                />
+              )}
             />
 
-            <AppSelectField
-              label="Adventurousness"
-              value={adventurousness}
-              onChange={(e) => setAdventurousness(e.target.value as Adventurousness)}
-              options={[
-                { value: 'safe', label: 'Safe' },
-                { value: 'balanced', label: 'Balanced' },
-                { value: 'surprising', label: 'Surprising' },
-              ]}
+            <Controller
+              name="adventurousness"
+              control={control}
+              render={({ field }) => (
+                <SelectField
+                  label="Adventurousness"
+                  {...field}
+                  options={[
+                    { value: 'safe', label: 'Safe' },
+                    { value: 'balanced', label: 'Balanced' },
+                    { value: 'surprising', label: 'Surprising' },
+                  ]}
+                  disabled={isSubmitting || loading}
+                />
+              )}
             />
           </Box>
 
           <Stack spacing={2} sx={{ mt: 3 }}>
-            <Button variant="contained" onClick={handleSubmit} disabled={loading}>
+            <Button
+              variant="contained"
+              type="submit"
+              disabled={isSubmitting || loading || Object.keys(errors).length > 0}
+            >
               {loading ? 'Generating...' : 'Generate Ideas'}
             </Button>
 
             {error ? <Alert severity="error">{error}</Alert> : null}
           </Stack>
-        </AppCard>
+        </Card>
 
         {loading && (
           <Box
@@ -442,7 +593,7 @@ export default function HomePage() {
                   }}
                 >
                   {data.nextChordSuggestions.map((item) => (
-                    <AppCard key={`${item.chord}-${item.functionExplanation}`}>
+                    <Card key={`${item.chord}-${item.functionExplanation}`}>
                       <Typography variant="h6" component="h3" gutterBottom>
                         {item.chord}
                       </Typography>
@@ -546,7 +697,7 @@ export default function HomePage() {
                           </Box>
                         ) : null}
                       </Box>
-                    </AppCard>
+                    </Card>
                   ))}
                 </Box>
               </Box>
@@ -568,7 +719,7 @@ export default function HomePage() {
                 }}
               >
                 {data.progressionIdeas.map((idea) => (
-                  <AppCard key={idea.label}>
+                  <Card key={idea.label}>
                     <Stack spacing={2}>
                       <Box>
                         <Typography variant="h6" component="h3" gutterBottom>
@@ -684,7 +835,7 @@ export default function HomePage() {
                         })}
                       </Stack>
                     </Stack>
-                  </AppCard>
+                  </Card>
                 ))}
               </Box>
             </Box>
@@ -705,12 +856,12 @@ export default function HomePage() {
                   }}
                 >
                   {data.structureSuggestions.map((section) => (
-                    <AppCard key={`${section.section}-${section.bars}`}>
+                    <Card key={`${section.section}-${section.bars}`}>
                       <Typography variant="h6" component="h3" gutterBottom>
                         {section.section} · {section.bars} bars
                       </Typography>
                       <Typography variant="body2">{section.harmonicIdea}</Typography>
-                    </AppCard>
+                    </Card>
                   ))}
                 </Box>
               </Box>
