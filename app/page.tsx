@@ -484,7 +484,10 @@ export default function HomePage() {
                 <SelectField
                   label="Genre"
                   {...field}
-                  options={[{ value: '', label: 'Select a genre', disabled: true }, ...GENRE_OPTIONS]}
+                  options={[
+                    { value: '', label: 'Select a genre', disabled: true },
+                    ...GENRE_OPTIONS,
+                  ]}
                   disabled={isSubmitting || loading}
                 />
               )}
