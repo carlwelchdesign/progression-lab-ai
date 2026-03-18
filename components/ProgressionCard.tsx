@@ -6,8 +6,10 @@ import FileCopyIcon from '@mui/icons-material/FileCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 import type { Progression } from '../lib/types';
+import { playProgression } from '../lib/audio';
 
 type ProgressionCardProps = {
   progression: Progression;
@@ -28,6 +30,8 @@ export default function ProgressionCard({
 }: ProgressionCardProps) {
   const [copied, setCopied] = useState(false);
 
+  const canPlay = Array.isArray(progression.pianoVoicings) && progression.pianoVoicings.length > 0;
+
   const handleCopyShareLink = async () => {
     const shareUrl = `${window.location.origin}/p/${progression.shareId}`;
     try {
@@ -36,6 +40,18 @@ export default function ProgressionCard({
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error('Failed to copy link:', error);
+    }
+  };
+
+  const handlePlay = async () => {
+    if (!canPlay) {
+      return;
+    }
+
+    try {
+      await playProgression(progression.pianoVoicings!);
+    } catch (error) {
+      console.error('Failed to play progression:', error);
     }
   };
 
@@ -91,6 +107,16 @@ export default function ProgressionCard({
 
           {/* Actions */}
           <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end', pt: 1 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<PlayArrowIcon />}
+              onClick={handlePlay}
+              disabled={!canPlay}
+            >
+              Play
+            </Button>
+
             {onOpen && (
               <Button
                 size="small"

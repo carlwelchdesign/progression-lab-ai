@@ -104,7 +104,16 @@ export default function MyProgressionsPage() {
 
         {/* Progressions grid */}
         {!loading && progressions.length > 0 && (
-          <Stack spacing={2}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                md: 'repeat(2, minmax(0, 1fr))',
+              },
+              gap: 2,
+            }}
+          >
             {progressions.map((progression) => (
               <ProgressionCard
                 key={progression.id}
@@ -115,7 +124,7 @@ export default function MyProgressionsPage() {
                 canDelete={true}
               />
             ))}
-          </Stack>
+          </Box>
         )}
       </Stack>
     </Container>
