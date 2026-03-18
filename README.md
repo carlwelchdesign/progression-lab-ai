@@ -106,28 +106,32 @@ Open `http://localhost:3000`.
 
 ## Data Model (Prisma)
 
-### `User`
+```ts
+type User = {
+	id: string;
+	email: string;
+	name: string | null;
+	passwordHash: string | null;
+	createdAt: Date;
+	updatedAt: Date;
+};
 
-* `id`
-* `email`
-* `name`
-* `passwordHash`
-* timestamps
-
-### `Progression`
-
-* `id`
-* `shareId`
-* `userId`
-* `title`
-* `chords` (JSON)
-* `pianoVoicings` (JSON)
-* `feel`
-* `scale`
-* `notes`
-* `tags`
-* `isPublic`
-* timestamps
+type Progression = {
+	id: string;
+	shareId: string;
+	userId: string;
+	title: string;
+	chords: unknown; // Prisma Json
+	pianoVoicings: unknown | null; // Prisma Json
+	feel: string | null;
+	scale: string | null;
+	notes: string | null;
+	tags: string[];
+	isPublic: boolean;
+	createdAt: Date;
+	updatedAt: Date;
+};
+```
 
 ## Author
 
