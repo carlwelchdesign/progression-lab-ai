@@ -119,7 +119,7 @@ export default function HomePage() {
             reset({
               seedChords: chordNames.join(', '),
               mood: parsed.feel || '',
-              mode: parsed.scale || 'lydian',
+              mode: parsed.scale || '',
               customMode: '',
               genre: 'custom',
               customGenre: '',
@@ -448,7 +448,10 @@ export default function HomePage() {
                 <SelectField
                   label="Mode / scale"
                   {...field}
-                  options={MODE_OPTIONS}
+                  options={[
+                    { value: '', label: 'Select a mode or scale', disabled: true },
+                    ...MODE_OPTIONS,
+                  ]}
                   disabled={isSubmitting || loading}
                 />
               )}
@@ -481,7 +484,7 @@ export default function HomePage() {
                 <SelectField
                   label="Genre"
                   {...field}
-                  options={GENRE_OPTIONS}
+                  options={[{ value: '', label: 'Select a genre', disabled: true }, ...GENRE_OPTIONS]}
                   disabled={isSubmitting || loading}
                 />
               )}
@@ -546,6 +549,7 @@ export default function HomePage() {
             <Button
               variant="contained"
               type="submit"
+              form="generator-form"
               disabled={isSubmitting || loading || Object.keys(errors).length > 0}
             >
               {loading ? 'Generating...' : 'Generate Ideas'}
