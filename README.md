@@ -133,6 +133,15 @@ type Progression = {
 };
 ```
 
+## TODOs
+
+* Add edit flow for saved progressions
+* Add password reset and email verification
+* Add pagination and filtering for My Progressions
+* Add migration files under `prisma/migrations` for production deploys
+* Add richer playback controls (tempo, loop, stop)
+* Add export options (MIDI / DAW-friendly formats)
+
 ## Author
 
 Carl Welch
