@@ -366,7 +366,6 @@ export default function HomePage() {
                             key={key}
                             label={option}
                             size="small"
-                            variant="outlined"
                             sx={getChordChipSx(option)}
                             {...tagProps}
                           />
@@ -419,7 +418,6 @@ export default function HomePage() {
                             key={key}
                             label={option}
                             size="small"
-                            variant="outlined"
                             sx={getMoodChipSx(option)}
                             {...tagProps}
                           />
