@@ -355,10 +355,7 @@ export default function MyProgressionsPage() {
               display: 'grid',
               gridTemplateColumns: {
                 xs: '1fr',
-                md:
-                  viewMode === 'public'
-                    ? 'repeat(3, minmax(0, 1fr))'
-                    : 'repeat(2, minmax(0, 1fr))',
+                md: viewMode === 'public' ? 'repeat(3, minmax(0, 1fr))' : 'repeat(2, minmax(0, 1fr))',
               },
               gridAutoRows: '1fr',
               alignItems: 'stretch',
