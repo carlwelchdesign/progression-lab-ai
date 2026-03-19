@@ -71,6 +71,7 @@ export type ProgressionPayload = {
   pianoVoicings?: PianoVoicing[];
   feel?: string;
   scale?: string;
+  genre?: string;
   notes?: string;
   tags?: string[];
   isPublic?: boolean;
@@ -88,6 +89,7 @@ export type Progression = {
   pianoVoicings?: PianoVoicing[];
   feel?: string;
   scale?: string;
+  genre?: string;
   notes?: string;
   tags: string[];
   isPublic: boolean;

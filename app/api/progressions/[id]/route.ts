@@ -39,7 +39,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
     const body = (await request.json()) as UpdateProgressionRequest;
-    const { title, chords, pianoVoicings, feel, scale, notes, tags, isPublic } = body;
+    const { title, chords, pianoVoicings, feel, scale, genre, notes, tags, isPublic } = body;
 
     const existing = await prisma.progression.findFirst({
       where: {
@@ -61,6 +61,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         ...(pianoVoicings !== undefined && { pianoVoicings }),
         ...(feel !== undefined && { feel }),
         ...(scale !== undefined && { scale }),
+        ...(genre !== undefined && { genre }),
         ...(notes !== undefined && { notes }),
         ...(tags !== undefined && { tags }),
         ...(isPublic !== undefined && { isPublic }),

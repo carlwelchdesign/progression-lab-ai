@@ -107,6 +107,7 @@ export default function HomePage() {
   const mode = watch('mode');
   const genre = watch('genre');
   const customMode = watch('customMode');
+  const customGenre = watch('customGenre');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -118,6 +119,7 @@ export default function HomePage() {
     ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings']
   >([]);
   const [selectedProgressionFeel, setSelectedProgressionFeel] = useState('');
+  const [selectedProgressionGenre, setSelectedProgressionGenre] = useState('');
   const [successMessageOpen, setSuccessMessageOpen] = useState(false);
   const [isRestoringState, setIsRestoringState] = useState(true);
 
@@ -133,7 +135,19 @@ export default function HomePage() {
             pianoVoicings?: ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings'];
             feel?: string;
             scale?: string;
+            genre?: string;
           };
+
+          const normalizedGenre = parsed.genre?.trim() ?? '';
+          const hasMatchingGenreOption = GENRE_OPTIONS.some(
+            (option) => option.value === normalizedGenre,
+          );
+          let restoredGenre = '';
+          if (normalizedGenre.length > 0) {
+            restoredGenre = hasMatchingGenreOption ? normalizedGenre : 'custom';
+          }
+          const restoredCustomGenre =
+            normalizedGenre.length === 0 || hasMatchingGenreOption ? '' : normalizedGenre;
 
           const chordNames = (parsed.chords ?? [])
             .map((chord) => (typeof chord === 'string' ? chord : (chord.name ?? '').trim()))
@@ -145,8 +159,8 @@ export default function HomePage() {
               mood: parsed.feel || '',
               mode: parsed.scale || '',
               customMode: '',
-              genre: 'custom',
-              customGenre: '',
+              genre: restoredGenre,
+              customGenre: restoredCustomGenre,
               instrument: 'both',
               adventurousness: 'balanced',
             });
@@ -169,7 +183,7 @@ export default function HomePage() {
                 seedChords: chordNames,
                 mood: parsed.feel ?? prev?.inputSummary.mood ?? null,
                 mode: parsed.scale ?? prev?.inputSummary.mode ?? null,
-                genre: prev?.inputSummary.genre ?? null,
+                genre: parsed.genre ?? prev?.inputSummary.genre ?? null,
                 instrument: prev?.inputSummary.instrument ?? null,
                 adventurousness: prev?.inputSummary.adventurousness ?? null,
               },
@@ -833,6 +847,9 @@ export default function HomePage() {
                               );
                               setSelectedProgressionVoicings(idea.pianoVoicings);
                               setSelectedProgressionFeel(idea.feel);
+                              setSelectedProgressionGenre(
+                                genre === 'custom' ? customGenre.trim() : genre,
+                              );
                               setSaveDialogOpen(true);
                             }}
                           >
@@ -944,6 +961,7 @@ export default function HomePage() {
               pianoVoicings={selectedProgressionVoicings}
               feel={selectedProgressionFeel}
               scale={mode === 'custom' ? customMode : mode}
+              genre={selectedProgressionGenre}
               onSuccess={() => {
                 setSaveDialogOpen(false);
                 setSuccessMessageOpen(true);

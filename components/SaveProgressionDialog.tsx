@@ -32,6 +32,7 @@ type SaveProgressionDialogProps = {
   pianoVoicings?: PianoVoicing[];
   feel?: string;
   scale?: string;
+  genre?: string;
 };
 
 type SaveProgressionFormData = {
@@ -49,6 +50,7 @@ export default function SaveProgressionDialog({
   pianoVoicings,
   feel: defaultFeel,
   scale: defaultScale,
+  genre: defaultGenre,
 }: SaveProgressionDialogProps) {
   const {
     control,
@@ -84,6 +86,7 @@ export default function SaveProgressionDialog({
         pianoVoicings,
         feel: defaultFeel,
         scale: defaultScale,
+        genre: defaultGenre,
         notes: data.notes.trim() || undefined,
         tags: sanitizeTags(data.tags),
         isPublic: data.isPublic,

@@ -30,6 +30,7 @@ model Progression {
   pianoVoicings Json?
   feel       String?
   scale      String?
+  genre      String?
   notes      String?
   tags       String[]
   isPublic   Boolean  @default(false)

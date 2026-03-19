@@ -12,7 +12,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json()) as CreateProgressionRequest;
-    const { title, chords, pianoVoicings, feel, scale, notes, tags = [], isPublic = false } = body;
+    const {
+      title,
+      chords,
+      pianoVoicings,
+      feel,
+      scale,
+      genre,
+      notes,
+      tags = [],
+      isPublic = false,
+    } = body;
 
     if (!title || !chords) {
       return NextResponse.json({ message: 'Title and chords are required' }, { status: 400 });
@@ -25,6 +35,7 @@ export async function POST(request: NextRequest) {
         pianoVoicings,
         feel,
         scale,
+        genre,
         notes,
         tags,
         isPublic,
