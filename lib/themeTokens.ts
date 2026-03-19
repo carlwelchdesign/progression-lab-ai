@@ -9,7 +9,7 @@ type ThemeTokens = {
 
 const sharedTokens: Omit<ThemeTokens, 'palette'> = {
   shape: {
-    borderRadius: 12,
+    borderRadius: 4,
   },
   typography: {
     fontFamily: ['ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'].join(','),

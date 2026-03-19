@@ -845,6 +845,17 @@ export default function HomePage() {
               spacing={1.5}
               justifyContent="space-between"
               alignItems={{ xs: 'flex-start', md: 'center' }}
+              sx={{
+                position: 'sticky',
+                top: { xs: 68, md: 72 },
+                zIndex: 10,
+                backgroundColor: 'background.paper',
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: '4px',
+                px: 1.5,
+                py: 1,
+              }}
             >
               <Typography variant="h6" component="h2">
                 Instrument display
@@ -855,7 +866,11 @@ export default function HomePage() {
                 value={progressionDiagramInstrument}
                 onChange={(_event, value: ProgressionDiagramInstrument | null) => {
                   if (value) {
+                    const scrollY = window.scrollY;
                     setProgressionDiagramInstrument(value);
+                    requestAnimationFrame(() => {
+                      window.scrollTo({ top: scrollY });
+                    });
                   }
                 }}
               >
