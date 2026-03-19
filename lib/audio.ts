@@ -2,6 +2,7 @@ import * as Tone from 'tone';
 
 let pianoSampler: Tone.Sampler | null = null;
 let pianoSamplerLoaded: Promise<void> | null = null;
+let scheduledPlaybackTimeouts: ReturnType<typeof setTimeout>[] = [];
 const STRUM_STEP_SECONDS = 0.025;
 
 const getPianoSampler = (): Tone.Sampler => {
@@ -98,6 +99,9 @@ export const startAudio = async (): Promise<void> => {
 };
 
 export const stopAllAudio = (): void => {
+  scheduledPlaybackTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+  scheduledPlaybackTimeouts = [];
+
   if (pianoSampler) {
     pianoSampler.releaseAll();
   }
@@ -116,6 +120,7 @@ export const playChordVoicing = async ({
   duration?: Tone.Unit.Time;
 }): Promise<void> => {
   await startAudio();
+  stopAllAudio();
   const sampler = await ensurePianoSamplerLoaded();
   const notes = [...leftHand, ...rightHand];
 
@@ -133,20 +138,24 @@ export const playProgression = async (
   await startAudio();
   stopAllAudio();
 
-  const now = Tone.now();
   const sampler = await ensurePianoSamplerLoaded();
 
   voicings.forEach((voicing, index) => {
-    const time = now + index * 1.2;
     const notes = [...voicing.leftHand, ...voicing.rightHand];
 
     if (notes.length > 0) {
-      triggerStrummedChord({
-        sampler,
-        notes,
-        duration: '1n',
-        startTime: time,
-      });
+      const timeoutId = setTimeout(
+        () => {
+          triggerStrummedChord({
+            sampler,
+            notes,
+            duration: '1n',
+          });
+        },
+        index * 1200,
+      );
+
+      scheduledPlaybackTimeouts.push(timeoutId);
     }
   });
 };

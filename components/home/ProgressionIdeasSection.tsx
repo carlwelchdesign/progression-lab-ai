@@ -17,6 +17,7 @@ type ProgressionIdeasSectionProps = {
   progressionIdeas: ChordSuggestionResponse['progressionIdeas'];
   isLoadedFromSavedProgression: boolean;
   progressionDiagramInstrument: ProgressionDiagramInstrument;
+  showTitle?: boolean;
   resolvedGenreForSave: string;
   onRequestSaveProgression: (payload: {
     chords: ChordItem[];
@@ -30,22 +31,25 @@ export default function ProgressionIdeasSection({
   progressionIdeas,
   isLoadedFromSavedProgression,
   progressionDiagramInstrument,
+  showTitle = true,
   resolvedGenreForSave,
   onRequestSaveProgression,
 }: ProgressionIdeasSectionProps) {
   return (
     <Box component="section" id="progressions">
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={1.5}
-        justifyContent="space-between"
-        alignItems={{ xs: 'flex-start', md: 'center' }}
-        sx={{ mb: 2 }}
-      >
-        <Typography variant="h5" component="h2">
-          Progression ideas
-        </Typography>
-      </Stack>
+      {showTitle ? (
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={1.5}
+          justifyContent="space-between"
+          alignItems={{ xs: 'flex-start', md: 'center' }}
+          sx={{ mb: 2 }}
+        >
+          <Typography variant="h5" component="h2">
+            Progression ideas
+          </Typography>
+        </Stack>
+      ) : null}
 
       <Box
         sx={{

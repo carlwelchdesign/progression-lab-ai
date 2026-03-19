@@ -7,16 +7,20 @@ import type { ChordSuggestionResponse } from '../../lib/types';
 
 type StructureSuggestionsSectionProps = {
   structureSuggestions: ChordSuggestionResponse['structureSuggestions'];
+  showTitle?: boolean;
 };
 
 export default function StructureSuggestionsSection({
   structureSuggestions,
+  showTitle = true,
 }: StructureSuggestionsSectionProps) {
   return (
     <Box component="section" id="structure">
-      <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-        Structure suggestions
-      </Typography>
+      {showTitle ? (
+        <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
+          Structure suggestions
+        </Typography>
+      ) : null}
       <Box
         sx={{
           display: 'grid',

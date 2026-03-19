@@ -13,17 +13,21 @@ import type { ProgressionDiagramInstrument } from './types';
 type NextChordSuggestionsSectionProps = {
   suggestions: ChordSuggestionResponse['nextChordSuggestions'];
   progressionDiagramInstrument: ProgressionDiagramInstrument;
+  showTitle?: boolean;
 };
 
 export default function NextChordSuggestionsSection({
   suggestions,
   progressionDiagramInstrument,
+  showTitle = true,
 }: NextChordSuggestionsSectionProps) {
   return (
     <Box component="section" id="suggestions">
-      <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-        Next chord suggestions
-      </Typography>
+      {showTitle ? (
+        <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
+          Next chord suggestions
+        </Typography>
+      ) : null}
       <Box
         sx={{
           display: 'grid',
