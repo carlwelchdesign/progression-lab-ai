@@ -1,149 +1,206 @@
-# Progression Lab AI
+# ProgressionLab
 
-Progression Lab AI is an AI-assisted harmony exploration tool for generating chord ideas, progression options, and arrangement structure from a few starting chords.
+ProgressionLab is an AI-assisted harmony and songwriting workspace built with Next.js App Router. It generates chord suggestions and progression ideas from your inputs, provides playable piano/guitar voicings, and supports account-based saving, filtering, and sharing of progressions.
 
-It includes playable voicings, piano and guitar visualizations, account-based progression saving, and public progression sharing.
+## Current Product Capabilities
 
-<img width="1220" height="563" alt="image" src="https://github.com/user-attachments/assets/85725fe3-5c7f-4ad5-b908-a71aacb7ed23" />
-
-## Features
-
-* AI-generated next chord suggestions
-* Full progression ideas with mood/feel guidance
-* Song structure suggestions (verse/chorus/bridge)
-* Playable audio for individual chords and full progressions (Tone.js)
-* Piano voicing diagrams
-* Guitar chord diagrams
-* User accounts (register/login/logout)
-* Save, list, and delete personal progressions
-* Public sharing via share links
-* Load saved/shared progressions back into the main lab
-
-<img width="1196" height="1199" alt="image" src="https://github.com/user-attachments/assets/939b31a5-1d79-407e-94b6-764e708cb45e" />
-<img width="1205" height="1312" alt="image" src="https://github.com/user-attachments/assets/512da646-58e5-439b-8155-c33a09b3d469" />
-<img width="1212" height="228" alt="image" src="https://github.com/user-attachments/assets/70be79ef-3a30-4b70-854b-c900e5f63fb6" />
-
+- Generator form with react-hook-form validation
+- Multi-chip autocomplete inputs for seed chords and mood
+- Randomize Inputs action for quick idea generation
+	- Random seed chord count: 1 to 7
+	- Random mood tag count: 1 to 7
+	- Random mode, genre, instrument, and adventurousness
+- AI-generated output sections:
+	- Next chord suggestions
+	- Progression ideas
+	- Structure suggestions
+- Playable voicings:
+	- Play single chord voicings
+	- Play full progression voicings
+- Visual diagrams:
+	- Piano chord diagrams
+	- Guitar chord diagrams (theme-aware in light/dark mode)
+- Authentication:
+	- Register, login, logout, session-based auth
+- Progression persistence:
+	- Save progressions with chords, voicings, feel, scale, genre, notes, tags, and visibility
+	- My Progressions page with filters and chip-based autocomplete
+	- Clear Filters action
+	- Per-card delete loading state
+- Sharing:
+	- Public share links
+	- Public progression browsing with tag/key filters
+- Restore flow:
+	- Open saved/shared progression back into generator with form values restored
 
 ## Tech Stack
 
-* [Next.js 15 (App Router)](https://nextjs.org/docs/app)
-* [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-* [Material UI](https://mui.com/)
-* [OpenAI API](https://platform.openai.com/docs)
-* [Prisma ORM](https://www.prisma.io/docs) + [PostgreSQL](https://www.postgresql.org/docs/)
-* [Tone.js](https://tonejs.github.io/)
-* [piano-chart](https://www.npmjs.com/package/piano-chart)
-* [svguitar](https://www.npmjs.com/package/svguitar)
+- Next.js 15 (App Router)
+- React 19 + TypeScript
+- Material UI 7
+- react-hook-form
+- OpenAI API (structured JSON output)
+- Prisma ORM + PostgreSQL
+- Tone.js
+- piano-chart
+- svguitar
 
-## Local Development
+## Project Structure
 
-### 1) Clone and install
+- app/page.tsx: Main generator UI and AI request flow
+- app/progressions/page.tsx: My/Public progression browser and filters
+- app/p/[shareId]/page.tsx: Shared progression landing page
+- app/api/chord-suggestions/route.ts: AI generation endpoint
+- app/api/auth/*: Auth endpoints
+- app/api/progressions/*: Authenticated progression CRUD endpoints
+- app/api/shared/*: Public progression endpoints
+- components/: Reusable UI, diagrams, and dialogs
+- lib/: API clients, auth helpers, option sets, metadata, and types
+- prisma/: Schema, migrations, and seed script
 
-```bash
-git clone git@github.com:carlwelchdesign/progression-lab.git
-cd progression-lab
-make install
-```
+## API Overview
 
-### 2) Configure environment
+### AI
+
+- POST /api/chord-suggestions
+
+### Auth
+
+- POST /api/auth/register
+- POST /api/auth/login
+- POST /api/auth/logout
+- GET /api/auth/me
+
+### Progressions (authenticated)
+
+- GET /api/progressions
+- POST /api/progressions
+- GET /api/progressions/[id]
+- PUT /api/progressions/[id]
+- DELETE /api/progressions/[id]
+
+### Public/Sharing
+
+- GET /api/shared
+	- Supports query params:
+		- tag: comma-separated tag filters
+		- key: comma-separated first-chord filters
+- GET /api/shared/[shareId]
+
+## Data Model Snapshot
+
+Core Prisma models:
+
+- User
+	- id, email, name, passwordHash, createdAt, updatedAt
+- Progression
+	- id, shareId, userId, title
+	- chords (Json)
+	- pianoVoicings (Json?)
+	- feel (String?)
+	- scale (String?)
+	- genre (String?)
+	- notes (String?)
+	- tags (String[])
+	- isPublic (Boolean)
+	- createdAt, updatedAt
+
+Latest schema addition:
+
+- genre field is now persisted on Progression and restored into the generator when opening saved progressions.
+
+## Environment Variables
+
+Copy the example file:
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-Required values in `.env.local`:
+Required values:
 
 ```dotenv
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-4o
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/progression_lab
-AUTH_SECRET=replace_with_a_long_random_string
+AUTH_SECRET=replace_with_output_of_openssl_rand_base64_32
 ```
 
-Generate an auth secret with:
+Generate AUTH_SECRET:
 
 ```bash
 openssl rand -base64 32
 ```
 
-### 3) Start local Postgres (Docker)
+## Local Development
+
+Install dependencies:
+
+```bash
+yarn install
+```
+
+Start local Postgres via Docker:
 
 ```bash
 make docker-up
 ```
 
-### 4) Apply schema and run app
+Generate Prisma client and apply migrations:
 
 ```bash
-yarn db:push
-make dev
+yarn db:generate
+npx prisma migrate deploy
 ```
 
-Open `http://localhost:3000`.
+Run the app:
 
-## API Overview
-
-### AI route
-
-* `POST /api/chord-suggestions`
-
-### Auth routes
-
-* `POST /api/auth/register`
-* `POST /api/auth/login`
-* `POST /api/auth/logout`
-* `GET /api/auth/me`
-
-### Progression routes (authenticated)
-
-* `GET /api/progressions`
-* `POST /api/progressions`
-* `GET /api/progressions/[id]`
-* `PUT /api/progressions/[id]`
-* `DELETE /api/progressions/[id]`
-
-### Shared route (public)
-
-* `GET /api/shared/[shareId]`
-
-## Data Model (Prisma)
-
-```ts
-type User = {
-	id: string;
-	email: string;
-	name: string | null;
-	passwordHash: string | null;
-	createdAt: Date;
-	updatedAt: Date;
-};
-
-type Progression = {
-	id: string;
-	shareId: string;
-	userId: string;
-	title: string;
-	chords: unknown; // Prisma Json
-	pianoVoicings: unknown | null; // Prisma Json
-	feel: string | null;
-	scale: string | null;
-	notes: string | null;
-	tags: string[];
-	isPublic: boolean;
-	createdAt: Date;
-	updatedAt: Date;
-};
+```bash
+yarn dev
 ```
 
-## TODOs
+Open http://localhost:3000
 
-* Add edit flow for saved progressions
-* Add password reset and email verification
-* Add pagination and filtering for My Progressions
-* Add migration files under `prisma/migrations` for production deploys
-* Add richer playback controls (tempo, loop, stop)
-* Add export options (MIDI / DAW-friendly formats)
+## Common Commands
 
-## Author
+- yarn dev
+- yarn build
+- yarn start
+- yarn lint:check
+- yarn lint:fix
+- yarn test
+- yarn db:generate
+- yarn db:push
+- yarn db:studio
 
-Carl Welch
+Makefile shortcuts are also available for install/dev/build/deploy workflows.
+
+## Build and Deployment Notes
+
+- Production builds run best after Prisma client generation and migration deploy.
+- Recommended production sequence:
+
+```bash
+npx prisma generate
+npx prisma migrate deploy
+yarn build
+```
+
+- Vercel helpers exist in Makefile:
+	- make vercel-link
+	- make vercel-pull
+	- make vercel-preview
+	- make vercel-prod
+	- make vercel-prod-with-migrate
+
+## Testing
+
+- Jest + React Testing Library are configured.
+- Primary coverage includes generator behavior and API route validation patterns.
+
+## Roadmap Ideas
+
+- Saved progression edit flow
+- Pagination for large progression libraries
+- Expanded playback controls (tempo/loop/stop)
+- Export options (MIDI/DAW-friendly formats)
