@@ -69,13 +69,6 @@ export default function GuitarChordDiagram({ title, fingers, barres = [], positi
           position: normalizedPosition,
         })
         .draw();
-
-      console.log('svguitar render ok', {
-        title,
-        position: normalizedPosition,
-        fingers,
-        barres,
-      });
     } catch (error) {
       console.error('svguitar render failed', {
         title,

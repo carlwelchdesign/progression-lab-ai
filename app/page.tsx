@@ -29,17 +29,11 @@ import SuccessSnackbar from '../components/ui/SuccessSnackbar';
 import { CHORD_OPTIONS, GENRE_OPTIONS, MODE_OPTIONS, MOOD_OPTIONS } from '../lib/formOptions';
 import { GUITAR_SHAPES } from '../lib/chordShapes';
 import { getChordChipSx, getMoodChipSx } from '../lib/tagMetadata';
-import type {
-  Adventurousness,
-  ChordItem,
-  ChordSuggestionResponse,
-  InstrumentPreference,
-} from '../lib/types';
+import type { Adventurousness, ChordItem, ChordSuggestionResponse } from '../lib/types';
 import { playChordVoicing, playProgression } from '../lib/audio';
 
 const GENERATOR_CACHE_KEY = 'generatorCache';
 const MAX_RANDOM_SELECTIONS = 7;
-const INSTRUMENT_OPTIONS: InstrumentPreference[] = ['both', 'guitar', 'piano'];
 const ADVENTUROUSNESS_OPTIONS: Adventurousness[] = ['safe', 'balanced', 'surprising'];
 const RANDOM_MODE_OPTIONS = MODE_OPTIONS.filter((option) => option.value !== 'custom').map(
   (option) => option.value,
@@ -70,7 +64,6 @@ type GeneratorCache = {
   customMode: string;
   genre: string;
   customGenre: string;
-  instrument: InstrumentPreference;
   adventurousness: Adventurousness;
   data: ChordSuggestionResponse;
 };
@@ -82,7 +75,6 @@ type GeneratorFormData = {
   customMode: string;
   genre: string;
   customGenre: string;
-  instrument: InstrumentPreference;
   adventurousness: Adventurousness;
 };
 
@@ -239,6 +231,58 @@ function getGuitarDiagramFromChord(chord: string) {
   };
 }
 
+function getGuitarShapeTextFromVoicing(
+  voicing: ChordSuggestionResponse['nextChordSuggestions'][number]['guitarVoicing'],
+): string {
+  if (!voicing) {
+    return 'xxxxxx';
+  }
+
+  const byString = new Map<number, number | 'x'>();
+
+  voicing.fingers.forEach((finger) => {
+    byString.set(finger.string, finger.fret);
+  });
+
+  return [6, 5, 4, 3, 2, 1]
+    .map((stringNumber) => {
+      const fret = byString.get(stringNumber);
+
+      if (fret === undefined) {
+        return 'x';
+      }
+
+      return typeof fret === 'number' ? String(fret) : fret;
+    })
+    .join('');
+}
+
+function getGuitarShapeTextFromDiagram(
+  diagram: ReturnType<typeof getGuitarDiagramFromChord>,
+): string {
+  if (!diagram) {
+    return 'xxxxxx';
+  }
+
+  const byString = new Map<number, number | 'x'>();
+
+  diagram.fingers.forEach(([stringNumber, fret]) => {
+    byString.set(stringNumber, fret);
+  });
+
+  return [6, 5, 4, 3, 2, 1]
+    .map((stringNumber) => {
+      const fret = byString.get(stringNumber);
+
+      if (fret === undefined) {
+        return 'x';
+      }
+
+      return typeof fret === 'number' ? String(fret) : fret;
+    })
+    .join('');
+}
+
 export default function HomePage() {
   const {
     control,
@@ -254,7 +298,6 @@ export default function HomePage() {
       customMode: '',
       genre: '',
       customGenre: '',
-      instrument: 'both',
       adventurousness: 'balanced',
     },
     mode: 'onChange',
@@ -319,7 +362,6 @@ export default function HomePage() {
               customMode: '',
               genre: restoredGenre,
               customGenre: restoredCustomGenre,
-              instrument: 'both',
               adventurousness: 'balanced',
             });
           }
@@ -342,7 +384,7 @@ export default function HomePage() {
                 mood: parsed.feel ?? prev?.inputSummary.mood ?? null,
                 mode: parsed.scale ?? prev?.inputSummary.mode ?? null,
                 genre: parsed.genre ?? prev?.inputSummary.genre ?? null,
-                instrument: prev?.inputSummary.instrument ?? null,
+                instrument: 'both',
                 adventurousness: prev?.inputSummary.adventurousness ?? null,
               },
               nextChordSuggestions: prev?.nextChordSuggestions ?? [],
@@ -383,7 +425,6 @@ export default function HomePage() {
           customMode: parsedCache.customMode,
           genre: parsedCache.genre,
           customGenre: parsedCache.customGenre,
-          instrument: parsedCache.instrument,
           adventurousness: parsedCache.adventurousness,
         });
 
@@ -430,7 +471,7 @@ export default function HomePage() {
           mood: formData.mood,
           mode: resolvedMode,
           genre: resolvedGenre,
-          instrument: formData.instrument,
+          instrument: 'both',
           adventurousness: formData.adventurousness,
         }),
       });
@@ -449,7 +490,6 @@ export default function HomePage() {
         customMode: formData.customMode,
         genre: formData.genre,
         customGenre: formData.customGenre,
-        instrument: formData.instrument,
         adventurousness: formData.adventurousness,
         data: json,
       };
@@ -485,7 +525,6 @@ export default function HomePage() {
       customMode: '',
       genre: pickRandomUnique(RANDOM_GENRE_OPTIONS, 1)[0] ?? '',
       customGenre: '',
-      instrument: pickRandomUnique(INSTRUMENT_OPTIONS, 1)[0] ?? 'both',
       adventurousness: pickRandomUnique(ADVENTUROUSNESS_OPTIONS, 1)[0] ?? 'balanced',
     });
     setError('');
@@ -739,23 +778,6 @@ export default function HomePage() {
             ) : null}
 
             <Controller
-              name="instrument"
-              control={control}
-              render={({ field }) => (
-                <SelectField
-                  label="Instrument"
-                  {...field}
-                  options={[
-                    { value: 'both', label: 'Both' },
-                    { value: 'guitar', label: 'Guitar' },
-                    { value: 'piano', label: 'Piano' },
-                  ]}
-                  disabled={isSubmitting || loading}
-                />
-              )}
-            />
-
-            <Controller
               name="adventurousness"
               control={control}
               render={({ field }) => (
@@ -819,6 +841,30 @@ export default function HomePage() {
 
         {data && !loading ? (
           <>
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              spacing={1.5}
+              justifyContent="space-between"
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+            >
+              <Typography variant="h6" component="h2">
+                Instrument display
+              </Typography>
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={progressionDiagramInstrument}
+                onChange={(_event, value: ProgressionDiagramInstrument | null) => {
+                  if (value) {
+                    setProgressionDiagramInstrument(value);
+                  }
+                }}
+              >
+                <ToggleButton value="piano">Piano diagrams</ToggleButton>
+                <ToggleButton value="guitar">Guitar diagrams</ToggleButton>
+              </ToggleButtonGroup>
+            </Stack>
+
             {!isLoadedFromSavedProgression ? (
               <Box component="section" id="suggestions">
                 <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
@@ -874,7 +920,7 @@ export default function HomePage() {
                           </Button>
                         </div>
                       ) : null}
-                      {item.pianoVoicing ? (
+                      {progressionDiagramInstrument === 'piano' && item.pianoVoicing ? (
                         <Box sx={{ mt: 1 }}>
                           <Typography variant="body2">
                             <strong>Left hand:</strong> {item.pianoVoicing.leftHand.join(', ')}
@@ -885,24 +931,25 @@ export default function HomePage() {
                         </Box>
                       ) : null}
 
+                      {progressionDiagramInstrument === 'guitar' ? (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            Common Chord Examples
+                          </Typography>
+                          <Typography variant="body2">
+                            {item.chord}: {getGuitarShapeTextFromVoicing(item.guitarVoicing)}
+                          </Typography>
+                        </Box>
+                      ) : null}
+
                       <Box
                         sx={{
                           mt: 2,
-                          display: {
-                            xs: 'block',
-                            lg: 'grid',
-                          },
-                          gridTemplateColumns: {
-                            xs: '1fr',
-                            lg: '220px minmax(0, 1fr)',
-                          },
-                          gap: 2,
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          justifyItems: 'center',
+                          display: 'flex',
+                          justifyContent: 'center',
                         }}
                       >
-                        {item.guitarVoicing && (
+                        {progressionDiagramInstrument === 'guitar' && item.guitarVoicing && (
                           <GuitarChordDiagram
                             title={item.guitarVoicing.title}
                             position={
@@ -924,18 +971,19 @@ export default function HomePage() {
                             }))}
                           />
                         )}
-                        {item.pianoVoicing ? (
-                          <Box
-                            sx={{
-                              width: '100%',
-                              maxWidth: { xs: '100%', lg: '700px' },
-                              alignSelf: 'center',
-                            }}
-                          >
-                            <PianoChordDiagram
-                              leftHand={item.pianoVoicing.leftHand}
-                              rightHand={item.pianoVoicing.rightHand}
-                            />
+                        {progressionDiagramInstrument === 'piano' && item.pianoVoicing ? (
+                          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                            <Box
+                              sx={{
+                                width: '100%',
+                                maxWidth: { xs: '100%', md: '800px' },
+                              }}
+                            >
+                              <PianoChordDiagram
+                                leftHand={item.pianoVoicing.leftHand}
+                                rightHand={item.pianoVoicing.rightHand}
+                              />
+                            </Box>
                           </Box>
                         ) : null}
                       </Box>
@@ -956,19 +1004,6 @@ export default function HomePage() {
                 <Typography variant="h5" component="h2">
                   Progression ideas
                 </Typography>
-                <ToggleButtonGroup
-                  size="small"
-                  exclusive
-                  value={progressionDiagramInstrument}
-                  onChange={(_event, value: ProgressionDiagramInstrument | null) => {
-                    if (value) {
-                      setProgressionDiagramInstrument(value);
-                    }
-                  }}
-                >
-                  <ToggleButton value="piano">Piano diagrams</ToggleButton>
-                  <ToggleButton value="guitar">Guitar diagrams</ToggleButton>
-                </ToggleButtonGroup>
               </Stack>
 
               <Box
@@ -976,7 +1011,7 @@ export default function HomePage() {
                   display: 'grid',
                   gridTemplateColumns: {
                     xs: '1fr',
-                    md: 'repeat(3, minmax(0, 1fr))',
+                    md: isLoadedFromSavedProgression ? '1fr' : 'repeat(3, minmax(0, 1fr))',
                   },
                   gap: 2,
                 }}
@@ -1069,11 +1104,25 @@ export default function HomePage() {
                                       </Typography>
                                     </Stack>
 
-                                    <Box sx={{ pt: 1 }}>
-                                      <PianoChordDiagram
-                                        leftHand={voicing.leftHand}
-                                        rightHand={voicing.rightHand}
-                                      />
+                                    <Box
+                                      sx={{
+                                        pt: 1,
+                                        width: '100%',
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                      }}
+                                    >
+                                      <Box
+                                        sx={{
+                                          width: '100%',
+                                          maxWidth: { xs: '100%', md: '800px' },
+                                        }}
+                                      >
+                                        <PianoChordDiagram
+                                          leftHand={voicing.leftHand}
+                                          rightHand={voicing.rightHand}
+                                        />
+                                      </Box>
                                     </Box>
 
                                     <Stack direction="row" spacing={1}>
@@ -1092,13 +1141,21 @@ export default function HomePage() {
                                     </Stack>
                                   </>
                                 ) : progressionDiagramInstrument === 'guitar' && guitarDiagram ? (
-                                  <Box sx={{ pt: 1 }}>
-                                    <GuitarChordDiagram
-                                      title={guitarDiagram.title}
-                                      position={guitarDiagram.position}
-                                      fingers={guitarDiagram.fingers}
-                                    />
-                                  </Box>
+                                  <Stack spacing={1} sx={{ pt: 1 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                      Common Chord Examples
+                                    </Typography>
+                                    <Typography variant="body2">
+                                      {chord}: {getGuitarShapeTextFromDiagram(guitarDiagram)}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                      <GuitarChordDiagram
+                                        title={guitarDiagram.title}
+                                        position={guitarDiagram.position}
+                                        fingers={guitarDiagram.fingers}
+                                      />
+                                    </Box>
+                                  </Stack>
                                 ) : (
                                   <Typography variant="body2" color="text.secondary">
                                     {progressionDiagramInstrument === 'piano'

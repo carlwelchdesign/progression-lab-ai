@@ -36,5 +36,18 @@ export default function PianoChordDiagram({ leftHand, rightHand }: Props) {
     };
   }, [leftHand, rightHand]);
 
-  return <Box ref={ref} />;
+  return (
+    <Box
+      ref={ref}
+      sx={{
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        '& > *': {
+          marginLeft: 'auto',
+          marginRight: 'auto',
+        },
+      }}
+    />
+  );
 }
