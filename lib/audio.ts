@@ -3,7 +3,27 @@ import * as Tone from 'tone';
 let pianoSampler: Tone.Sampler | null = null;
 let pianoSamplerLoaded: Promise<void> | null = null;
 let scheduledPlaybackTimeouts: ReturnType<typeof setTimeout>[] = [];
+const DEFAULT_TEMPO_BPM = 100;
+const MIN_TEMPO_BPM = 40;
+const MAX_TEMPO_BPM = 240;
+const CHORD_BEATS = 2;
 const STRUM_STEP_SECONDS = 0.025;
+
+const normalizeTempoBpm = (tempoBpm?: number): number => {
+  if (!Number.isFinite(tempoBpm)) {
+    return DEFAULT_TEMPO_BPM;
+  }
+
+  return Math.min(
+    MAX_TEMPO_BPM,
+    Math.max(MIN_TEMPO_BPM, Math.round(tempoBpm ?? DEFAULT_TEMPO_BPM)),
+  );
+};
+
+const getChordDurationSeconds = (tempoBpm?: number): number => {
+  const normalizedTempo = normalizeTempoBpm(tempoBpm);
+  return (60 / normalizedTempo) * CHORD_BEATS;
+};
 
 const getPianoSampler = (): Tone.Sampler => {
   if (!pianoSampler) {
@@ -113,19 +133,22 @@ export const stopAllAudio = (): void => {
 export const playChordVoicing = async ({
   leftHand,
   rightHand,
-  duration = '1n',
+  duration,
+  tempoBpm,
 }: {
   leftHand: string[];
   rightHand: string[];
   duration?: Tone.Unit.Time;
+  tempoBpm?: number;
 }): Promise<void> => {
   await startAudio();
   stopAllAudio();
   const sampler = await ensurePianoSamplerLoaded();
   const notes = [...leftHand, ...rightHand];
+  const resolvedDuration = duration ?? getChordDurationSeconds(tempoBpm);
 
   if (notes.length > 0) {
-    triggerStrummedChord({ sampler, notes, duration });
+    triggerStrummedChord({ sampler, notes, duration: resolvedDuration });
   }
 };
 
@@ -134,11 +157,13 @@ export const playProgression = async (
     leftHand: string[];
     rightHand: string[];
   }>,
+  tempoBpm?: number,
 ): Promise<void> => {
   await startAudio();
   stopAllAudio();
 
   const sampler = await ensurePianoSamplerLoaded();
+  const chordDurationSeconds = getChordDurationSeconds(tempoBpm);
 
   voicings.forEach((voicing, index) => {
     const notes = [...voicing.leftHand, ...voicing.rightHand];
@@ -149,10 +174,10 @@ export const playProgression = async (
           triggerStrummedChord({
             sampler,
             notes,
-            duration: '1n',
+            duration: chordDurationSeconds,
           });
         },
-        index * 1200,
+        index * chordDurationSeconds * 1000,
       );
 
       scheduledPlaybackTimeouts.push(timeoutId);

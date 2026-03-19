@@ -10,4 +10,5 @@ export type GeneratorFormData = {
   genre: string;
   customGenre: string;
   adventurousness: Adventurousness;
+  tempoBpm: number;
 };

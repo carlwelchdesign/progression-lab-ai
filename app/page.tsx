@@ -68,6 +68,7 @@ export default function HomePage() {
       genre: '',
       customGenre: '',
       adventurousness: 'balanced',
+      tempoBpm: 100,
     },
     mode: 'onChange',
   });
@@ -76,6 +77,7 @@ export default function HomePage() {
   const genre = watch('genre');
   const customMode = watch('customMode');
   const customGenre = watch('customGenre');
+  const tempoBpm = watch('tempoBpm');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -173,6 +175,7 @@ export default function HomePage() {
       genre: pickRandomUnique(RANDOM_GENRE_OPTIONS, 1)[0] ?? '',
       customGenre: '',
       adventurousness: pickRandomUnique(ADVENTUROUSNESS_OPTIONS, 1)[0] ?? 'balanced',
+      tempoBpm,
     });
     setError('');
   };
@@ -242,119 +245,127 @@ export default function HomePage() {
 
               return (
                 <>
-            <Box
-              sx={{
-                position: 'sticky',
-                top: { xs: 68, md: 72 },
-                zIndex: 1100,
-                display: 'flex',
-                justifyContent: 'flex-end',
-              }}
-            >
-              <InstrumentToggle
-                value={progressionDiagramInstrument}
-                onChange={handleProgressionDiagramInstrumentChange}
-              />
-            </Box>
-
-            {useCollapsibleSections ? (
-              <Stack spacing={4}>
-                <Box component="section" id="suggestions">
-                  <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-                    Next chord suggestions
-                  </Typography>
-                  <Accordion
-                    expanded={isNextSectionExpanded}
-                    onChange={(_, expanded) => setIsNextSectionExpanded(expanded)}
+                  <Box
+                    sx={{
+                      position: 'sticky',
+                      top: { xs: 68, md: 72 },
+                      zIndex: 1100,
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                    }}
                   >
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
-                        {isNextSectionExpanded ? 'Hide suggestions' : 'Show suggestions'}
-                      </Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      <NextChordSuggestionsSection
-                        suggestions={data.nextChordSuggestions}
+                    <InstrumentToggle
+                      value={progressionDiagramInstrument}
+                      onChange={handleProgressionDiagramInstrumentChange}
+                    />
+                  </Box>
+
+                  {useCollapsibleSections ? (
+                    <Stack spacing={4}>
+                      <Box component="section" id="suggestions">
+                        <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
+                          Next chord suggestions
+                        </Typography>
+                        <Accordion
+                          expanded={isNextSectionExpanded}
+                          onChange={(_, expanded) => setIsNextSectionExpanded(expanded)}
+                        >
+                          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Typography variant="body2" component="span" sx={{ fontWeight: 600 }}>
+                              {isNextSectionExpanded ? 'Hide suggestions' : 'Show suggestions'}
+                            </Typography>
+                          </AccordionSummary>
+                          <AccordionDetails>
+                            <NextChordSuggestionsSection
+                              suggestions={data.nextChordSuggestions}
+                              progressionDiagramInstrument={progressionDiagramInstrument}
+                              tempoBpm={tempoBpm}
+                              showTitle={false}
+                            />
+                          </AccordionDetails>
+                        </Accordion>
+                      </Box>
+
+                      <ProgressionIdeasSection
+                        progressionIdeas={data.progressionIdeas}
+                        isLoadedFromSavedProgression={isLoadedFromSavedProgression}
                         progressionDiagramInstrument={progressionDiagramInstrument}
-                        showTitle={false}
+                        tempoBpm={tempoBpm}
+                        resolvedGenreForSave={genre === 'custom' ? customGenre.trim() : genre}
+                        onRequestSaveProgression={({
+                          chords,
+                          pianoVoicings,
+                          feel,
+                          genre: progressionGenre,
+                        }) => {
+                          setSelectedProgressionChords(chords);
+                          setSelectedProgressionVoicings(pianoVoicings);
+                          setSelectedProgressionFeel(feel);
+                          setSelectedProgressionGenre(progressionGenre);
+                          setSaveDialogOpen(true);
+                        }}
                       />
-                    </AccordionDetails>
-                  </Accordion>
-                </Box>
 
-                <ProgressionIdeasSection
-                  progressionIdeas={data.progressionIdeas}
-                  isLoadedFromSavedProgression={isLoadedFromSavedProgression}
-                  progressionDiagramInstrument={progressionDiagramInstrument}
-                  resolvedGenreForSave={genre === 'custom' ? customGenre.trim() : genre}
-                  onRequestSaveProgression={({
-                    chords,
-                    pianoVoicings,
-                    feel,
-                    genre: progressionGenre,
-                  }) => {
-                    setSelectedProgressionChords(chords);
-                    setSelectedProgressionVoicings(pianoVoicings);
-                    setSelectedProgressionFeel(feel);
-                    setSelectedProgressionGenre(progressionGenre);
-                    setSaveDialogOpen(true);
-                  }}
-                />
+                      <StructureSuggestionsSection
+                        structureSuggestions={data.structureSuggestions}
+                      />
+                    </Stack>
+                  ) : (
+                    <Stack spacing={4}>
+                      {!isLoadedFromSavedProgression ? (
+                        <NextChordSuggestionsSection
+                          suggestions={data.nextChordSuggestions}
+                          progressionDiagramInstrument={progressionDiagramInstrument}
+                          tempoBpm={tempoBpm}
+                        />
+                      ) : null}
 
-                <StructureSuggestionsSection structureSuggestions={data.structureSuggestions} />
-              </Stack>
-            ) : (
-              <Stack spacing={4}>
-                {!isLoadedFromSavedProgression ? (
-                  <NextChordSuggestionsSection
-                    suggestions={data.nextChordSuggestions}
-                    progressionDiagramInstrument={progressionDiagramInstrument}
+                      <ProgressionIdeasSection
+                        progressionIdeas={data.progressionIdeas}
+                        isLoadedFromSavedProgression={isLoadedFromSavedProgression}
+                        progressionDiagramInstrument={progressionDiagramInstrument}
+                        tempoBpm={tempoBpm}
+                        resolvedGenreForSave={genre === 'custom' ? customGenre.trim() : genre}
+                        onRequestSaveProgression={({
+                          chords,
+                          pianoVoicings,
+                          feel,
+                          genre: progressionGenre,
+                        }) => {
+                          setSelectedProgressionChords(chords);
+                          setSelectedProgressionVoicings(pianoVoicings);
+                          setSelectedProgressionFeel(feel);
+                          setSelectedProgressionGenre(progressionGenre);
+                          setSaveDialogOpen(true);
+                        }}
+                      />
+
+                      {!isLoadedFromSavedProgression ? (
+                        <StructureSuggestionsSection
+                          structureSuggestions={data.structureSuggestions}
+                        />
+                      ) : null}
+                    </Stack>
+                  )}
+
+                  <SaveProgressionDialog
+                    open={saveDialogOpen}
+                    onClose={() => setSaveDialogOpen(false)}
+                    chords={selectedProgressionChords}
+                    pianoVoicings={selectedProgressionVoicings}
+                    feel={selectedProgressionFeel}
+                    scale={mode === 'custom' ? customMode : mode}
+                    genre={selectedProgressionGenre}
+                    onSuccess={() => {
+                      setSaveDialogOpen(false);
+                      setSuccessMessageOpen(true);
+                    }}
                   />
-                ) : null}
-
-                <ProgressionIdeasSection
-                  progressionIdeas={data.progressionIdeas}
-                  isLoadedFromSavedProgression={isLoadedFromSavedProgression}
-                  progressionDiagramInstrument={progressionDiagramInstrument}
-                  resolvedGenreForSave={genre === 'custom' ? customGenre.trim() : genre}
-                  onRequestSaveProgression={({
-                    chords,
-                    pianoVoicings,
-                    feel,
-                    genre: progressionGenre,
-                  }) => {
-                    setSelectedProgressionChords(chords);
-                    setSelectedProgressionVoicings(pianoVoicings);
-                    setSelectedProgressionFeel(feel);
-                    setSelectedProgressionGenre(progressionGenre);
-                    setSaveDialogOpen(true);
-                  }}
-                />
-
-                {!isLoadedFromSavedProgression ? (
-                  <StructureSuggestionsSection structureSuggestions={data.structureSuggestions} />
-                ) : null}
-              </Stack>
-            )}
-
-            <SaveProgressionDialog
-              open={saveDialogOpen}
-              onClose={() => setSaveDialogOpen(false)}
-              chords={selectedProgressionChords}
-              pianoVoicings={selectedProgressionVoicings}
-              feel={selectedProgressionFeel}
-              scale={mode === 'custom' ? customMode : mode}
-              genre={selectedProgressionGenre}
-              onSuccess={() => {
-                setSaveDialogOpen(false);
-                setSuccessMessageOpen(true);
-              }}
-            />
-            <SuccessSnackbar
-              open={successMessageOpen}
-              message="Progression saved!"
-              onClose={() => setSuccessMessageOpen(false)}
-            />
+                  <SuccessSnackbar
+                    open={successMessageOpen}
+                    message="Progression saved!"
+                    onClose={() => setSuccessMessageOpen(false)}
+                  />
                 </>
               );
             })()}

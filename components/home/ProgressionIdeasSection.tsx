@@ -5,11 +5,13 @@ import { Box, Button, Divider, Stack, Typography } from '@mui/material';
 import GuitarChordDiagram from '../GuitarChordDiagram';
 import PianoChordDiagram from '../PianoChordDiagram';
 import Card from '../ui/Card';
+import MidiDownloadButton from '../ui/MidiDownloadButton';
 import { playChordVoicing, playProgression } from '../../lib/audio';
 import {
   getGuitarDiagramFromChord,
   getGuitarShapeTextFromDiagram,
 } from '../../lib/guitarDiagramUtils';
+import { downloadChordMidi, downloadProgressionMidi } from '../../lib/midi';
 import type { ChordItem, ChordSuggestionResponse } from '../../lib/types';
 import type { ProgressionDiagramInstrument } from './types';
 
@@ -17,6 +19,7 @@ type ProgressionIdeasSectionProps = {
   progressionIdeas: ChordSuggestionResponse['progressionIdeas'];
   isLoadedFromSavedProgression: boolean;
   progressionDiagramInstrument: ProgressionDiagramInstrument;
+  tempoBpm: number;
   showTitle?: boolean;
   resolvedGenreForSave: string;
   onRequestSaveProgression: (payload: {
@@ -31,6 +34,7 @@ export default function ProgressionIdeasSection({
   progressionIdeas,
   isLoadedFromSavedProgression,
   progressionDiagramInstrument,
+  tempoBpm,
   showTitle = true,
   resolvedGenreForSave,
   onRequestSaveProgression,
@@ -89,28 +93,40 @@ export default function ProgressionIdeasSection({
               ) : null}
 
               {idea.pianoVoicings.length > 0 ? (
-                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => playProgression(idea.pianoVoicings)}
-                  >
-                    Play progression
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => {
-                      onRequestSaveProgression({
-                        chords: idea.chords.map((chord) => ({ name: chord, beats: 1 })),
-                        pianoVoicings: idea.pianoVoicings,
-                        feel: idea.feel,
-                        genre: resolvedGenreForSave,
-                      });
-                    }}
-                  >
-                    Save
-                  </Button>
+                <Stack spacing={1}>
+                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => playProgression(idea.pianoVoicings, tempoBpm)}
+                    >
+                      Play progression
+                    </Button>
+                    <MidiDownloadButton
+                      variant="outlined"
+                      size="small"
+                      onClick={() =>
+                        downloadProgressionMidi(idea.label, idea.pianoVoicings, tempoBpm)
+                      }
+                    />
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => {
+                        onRequestSaveProgression({
+                          chords: idea.chords.map((chord) => ({ name: chord, beats: 1 })),
+                          pianoVoicings: idea.pianoVoicings,
+                          feel: idea.feel,
+                          genre: resolvedGenreForSave,
+                        });
+                      }}
+                    >
+                      Save
+                    </Button>
+                  </Stack>
+                  <Typography variant="caption" color="text.secondary">
+                    Tempo: {tempoBpm} BPM
+                  </Typography>
                 </Stack>
               ) : null}
 
@@ -167,7 +183,7 @@ export default function ProgressionIdeasSection({
                               </Box>
                             </Box>
 
-                            <Stack direction="row" spacing={1}>
+                            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                               <Button
                                 variant="outlined"
                                 size="small"
@@ -175,11 +191,17 @@ export default function ProgressionIdeasSection({
                                   playChordVoicing({
                                     leftHand: voicing.leftHand,
                                     rightHand: voicing.rightHand,
+                                    tempoBpm,
                                   })
                                 }
                               >
                                 Play chord
                               </Button>
+                              <MidiDownloadButton
+                                variant="outlined"
+                                size="small"
+                                onClick={() => downloadChordMidi(chord, voicing, tempoBpm)}
+                              />
                             </Stack>
                           </>
                         ) : progressionDiagramInstrument === 'guitar' && guitarDiagram ? (
@@ -198,7 +220,7 @@ export default function ProgressionIdeasSection({
                               />
                             </Box>
                             {voicing ? (
-                              <Stack direction="row" spacing={1}>
+                              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                                 <Button
                                   variant="outlined"
                                   size="small"
@@ -206,11 +228,17 @@ export default function ProgressionIdeasSection({
                                     playChordVoicing({
                                       leftHand: voicing.leftHand,
                                       rightHand: voicing.rightHand,
+                                      tempoBpm,
                                     })
                                   }
                                 >
                                   Play chord
                                 </Button>
+                                <MidiDownloadButton
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={() => downloadChordMidi(chord, voicing, tempoBpm)}
+                                />
                               </Stack>
                             ) : null}
                           </Stack>

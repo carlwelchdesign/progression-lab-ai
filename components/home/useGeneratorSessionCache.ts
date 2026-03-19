@@ -16,6 +16,7 @@ type GeneratorCache = {
   genre: string;
   customGenre: string;
   adventurousness: Adventurousness;
+  tempoBpm?: number;
   data: ChordSuggestionResponse;
 };
 
@@ -76,6 +77,7 @@ export default function useGeneratorSessionCache({
               genre: restoredGenre,
               customGenre: restoredCustomGenre,
               adventurousness: 'balanced',
+              tempoBpm: 100,
             });
           }
 
@@ -131,6 +133,7 @@ export default function useGeneratorSessionCache({
           genre: parsedCache.genre,
           customGenre: parsedCache.customGenre,
           adventurousness: parsedCache.adventurousness,
+          tempoBpm: parsedCache.tempoBpm ?? 100,
         });
 
         setIsLoadedFromSavedProgression(false);
@@ -153,6 +156,7 @@ export default function useGeneratorSessionCache({
       genre: formData.genre,
       customGenre: formData.customGenre,
       adventurousness: formData.adventurousness,
+      tempoBpm: formData.tempoBpm,
       data,
     };
 
