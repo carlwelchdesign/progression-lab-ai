@@ -64,6 +64,105 @@ ProgressionLab is an AI-assisted harmony and songwriting workspace built with Ne
 
 - POST /api/chord-suggestions
 
+## OpenAI Implementation Notes
+
+The AI layer is intentionally implemented as a strict contract instead of free-form text generation.
+
+How it works:
+
+1. The generator submits normalized input to `POST /api/chord-suggestions`.
+2. The route calls OpenAI Responses API with explicit instructions for harmonic behavior and voicing constraints.
+3. The response is forced into a strict JSON schema using `text.format = { type: 'json_schema', strict: true }`.
+4. The app parses that JSON and renders it directly into typed UI sections (next chords, progression ideas, structure).
+
+Why this is reliable:
+
+- Schema validation enforces exact shape and required fields.
+- The model cannot return arbitrary prose outside the defined contract.
+- Types for voicings and structural fields are predictable for rendering/playback.
+- Parse failures and empty-output cases are explicitly handled in the route.
+
+What the schema guarantees:
+
+- `inputSummary` with normalized request context
+- `nextChordSuggestions` with tension/confidence plus optional piano and guitar voicings
+- `progressionIdeas` with matched `chords` and `pianoVoicings`
+- `structureSuggestions` with constrained section names and bar ranges
+
+Key file:
+
+- `app/api/chord-suggestions/route.ts`
+
+Example request payload:
+
+```json
+{
+	"seedChords": ["Fmaj7", "F#m7"],
+	"mood": "dreamy, uplifting",
+	"mode": "dorian",
+	"genre": "piano house",
+	"instrument": "both",
+	"adventurousness": "balanced"
+}
+```
+
+Example response shape (abbreviated):
+
+```json
+{
+	"inputSummary": {
+		"seedChords": ["Fmaj7", "F#m7"],
+		"mood": "dreamy, uplifting",
+		"mode": "dorian",
+		"genre": "piano house",
+		"instrument": "both",
+		"adventurousness": "balanced"
+	},
+	"nextChordSuggestions": [
+		{
+			"chord": "Gmaj7",
+			"romanNumeral": "IImaj7",
+			"functionExplanation": "Lifts the progression while keeping modal color.",
+			"tensionLevel": 3,
+			"confidence": 4,
+			"voicingHint": "Keep upper voices close for smooth motion.",
+			"pianoVoicing": {
+				"leftHand": ["G2", "D3"],
+				"rightHand": ["F#3", "B3", "D4", "G4"]
+			},
+			"guitarVoicing": {
+				"title": "Gmaj7",
+				"position": 3,
+				"fingers": [
+					{ "string": 6, "fret": 3, "finger": "2" },
+					{ "string": 5, "fret": 2, "finger": "1" },
+					{ "string": 4, "fret": 0, "finger": null }
+				],
+				"barres": []
+			}
+		}
+	],
+	"progressionIdeas": [
+		{
+			"label": "Lift and Resolve",
+			"chords": ["Fmaj7", "F#m7", "Gmaj7", "Aadd9"],
+			"feel": "Airy and modern",
+			"performanceTip": "Accent the offbeats in the right hand.",
+			"pianoVoicings": [
+				{ "leftHand": ["F2", "C3"], "rightHand": ["E3", "A3", "C4", "F4"] }
+			]
+		}
+	],
+	"structureSuggestions": [
+		{
+			"section": "verse",
+			"bars": 8,
+			"harmonicIdea": "Cycle through the first 4 chords with sparse voicings."
+		}
+	]
+}
+```
+
 ### Auth
 
 - POST /api/auth/register
