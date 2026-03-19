@@ -190,13 +190,10 @@ export const MOOD_OPTIONS = [
   'Ambient',
   'Hypnotic',
   'Euphoric',
-  'Melancholic',
   'Anxious',
-  'Peaceful',
   'Triumphant',
   'Introspective',
   'Funky',
-  'Ethereal',
   'Dark ambient',
   'Cinematic',
 ];
