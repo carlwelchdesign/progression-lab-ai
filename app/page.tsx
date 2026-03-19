@@ -840,26 +840,15 @@ export default function HomePage() {
 
         {data && !loading ? (
           <>
-            <Stack
-              direction={{ xs: 'column', md: 'row' }}
-              spacing={1.5}
-              justifyContent="space-between"
-              alignItems={{ xs: 'flex-start', md: 'center' }}
+            <Box
               sx={{
                 position: 'sticky',
                 top: { xs: 68, md: 72 },
                 zIndex: 10,
-                backgroundColor: 'background.paper',
-                border: 1,
-                borderColor: 'divider',
-                borderRadius: '4px',
-                px: 1.5,
-                py: 1,
+                display: 'flex',
+                justifyContent: 'flex-end',
               }}
             >
-              <Typography variant="h6" component="h2">
-                Instrument display
-              </Typography>
               <ToggleButtonGroup
                 size="small"
                 exclusive
@@ -877,7 +866,7 @@ export default function HomePage() {
                 <ToggleButton value="piano">Piano diagrams</ToggleButton>
                 <ToggleButton value="guitar">Guitar diagrams</ToggleButton>
               </ToggleButtonGroup>
-            </Stack>
+            </Box>
 
             {!isLoadedFromSavedProgression ? (
               <Box component="section" id="suggestions">
