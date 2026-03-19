@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     siteName: 'Progression Lab AI',
     images: [
       {
-        url: '/og-image.png',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'Progression Lab AI chord generator preview',
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Progression Lab AI',
     description: 'AI-powered chord progression generator with piano and guitar visualizations.',
-    images: ['/og-image.png'],
+    images: ['/twitter-image'],
   },
 
   metadataBase: new URL('https://progression-lab-ai.vercel.app'),
