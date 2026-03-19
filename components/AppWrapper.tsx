@@ -29,9 +29,9 @@ type Props = {
 
 const NAV_ITEMS = [
   { label: 'Generator', href: '/#generator' },
-  { label: 'Suggestions', href: '/#suggestions' },
-  { label: 'Progressions', href: '/#progressions' },
-  { label: 'Structure', href: '/#structure' },
+  // { label: 'Suggestions', href: '/#suggestions' },
+  // { label: 'Progressions', href: '/#progressions' },
+  // { label: 'Structure', href: '/#structure' },
 ];
 
 export default function AppWrapper({ children }: Props) {
