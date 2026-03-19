@@ -1,5 +1,5 @@
 'use client';
-
+import Image from 'next/image';
 import MenuIcon from '@mui/icons-material/Menu';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
@@ -64,12 +64,14 @@ export default function AppWrapper({ children }: Props) {
               px: { xs: 0, sm: 2 },
             }}
           >
+
             <Typography
               variant="h6"
               component={Link}
               href="/"
               sx={{ textDecoration: 'none', color: 'text.primary' }}
             >
+              <Image src="/icon.png" alt="ProgressionLab.AI logo" width={24} height={24} style={{ marginRight: 8, marginBottom: 2, verticalAlign: 'middle' }} />
               ProgressionLab.AI
             </Typography>
 
