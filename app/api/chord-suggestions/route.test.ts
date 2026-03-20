@@ -178,4 +178,54 @@ describe('POST /api/chord-suggestions', () => {
     expect(body.nextChordSuggestions[0].pianoVoicing.rightHand).toEqual(['A3', 'C4', 'F4', 'G4']);
     expect(body.progressionIdeas[0].pianoVoicings[0].rightHand).toEqual(['A3', 'C4', 'F4', 'G4']);
   });
+
+  it('pulls sus2 color tones closer to the root in piano voicings', async () => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    mockCreate.mockResolvedValue({
+      output_text: JSON.stringify({
+        ...validModelPayload,
+        nextChordSuggestions: [
+          {
+            ...validModelPayload.nextChordSuggestions[0],
+            chord: 'Gsus2',
+            pianoVoicing: {
+              leftHand: ['G2', 'D3'],
+              rightHand: ['A5', 'D4', 'G4'],
+            },
+          },
+        ],
+        progressionIdeas: [
+          {
+            label: 'Open shimmer',
+            chords: ['Gsus2'],
+            feel: 'Bright pop',
+            performanceTip: 'Keep it light and even.',
+            pianoVoicings: [
+              {
+                leftHand: ['G2', 'D3'],
+                rightHand: ['A5', 'D4', 'G4'],
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    const response = await POST({
+      json: async () => ({
+        seedChords: ['Cmaj7'],
+        mood: 'uplifting',
+        mode: 'ionian',
+        genre: 'pop',
+        instrument: 'both',
+        adventurousness: 'balanced',
+      }),
+    } as never);
+
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.nextChordSuggestions[0].pianoVoicing.rightHand).toEqual(['D4', 'G4', 'A4']);
+    expect(body.progressionIdeas[0].pianoVoicings[0].rightHand).toEqual(['D4', 'G4', 'A4']);
+  });
 });

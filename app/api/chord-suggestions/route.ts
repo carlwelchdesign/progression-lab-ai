@@ -90,7 +90,7 @@ function sortNotesByPitch(notes: string[]): string[] {
 }
 
 function normalizeAddToneVoicing(chordName: string, voicing: PianoVoicing): PianoVoicing {
-  if (!/add(?:2|9)/i.test(chordName) || voicing.rightHand.length === 0) {
+  if (!/(?:add(?:2|9)|sus2)/i.test(chordName) || voicing.rightHand.length === 0) {
     return voicing;
   }
 
@@ -376,7 +376,7 @@ Rules:
 - rightHand should usually contain 3 to 5 notes in a playable upper register
 - Make the voicings musical and practical for piano house / modern chord playing
 - Prefer spread, playable voicings rather than dense clusters
-- For add2/add9 chords, especially in pop and R&B, prefer the added 2/9 as a close color tone near the root in the right hand, not isolated more than an octave above the rest of the voicing
+- For add2/add9/sus2 chords, especially in pop and R&B, prefer the 2/9 as a close color tone near the root in the right hand, not isolated more than an octave above the rest of the voicing
 
 Example:
 "pianoVoicing": {
@@ -404,7 +404,7 @@ Rules:
   - rightHand: 3 to 5 notes in a practical upper register
 - favor smooth voice leading across the progression
 - make the voicings playable and stylistically appropriate for the requested genre and mood
-- for add2/add9 chords, keep the added 2/9 close to the root in the right hand when that serves a pop or R&B feel
+- for add2/add9/sus2 chords, keep the 2/9 close to the root in the right hand when that serves a pop or R&B feel
 
 When returning progressionIdeas, ensure pianoVoicings.length exactly matches chords.length.
     `.trim();
