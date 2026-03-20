@@ -23,7 +23,7 @@ import GeneratedChordGridDialog from '../components/home/GeneratedChordGridDialo
 import GeneratorHeader from '../components/home/GeneratorHeader';
 import InstrumentToggle from '../components/home/InstrumentToggle';
 import NextChordSuggestionsSection from '../components/home/NextChordSuggestionsSection';
-import PlaybackSettingsSpeedDial from '../components/home/PlaybackSettingsSpeedDial';
+import PlaybackSettingsButton from '../components/home/PlaybackSettingsButton';
 import ProgressionIdeasSection from '../components/home/ProgressionIdeasSection';
 import RestoringState from '../components/home/RestoringState';
 import StructureSuggestionsSection from '../components/home/StructureSuggestionsSection';
@@ -367,7 +367,7 @@ export default function HomePage() {
                     }}
                   >
                     <Stack direction="row" spacing={1} alignItems="center">
-                      <PlaybackSettingsSpeedDial
+                      <PlaybackSettingsButton
                         playbackStyle={playbackStyle}
                         onPlaybackStyleChange={setPlaybackStyle}
                         attack={attack}

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { playChordVoicing, stopAllAudio } from '../../lib/audio';
 import type { PlaybackStyle } from '../../lib/audio';
-import PlaybackSettingsSpeedDial from './PlaybackSettingsSpeedDial';
+import PlaybackSettingsButton from './PlaybackSettingsButton';
 
 type ChordGridEntry = {
   key: string;
@@ -162,7 +162,7 @@ export default function GeneratedChordGridDialog({
     >
       <DialogContent dividers>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
-          <PlaybackSettingsSpeedDial
+          <PlaybackSettingsButton
             playbackStyle={playbackStyle}
             onPlaybackStyleChange={onPlaybackStyleChange}
             attack={attack}
