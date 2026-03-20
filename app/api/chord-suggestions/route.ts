@@ -1,9 +1,183 @@
 import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
 
+import type { ChordSuggestionResponse, PianoVoicing } from '../../../lib/types';
+
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const CHORD_ROOT_PATTERN = /^([A-G](?:#|b)?)/;
+const NOTE_PATTERN = /^([A-G](?:#|b)?)(-?\d+)$/;
+const NOTE_TO_SEMITONE: Record<string, number> = {
+  C: 0,
+  'B#': 0,
+  'C#': 1,
+  Db: 1,
+  D: 2,
+  'D#': 3,
+  Eb: 3,
+  E: 4,
+  Fb: 4,
+  F: 5,
+  'E#': 5,
+  'F#': 6,
+  Gb: 6,
+  G: 7,
+  'G#': 8,
+  Ab: 8,
+  A: 9,
+  'A#': 10,
+  Bb: 10,
+  B: 11,
+  Cb: 11,
+};
+
+function getChordRootPitchClass(chordName: string): number | null {
+  const match = chordName.match(CHORD_ROOT_PATTERN);
+  if (!match) {
+    return null;
+  }
+
+  return NOTE_TO_SEMITONE[match[1]] ?? null;
+}
+
+function parseMidi(note: string): number | null {
+  const match = note.match(NOTE_PATTERN);
+  if (!match) {
+    return null;
+  }
+
+  const semitone = NOTE_TO_SEMITONE[match[1]];
+  const octave = Number.parseInt(match[2], 10);
+
+  if (semitone === undefined || Number.isNaN(octave)) {
+    return null;
+  }
+
+  return (octave + 1) * 12 + semitone;
+}
+
+function getPitchClass(note: string): number | null {
+  const midi = parseMidi(note);
+  if (midi === null) {
+    return null;
+  }
+
+  return ((midi % 12) + 12) % 12;
+}
+
+function shiftNoteByOctaves(note: string, octaveDelta: number): string {
+  const match = note.match(NOTE_PATTERN);
+  if (!match) {
+    return note;
+  }
+
+  return `${match[1]}${Number.parseInt(match[2], 10) + octaveDelta}`;
+}
+
+function sortNotesByPitch(notes: string[]): string[] {
+  return [...notes].sort((left, right) => {
+    const leftMidi = parseMidi(left);
+    const rightMidi = parseMidi(right);
+
+    if (leftMidi === null || rightMidi === null) {
+      return left.localeCompare(right);
+    }
+
+    return leftMidi - rightMidi;
+  });
+}
+
+function normalizeAddToneVoicing(chordName: string, voicing: PianoVoicing): PianoVoicing {
+  if (!/add(?:2|9)/i.test(chordName) || voicing.rightHand.length === 0) {
+    return voicing;
+  }
+
+  const rootPitchClass = getChordRootPitchClass(chordName);
+  if (rootPitchClass === null) {
+    return voicing;
+  }
+
+  const addedTonePitchClass = (rootPitchClass + 2) % 12;
+  const rightHandNotes = voicing.rightHand.map((note, index) => ({
+    index,
+    note,
+    midi: parseMidi(note),
+    pitchClass: getPitchClass(note),
+  }));
+
+  const addToneCandidates = rightHandNotes
+    .filter((entry) => entry.midi !== null && entry.pitchClass === addedTonePitchClass)
+    .sort((left, right) => (right.midi ?? -Infinity) - (left.midi ?? -Infinity));
+
+  if (addToneCandidates.length === 0) {
+    return voicing;
+  }
+
+  const highestAddTone = addToneCandidates[0];
+  const anchor =
+    rightHandNotes
+      .filter(
+        (entry) =>
+          entry.midi !== null &&
+          (entry.midi ?? -Infinity) < (highestAddTone.midi ?? Infinity) &&
+          entry.pitchClass === rootPitchClass,
+      )
+      .sort((left, right) => (right.midi ?? -Infinity) - (left.midi ?? -Infinity))[0] ??
+    rightHandNotes
+      .filter(
+        (entry) =>
+          entry.midi !== null &&
+          (entry.midi ?? -Infinity) < (highestAddTone.midi ?? Infinity) &&
+          entry.pitchClass !== addedTonePitchClass,
+      )
+      .sort((left, right) => (right.midi ?? -Infinity) - (left.midi ?? -Infinity))[0];
+
+  if (!anchor?.midi || !highestAddTone.midi) {
+    return voicing;
+  }
+
+  let normalizedMidi = highestAddTone.midi;
+  while (normalizedMidi - anchor.midi > 12) {
+    normalizedMidi -= 12;
+  }
+
+  if (normalizedMidi === highestAddTone.midi) {
+    return voicing;
+  }
+
+  const updatedRightHand = [...voicing.rightHand];
+  updatedRightHand[highestAddTone.index] = shiftNoteByOctaves(
+    highestAddTone.note,
+    (normalizedMidi - highestAddTone.midi) / 12,
+  );
+
+  return {
+    ...voicing,
+    rightHand: sortNotesByPitch(updatedRightHand),
+  };
+}
+
+function normalizeChordSuggestionResponse(
+  payload: ChordSuggestionResponse,
+): ChordSuggestionResponse {
+  return {
+    ...payload,
+    nextChordSuggestions: (payload.nextChordSuggestions ?? []).map((suggestion) => ({
+      ...suggestion,
+      pianoVoicing: suggestion.pianoVoicing
+        ? normalizeAddToneVoicing(suggestion.chord, suggestion.pianoVoicing)
+        : null,
+    })),
+    progressionIdeas: (payload.progressionIdeas ?? []).map((idea) => ({
+      ...idea,
+      pianoVoicings: (idea.pianoVoicings ?? []).map((voicing, index) =>
+        normalizeAddToneVoicing(idea.chords[index] ?? '', voicing),
+      ),
+    })),
+  };
+}
 
 const chordSuggestionSchema = {
   type: 'object',
@@ -202,6 +376,7 @@ Rules:
 - rightHand should usually contain 3 to 5 notes in a playable upper register
 - Make the voicings musical and practical for piano house / modern chord playing
 - Prefer spread, playable voicings rather than dense clusters
+- For add2/add9 chords, especially in pop and R&B, prefer the added 2/9 as a close color tone near the root in the right hand, not isolated more than an octave above the rest of the voicing
 
 Example:
 "pianoVoicing": {
@@ -229,6 +404,7 @@ Rules:
   - rightHand: 3 to 5 notes in a practical upper register
 - favor smooth voice leading across the progression
 - make the voicings playable and stylistically appropriate for the requested genre and mood
+- for add2/add9 chords, keep the added 2/9 close to the root in the right hand when that serves a pop or R&B feel
 
 When returning progressionIdeas, ensure pianoVoicings.length exactly matches chords.length.
     `.trim();
@@ -265,7 +441,7 @@ When returning progressionIdeas, ensure pianoVoicings.length exactly matches cho
 
     let parsed;
     try {
-      parsed = JSON.parse(raw);
+      parsed = normalizeChordSuggestionResponse(JSON.parse(raw) as ChordSuggestionResponse);
     } catch (parseError) {
       console.error('Failed to parse output_text:', raw);
       console.error(parseError);
