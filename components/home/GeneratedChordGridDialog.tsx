@@ -6,6 +6,8 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  Slider,
+  Stack,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
@@ -71,6 +73,8 @@ export default function GeneratedChordGridDialog({
 }: GeneratedChordGridDialogProps) {
   const [activePadKey, setActivePadKey] = useState<string | null>(null);
   const [selectedPlaybackStyle, setSelectedPlaybackStyle] = useState<PlaybackStyle>(playbackStyle);
+  const [attack, setAttack] = useState<number>(0.01);
+  const [decay, setDecay] = useState<number>(0.5);
   const activePadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const padStyles = {
     body: {
@@ -111,6 +115,8 @@ export default function GeneratedChordGridDialog({
       rightHand: entry.rightHand,
       tempoBpm,
       playbackStyle: selectedPlaybackStyle,
+      attack,
+      decay,
     });
   };
 
@@ -140,7 +146,16 @@ export default function GeneratedChordGridDialog({
       }}
     >
       <DialogContent dividers>
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.25 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            mb: 2,
+            flexWrap: 'wrap',
+          }}
+        >
           <ToggleButtonGroup
             size="small"
             color="primary"
@@ -160,6 +175,37 @@ export default function GeneratedChordGridDialog({
               Block
             </ToggleButton>
           </ToggleButtonGroup>
+
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center'}}>
+            <Box sx={{ minWidth: 120 }}>
+              <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+                Attack: {attack.toFixed(2)}s
+              </Typography>
+              <Slider
+                size="small"
+                value={attack}
+                onChange={(_, value) => setAttack(value as number)}
+                min={0}
+                max={0.5}
+                step={0.01}
+                aria-label="Attack time"
+              />
+            </Box>
+            <Box sx={{ minWidth: 120 }}>
+              <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+                Decay: {decay.toFixed(2)}s
+              </Typography>
+              <Slider
+                size="small"
+                value={decay}
+                onChange={(_, value) => setDecay(value as number)}
+                min={0.1}
+                max={3}
+                step={0.1}
+                aria-label="Decay time"
+              />
+            </Box>
+          </Box>
         </Box>
 
         <Box

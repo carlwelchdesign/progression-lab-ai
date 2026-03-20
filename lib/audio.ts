@@ -145,13 +145,24 @@ const triggerChordByStyle = ({
   notes,
   duration,
   startTime,
+  attack,
+  decay,
 }: {
   style: PlaybackStyle;
   sampler: Tone.Sampler;
   notes: string[];
   duration: Tone.Unit.Time;
   startTime?: Tone.Unit.Time;
+  attack?: number;
+  decay?: number;
 }): void => {
+  if (attack !== undefined) {
+    sampler.attack = attack;
+  }
+  if (decay !== undefined) {
+    sampler.release = decay;
+  }
+
   if (style === 'block') {
     triggerBlockChord({ sampler, notes, duration, startTime });
     return;
@@ -184,12 +195,16 @@ export const playChordVoicing = async ({
   duration,
   tempoBpm,
   playbackStyle = 'strum',
+  attack,
+  decay,
 }: {
   leftHand: string[];
   rightHand: string[];
   duration?: Tone.Unit.Time;
   tempoBpm?: number;
   playbackStyle?: PlaybackStyle;
+  attack?: number;
+  decay?: number;
 }): Promise<void> => {
   await startAudio();
   stopAllAudio();
@@ -203,6 +218,8 @@ export const playChordVoicing = async ({
       sampler,
       notes,
       duration: resolvedDuration,
+      attack,
+      decay,
     });
   }
 };
