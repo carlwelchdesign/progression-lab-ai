@@ -112,11 +112,18 @@ export default function ProgressionIdeasSection({
                       variant="contained"
                       size="small"
                       onClick={() =>
-                        playProgression(idea.pianoVoicings, tempoBpm, playbackStyle, attack, decay, {
-                          humanize,
-                          gate,
-                          inversionRegister,
-                        })
+                        playProgression(
+                          idea.pianoVoicings,
+                          tempoBpm,
+                          playbackStyle,
+                          attack,
+                          decay,
+                          {
+                            humanize,
+                            gate,
+                            inversionRegister,
+                          },
+                        )
                       }
                     >
                       Play progression

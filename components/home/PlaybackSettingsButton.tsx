@@ -299,7 +299,8 @@ export default function PlaybackSettingsButton({
                 color="text.secondary"
                 sx={{ mt: 0.5, display: 'block' }}
               >
-                Shifts chord notes to stay in the chosen register using nearest-octave voice leading.
+                Shifts chord notes to stay in the chosen register using nearest-octave voice
+                leading.
               </Typography>
             </Box>
           </Stack>

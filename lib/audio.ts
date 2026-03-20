@@ -12,14 +12,17 @@ const STRUM_STEP_SECONDS = 0.025;
 export type PlaybackStyle = 'strum' | 'block';
 export type PlaybackRegister = 'off' | 'low' | 'mid' | 'high';
 
-const REGISTER_MIDI_RANGES: Record<Exclude<PlaybackRegister, 'off'>, { min: number; max: number }> = {
-  low:  { min: 36, max: 59 }, // C2–B3
-  mid:  { min: 48, max: 71 }, // C3–B4
+const REGISTER_MIDI_RANGES: Record<
+  Exclude<PlaybackRegister, 'off'>,
+  { min: number; max: number }
+> = {
+  low: { min: 36, max: 59 }, // C2–B3
+  mid: { min: 48, max: 71 }, // C3–B4
   high: { min: 60, max: 83 }, // C4–B5
 };
 
 const MAX_HUMANIZE_TIMING_S = 0.05; // 50 ms at 100%
-const MAX_HUMANIZE_VELOCITY = 12;   // ±12 MIDI velocity units at 100%
+const MAX_HUMANIZE_VELOCITY = 12; // ±12 MIDI velocity units at 100%
 
 const applyInversionLock = (notes: string[], register: PlaybackRegister): string[] => {
   if (register === 'off') return notes;
@@ -292,15 +295,14 @@ export const playChordVoicing = async ({
   stopAllAudio();
   const sampler = await ensurePianoSamplerLoaded();
   const chordDurSeconds = getChordDurationSeconds(tempoBpm);
-  const noteDuration = gate !== 1 ? applyGate(chordDurSeconds, gate) : (duration ?? chordDurSeconds);
+  const noteDuration =
+    gate !== 1 ? applyGate(chordDurSeconds, gate) : (duration ?? chordDurSeconds);
 
   const lockedNotes = applyInversionLock([...leftHand, ...rightHand], inversionRegister);
 
   if (lockedNotes.length > 0) {
-    const timingDelay =
-      humanize > 0 ? Math.random() * humanize * MAX_HUMANIZE_TIMING_S : 0;
-    const velJitter =
-      humanize > 0 ? (Math.random() * 2 - 1) * humanize * MAX_HUMANIZE_VELOCITY : 0;
+    const timingDelay = humanize > 0 ? Math.random() * humanize * MAX_HUMANIZE_TIMING_S : 0;
+    const velJitter = humanize > 0 ? (Math.random() * 2 - 1) * humanize * MAX_HUMANIZE_VELOCITY : 0;
     const effectiveVelocity =
       velocity !== undefined
         ? Math.round(Math.max(20, Math.min(127, velocity + velJitter)))
