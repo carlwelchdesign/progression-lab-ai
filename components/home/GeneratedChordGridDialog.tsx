@@ -1,6 +1,15 @@
 'use client';
 
-import { Box, Button, Dialog, DialogActions, DialogContent, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 
 import { playChordVoicing, stopAllAudio } from '../../lib/audio';
@@ -61,6 +70,7 @@ export default function GeneratedChordGridDialog({
   chords,
 }: GeneratedChordGridDialogProps) {
   const [activePadKey, setActivePadKey] = useState<string | null>(null);
+  const [selectedPlaybackStyle, setSelectedPlaybackStyle] = useState<PlaybackStyle>(playbackStyle);
   const activePadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const padStyles = {
     body: {
@@ -81,6 +91,10 @@ export default function GeneratedChordGridDialog({
     };
   }, []);
 
+  useEffect(() => {
+    setSelectedPlaybackStyle(playbackStyle);
+  }, [playbackStyle, open]);
+
   const triggerPad = (entry: ChordGridEntry) => {
     if (activePadTimeout.current) {
       clearTimeout(activePadTimeout.current);
@@ -96,7 +110,7 @@ export default function GeneratedChordGridDialog({
       leftHand: entry.leftHand,
       rightHand: entry.rightHand,
       tempoBpm,
-      playbackStyle,
+      playbackStyle: selectedPlaybackStyle,
     });
   };
 
@@ -104,10 +118,18 @@ export default function GeneratedChordGridDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="lg"
+      maxWidth={false}
       fullWidth
+      sx={{
+        '& .MuiDialog-container': {
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+      }}
       PaperProps={{
         sx: {
+          width: '100%',
+          maxWidth: 800,
           paddingTop: 2,
           borderRadius: 2,
           color: 'common.white',
@@ -118,6 +140,28 @@ export default function GeneratedChordGridDialog({
       }}
     >
       <DialogContent dividers>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.25 }}>
+          <ToggleButtonGroup
+            size="small"
+            color="primary"
+            exclusive
+            value={selectedPlaybackStyle}
+            onChange={(_, nextValue: PlaybackStyle | null) => {
+              if (nextValue) {
+                setSelectedPlaybackStyle(nextValue);
+              }
+            }}
+            aria-label="Chord pad playback style"
+          >
+            <ToggleButton value="strum" aria-label="Strum playback">
+              Strum
+            </ToggleButton>
+            <ToggleButton value="block" aria-label="Block playback">
+              Block
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
         <Box
           sx={{
             display: 'grid',
