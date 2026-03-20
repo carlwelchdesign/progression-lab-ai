@@ -180,7 +180,12 @@ export default function PlaybackSettingsButton({
                   />
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                      Gate: {gate === 0 ? 'staccato' : gate === 1 ? 'sustained' : `${Math.round(gate * 100)}%`}
+                      Gate:{' '}
+                      {gate === 0
+                        ? 'staccato'
+                        : gate === 1
+                          ? 'sustained'
+                          : `${Math.round(gate * 100)}%`}
                     </Typography>
                     <Slider
                       size="small"
@@ -289,7 +294,11 @@ export default function PlaybackSettingsButton({
                   High
                 </ToggleButton>
               </ToggleButtonGroup>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5, display: 'block' }}
+              >
                 Shifts chord notes to stay in the chosen register using nearest-octave voice leading.
               </Typography>
             </Box>
