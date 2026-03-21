@@ -6,6 +6,7 @@ import GuitarChordDiagram from '../GuitarChordDiagram';
 import PianoChordDiagram from '../PianoChordDiagram';
 import Card from '../ui/Card';
 import MidiDownloadButton from '../ui/MidiDownloadButton';
+import PdfDownloadButton from '../ui/PdfDownloadButton';
 import { playChordVoicing, playProgression } from '../../lib/audio';
 import type { PlaybackRegister, PlaybackStyle } from '../../lib/audio';
 import {
@@ -29,6 +30,7 @@ type ProgressionIdeasSectionProps = {
   inversionRegister?: PlaybackRegister;
   showTitle?: boolean;
   resolvedGenreForSave: string;
+  scale?: string;
   onRequestSaveProgression: (payload: {
     chords: ChordItem[];
     pianoVoicings: ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings'];
@@ -50,6 +52,7 @@ export default function ProgressionIdeasSection({
   inversionRegister,
   showTitle = true,
   resolvedGenreForSave,
+  scale,
   onRequestSaveProgression,
 }: ProgressionIdeasSectionProps) {
   return (
@@ -134,6 +137,26 @@ export default function ProgressionIdeasSection({
                       onClick={() =>
                         downloadProgressionMidi(idea.label, idea.pianoVoicings, tempoBpm)
                       }
+                    />
+                    <PdfDownloadButton
+                      variant="outlined"
+                      size="small"
+                      chartOptions={{
+                        title: idea.label,
+                        scale,
+                        genre: resolvedGenreForSave,
+                        tempoBpm,
+                        feel: idea.feel,
+                        performanceTip: idea.performanceTip,
+                        chords: idea.chords.map((chord, i) => ({
+                          chord,
+                          pianoVoicing: idea.pianoVoicings[i] ?? null,
+                          guitarVoicingText: getGuitarShapeTextFromDiagram(
+                            getGuitarDiagramFromChord(chord),
+                          ),
+                          guitarDiagram: getGuitarDiagramFromChord(chord),
+                        })),
+                      }}
                     />
                     <Button
                       variant="outlined"
