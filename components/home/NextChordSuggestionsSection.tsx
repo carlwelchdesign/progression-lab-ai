@@ -6,6 +6,7 @@ import GuitarChordDiagram from '../GuitarChordDiagram';
 import PianoChordDiagram from '../PianoChordDiagram';
 import Card from '../ui/Card';
 import MidiDownloadButton from '../ui/MidiDownloadButton';
+import PdfDownloadButton from '../ui/PdfDownloadButton';
 import { playChordVoicing } from '../../lib/audio';
 import type { PlaybackRegister, PlaybackStyle } from '../../lib/audio';
 import { getGuitarShapeTextFromVoicing } from '../../lib/guitarDiagramUtils';
@@ -24,6 +25,8 @@ type NextChordSuggestionsSectionProps = {
   gate?: number;
   inversionRegister?: PlaybackRegister;
   showTitle?: boolean;
+  scale?: string;
+  genre?: string;
 };
 
 export default function NextChordSuggestionsSection({
@@ -37,13 +40,39 @@ export default function NextChordSuggestionsSection({
   gate,
   inversionRegister,
   showTitle = true,
+  scale,
+  genre,
 }: NextChordSuggestionsSectionProps) {
   return (
     <Box component="section" id="suggestions">
       {showTitle ? (
-        <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-          Next chord suggestions
-        </Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Typography variant="h5" component="h2">
+            Next chord suggestions
+          </Typography>
+          {suggestions.length > 0 ? (
+            <PdfDownloadButton
+              variant="outlined"
+              size="small"
+              label="Export PDF"
+              chartOptions={{
+                title: 'Next Chord Suggestions',
+                scale,
+                genre,
+                tempoBpm,
+                chords: suggestions.map((s) => ({
+                  chord: s.chord,
+                  romanNumeral: s.romanNumeral,
+                  functionExplanation: s.functionExplanation,
+                  voicingHint: s.voicingHint,
+                  pianoVoicing: s.pianoVoicing,
+                  guitarVoicingText: getGuitarShapeTextFromVoicing(s.guitarVoicing),
+                  tensionLevel: s.tensionLevel,
+                })),
+              }}
+            />
+          ) : null}
+        </Stack>
       ) : null}
       <Box
         sx={{
@@ -109,6 +138,27 @@ export default function NextChordSuggestionsSection({
                         variant="outlined"
                         size="small"
                         onClick={() => downloadChordMidi(item.chord, pianoVoicing, tempoBpm)}
+                      />
+                      <PdfDownloadButton
+                        variant="outlined"
+                        size="small"
+                        chartOptions={{
+                          title: item.chord,
+                          scale,
+                          genre,
+                          tempoBpm,
+                          chords: [
+                            {
+                              chord: item.chord,
+                              romanNumeral: item.romanNumeral,
+                              functionExplanation: item.functionExplanation,
+                              voicingHint: item.voicingHint,
+                              pianoVoicing: item.pianoVoicing,
+                              guitarVoicingText: getGuitarShapeTextFromVoicing(item.guitarVoicing),
+                              tensionLevel: item.tensionLevel,
+                            },
+                          ],
+                        }}
                       />
                     </Stack>
                   ) : null}

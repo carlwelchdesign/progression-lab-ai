@@ -453,6 +453,8 @@ export default function HomePage() {
                               humanize={humanize}
                               gate={gate}
                               inversionRegister={inversionRegister}
+                              scale={mode === 'custom' ? customMode.trim() : mode}
+                              genre={genre === 'custom' ? customGenre.trim() : genre}
                               showTitle={false}
                             />
                           </AccordionDetails>
@@ -470,6 +472,7 @@ export default function HomePage() {
                         humanize={humanize}
                         gate={gate}
                         inversionRegister={inversionRegister}
+                        scale={mode === 'custom' ? customMode.trim() : mode}
                         resolvedGenreForSave={genre === 'custom' ? customGenre.trim() : genre}
                         onRequestSaveProgression={({
                           chords,
@@ -502,6 +505,8 @@ export default function HomePage() {
                           humanize={humanize}
                           gate={gate}
                           inversionRegister={inversionRegister}
+                          scale={mode === 'custom' ? customMode.trim() : mode}
+                          genre={genre === 'custom' ? customGenre.trim() : genre}
                         />
                       ) : null}
 
@@ -516,6 +521,7 @@ export default function HomePage() {
                         humanize={humanize}
                         gate={gate}
                         inversionRegister={inversionRegister}
+                        scale={mode === 'custom' ? customMode.trim() : mode}
                         resolvedGenreForSave={genre === 'custom' ? customGenre.trim() : genre}
                         onRequestSaveProgression={({
                           chords,
