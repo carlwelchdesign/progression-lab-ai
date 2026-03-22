@@ -7,8 +7,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   Typography,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { playChordVoicing, stopAllAudio } from '../../lib/audio';
@@ -213,6 +215,15 @@ export default function GeneratedChordGridDialog({
     ? editableChords.find((entry) => entry.key === editingPadKey)
     : undefined;
 
+  const handleStartEditing = () => {
+    setIsEditMode(true);
+  };
+
+  const handleSaveEditing = () => {
+    setIsEditMode(false);
+    setEditingPadKey(null);
+  };
+
   const previewEntry =
     editableChords.find((entry) => entry.key === activePadKey) ??
     (editableChords.length > 0
@@ -248,7 +259,17 @@ export default function GeneratedChordGridDialog({
       }}
     >
       <DialogTitle sx={{ fontWeight: 700, fontSize: '1.25rem' }}>
-        <Typography variant="h5">Chord Playground</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h5">Chord Playground</Typography>
+          <IconButton
+            aria-label="Close chord playground"
+            onClick={onClose}
+            size="small"
+            sx={{ color: '#cbd5e1' }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
       </DialogTitle>
       <DialogContent dividers>
         {isEditMode ? (
@@ -264,19 +285,32 @@ export default function GeneratedChordGridDialog({
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
               Select a pad, then pick a chord
             </Typography>
-            <SelectField
-              label="Pad chord"
-              value={editingEntry?.chord ?? ''}
-              onChange={(event) => {
-                if (editingPadKey) {
-                  onPadChordChange(editingPadKey, event.target.value);
-                }
-              }}
-              options={editableChordOptions}
-              fullWidth
-              size="small"
-              disabled={!editingPadKey}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'nowrap' }}>
+              <Box sx={{ width: { xs: '68%', sm: 'auto' }, flexGrow: { sm: 1 }, minWidth: 0 }}>
+                <SelectField
+                  label="Pad chord"
+                  value={editingEntry?.chord ?? ''}
+                  onChange={(event) => {
+                    if (editingPadKey) {
+                      onPadChordChange(editingPadKey, event.target.value);
+                    }
+                  }}
+                  options={editableChordOptions}
+                  fullWidth
+                  size="small"
+                  disabled={!editingPadKey}
+                />
+              </Box>
+              <Button
+                size="small"
+                variant="contained"
+                onClick={handleSaveEditing}
+                disabled={!editingPadKey}
+                sx={{ textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}
+              >
+                Save
+              </Button>
+            </Box>
           </Box>
         ) : null}
         <Box
@@ -415,38 +449,51 @@ export default function GeneratedChordGridDialog({
           />
           <Button
             size="small"
-            variant={isEditMode ? 'contained' : 'outlined'}
-            onClick={() => {
-              setIsEditMode((prev) => !prev);
-              setEditingPadKey(null);
-            }}
+            variant="outlined"
+            onClick={handleStartEditing}
+            disabled={isEditMode}
             sx={{
               borderWidth: 1.5,
-              color: isEditMode ? '#1f1300' : '#60a5fa',
-              borderColor: isEditMode ? 'rgba(245, 158, 11, 0.95)' : 'rgba(96, 165, 250, 0.9)',
-              backgroundColor: isEditMode ? 'rgba(245, 158, 11, 0.95)' : 'transparent',
+              color: '#60a5fa',
+              borderColor: 'rgba(96, 165, 250, 0.9)',
+              backgroundColor: 'transparent',
               textTransform: 'none',
               fontWeight: 600,
-              boxShadow: isEditMode
-                ? '0 0 0 2px rgba(245, 158, 11, 0.25), 0 4px 10px rgba(245, 158, 11, 0.25)'
-                : 'none',
               '&:hover': {
-                borderColor: isEditMode ? 'rgba(251, 191, 36, 1)' : 'rgba(147, 197, 253, 1)',
-                backgroundColor: isEditMode
-                  ? 'rgba(251, 191, 36, 0.95)'
-                  : 'rgba(96, 165, 250, 0.08)',
+                borderColor: 'rgba(147, 197, 253, 1)',
+                backgroundColor: 'rgba(96, 165, 250, 0.08)',
                 borderWidth: 1.5,
+              },
+              '&.Mui-disabled': {
+                borderColor: 'rgba(96, 165, 250, 0.35)',
+                color: 'rgba(96, 165, 250, 0.45)',
               },
             }}
           >
-            {isEditMode ? 'Save pad' : 'Edit'}
+            Edit
           </Button>
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Button onClick={stopAllAudio}>Stop audio</Button>
-          <Button onClick={onClose} variant="contained">
-            Close
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={stopAllAudio}
+            sx={{
+              borderWidth: 1.5,
+              color: '#60a5fa',
+              borderColor: 'rgba(96, 165, 250, 0.9)',
+              backgroundColor: 'transparent',
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': {
+                borderColor: 'rgba(147, 197, 253, 1)',
+                backgroundColor: 'rgba(96, 165, 250, 0.08)',
+                borderWidth: 1.5,
+              },
+            }}
+          >
+            Stop audio
           </Button>
         </Box>
       </DialogActions>
