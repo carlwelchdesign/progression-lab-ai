@@ -56,6 +56,7 @@ type PlaybackSettingsButtonProps = {
   reverb: number;
   onReverbChange: (value: number) => void;
   tempoBpm: number;
+  onTempoBpmChange: (value: number) => void;
   previewVoicing?: PreviewVoicing;
   position?: 'inline' | 'modal';
 };
@@ -86,6 +87,7 @@ export default function PlaybackSettingsButton({
   reverb,
   onReverbChange,
   tempoBpm,
+  onTempoBpmChange,
   previewVoicing,
   position = 'inline',
 }: PlaybackSettingsButtonProps) {
@@ -182,6 +184,32 @@ export default function PlaybackSettingsButton({
                   Block
                 </ToggleButton>
               </ToggleButtonGroup>
+            </Box>
+
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Tempo
+              </Typography>
+              <Stack spacing={1.25}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Slider
+                    size="small"
+                    value={tempoBpm}
+                    onChange={(_, value) => onTempoBpmChange(value as number)}
+                    min={40}
+                    max={240}
+                    step={1}
+                    aria-label="Tempo in BPM"
+                    sx={{ flex: 1 }}
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{ minWidth: 58, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    {tempoBpm} BPM
+                  </Typography>
+                </Box>
+              </Stack>
             </Box>
 
             <Box>
