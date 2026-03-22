@@ -255,7 +255,6 @@ export default function GeneratorFormCard({
             />
           )}
         />
-
       </Box>
 
       <Stack spacing={2} sx={{ mt: 3 }}>
