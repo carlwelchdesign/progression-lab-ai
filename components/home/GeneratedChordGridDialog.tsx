@@ -314,7 +314,11 @@ export default function GeneratedChordGridDialog({
                   letterSpacing: 0.2,
                   textTransform: 'none',
                   color: 'common.white',
-                  background: isActive ? padStyles.active.bg : padStyles.body.bg,
+                  background: isEditing
+                    ? 'linear-gradient(180deg, rgba(255, 77, 157, 0.2) 0%, rgba(60, 38, 53, 0.95) 100%)'
+                    : isActive
+                      ? padStyles.active.bg
+                      : padStyles.body.bg,
                   backgroundColor: '#2e3136',
                   border: '2px solid',
                   borderColor: isEditing
@@ -331,7 +335,11 @@ export default function GeneratedChordGridDialog({
                   transition:
                     'transform 90ms ease, box-shadow 90ms ease, background 120ms, border-color 120ms',
                   '&:hover': {
-                    background: isActive ? padStyles.active.bg : padStyles.body.bgHover,
+                    background: isEditing
+                      ? 'linear-gradient(180deg, rgba(255, 77, 157, 0.26) 0%, rgba(68, 42, 60, 0.97) 100%)'
+                      : isActive
+                        ? padStyles.active.bg
+                        : padStyles.body.bgHover,
                     boxShadow: isEditing
                       ? '0 0 0 2px rgba(255, 77, 157, 0.6), 0 8px 0 rgba(20, 23, 28, 0.82)'
                       : isActive
@@ -345,7 +353,11 @@ export default function GeneratedChordGridDialog({
                   },
                   '&:active': {
                     transform: 'translateY(5px)',
-                    background: isActive ? padStyles.active.bg : padStyles.body.bgHover,
+                    background: isEditing
+                      ? 'linear-gradient(180deg, rgba(255, 77, 157, 0.3) 0%, rgba(72, 44, 64, 0.98) 100%)'
+                      : isActive
+                        ? padStyles.active.bg
+                        : padStyles.body.bgHover,
                     boxShadow: '0 3px 0 rgba(20, 23, 28, 0.92)',
                   },
                 }}
