@@ -256,32 +256,6 @@ export default function GeneratorFormCard({
           )}
         />
 
-        <Controller
-          name="tempoBpm"
-          control={control}
-          rules={{
-            min: {
-              value: 40,
-              message: 'Tempo must be at least 40 BPM',
-            },
-            max: {
-              value: 240,
-              message: 'Tempo must be 240 BPM or lower',
-            },
-          }}
-          render={({ field, fieldState: { error } }) => (
-            <TextField
-              label="Tempo (BPM)"
-              type="number"
-              value={field.value}
-              onChange={(event) => field.onChange(Number(event.target.value))}
-              disabled={isSubmitting || loading}
-              error={!!error}
-              helperText={error?.message ?? 'Used for playback and MIDI downloads.'}
-              inputProps={{ min: 40, max: 240, step: 1 }}
-            />
-          )}
-        />
       </Box>
 
       <Stack spacing={2} sx={{ mt: 3 }}>

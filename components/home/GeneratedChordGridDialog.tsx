@@ -56,6 +56,7 @@ type GeneratedChordGridDialogProps = {
   onOctaveShiftChange: (value: number) => void;
   reverb: number;
   onReverbChange: (value: number) => void;
+  onTempoBpmChange: (value: number) => void;
   chords: ChordGridEntry[];
 };
 
@@ -118,6 +119,7 @@ export default function GeneratedChordGridDialog({
   onOctaveShiftChange,
   reverb,
   onReverbChange,
+  onTempoBpmChange,
   chords,
 }: GeneratedChordGridDialogProps) {
   const [activePadKey, setActivePadKey] = useState<string | null>(null);
@@ -444,6 +446,7 @@ export default function GeneratedChordGridDialog({
             reverb={reverb}
             onReverbChange={onReverbChange}
             tempoBpm={tempoBpm}
+            onTempoBpmChange={onTempoBpmChange}
             previewVoicing={previewEntry}
             position="modal"
           />

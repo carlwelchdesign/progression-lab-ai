@@ -64,6 +64,7 @@ export default function HomePage() {
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { isSubmitting, errors },
   } = useForm<GeneratorFormData>({
     defaultValues: {
@@ -84,6 +85,15 @@ export default function HomePage() {
   const customMode = watch('customMode');
   const customGenre = watch('customGenre');
   const tempoBpm = watch('tempoBpm');
+
+  const handleTempoBpmChange = (value: number) => {
+    const roundedValue = Number.isFinite(value) ? Math.round(value) : 100;
+    const normalizedValue = Math.min(240, Math.max(40, roundedValue));
+    setValue('tempoBpm', normalizedValue, {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+  };
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -409,6 +419,7 @@ export default function HomePage() {
                         reverb={reverb}
                         onReverbChange={handleReverbChange}
                         tempoBpm={tempoBpm}
+                        onTempoBpmChange={handleTempoBpmChange}
                         previewVoicing={previewVoicing}
                       />
                       {generatedChordGridEntries.length > 0 ? (
@@ -614,6 +625,7 @@ export default function HomePage() {
                     reverb={reverb}
                     onReverbChange={handleReverbChange}
                     chords={generatedChordGridEntries}
+                    onTempoBpmChange={handleTempoBpmChange}
                   />
                 </>
               );
