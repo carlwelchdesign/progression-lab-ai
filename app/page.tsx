@@ -433,7 +433,7 @@ export default function HomePage() {
                             },
                           }}
                         >
-                          pads
+                          Pads
                         </Button>
                       ) : null}
                       <InstrumentToggle

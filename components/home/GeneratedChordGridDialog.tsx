@@ -1,11 +1,22 @@
 'use client';
 
-import { Box, Button, Dialog, DialogActions, DialogContent, Typography } from '@mui/material';
-import { useEffect, useRef, useState } from 'react';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Typography,
+} from '@mui/material';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { playChordVoicing, stopAllAudio } from '../../lib/audio';
 import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
+import { createPianoVoicingFromChordSymbol } from '../../lib/chordVoicing';
+import { CHORD_OPTIONS } from '../../lib/formOptions';
 import PlaybackSettingsButton from './PlaybackSettingsButton';
+import SelectField from '../ui/SelectField';
 
 type ChordGridEntry = {
   key: string;
@@ -108,6 +119,9 @@ export default function GeneratedChordGridDialog({
   chords,
 }: GeneratedChordGridDialogProps) {
   const [activePadKey, setActivePadKey] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editableChords, setEditableChords] = useState<ChordGridEntry[]>(chords);
+  const [editingPadKey, setEditingPadKey] = useState<string | null>(null);
   const activePadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const padStyles = {
     body: {
@@ -127,6 +141,11 @@ export default function GeneratedChordGridDialog({
       }
     };
   }, []);
+
+  useEffect(() => {
+    setEditableChords(chords);
+    setEditingPadKey(null);
+  }, [chords, open]);
 
   const triggerPad = (entry: ChordGridEntry) => {
     if (activePadTimeout.current) {
@@ -155,12 +174,51 @@ export default function GeneratedChordGridDialog({
     });
   };
 
+  const onPadPress = (entry: ChordGridEntry) => {
+    if (isEditMode) {
+      setEditingPadKey(entry.key);
+    }
+
+    triggerPad(entry);
+  };
+
+  const onPadChordChange = (padKey: string, chord: string) => {
+    const voicing = createPianoVoicingFromChordSymbol(chord);
+    if (!voicing) {
+      return;
+    }
+
+    setEditableChords((previous) =>
+      previous.map((entry) =>
+        entry.key === padKey
+          ? {
+              ...entry,
+              chord,
+              leftHand: voicing.leftHand,
+              rightHand: voicing.rightHand,
+            }
+          : entry,
+      ),
+    );
+  };
+
+  const editableChordOptions = useMemo(() => {
+    const values = Array.from(
+      new Set([...CHORD_OPTIONS, ...editableChords.map((entry) => entry.chord)]),
+    );
+    return values.map((value) => ({ value, label: value }));
+  }, [editableChords]);
+
+  const editingEntry = editingPadKey
+    ? editableChords.find((entry) => entry.key === editingPadKey)
+    : undefined;
+
   const previewEntry =
-    chords.find((entry) => entry.key === activePadKey) ??
-    (chords.length > 0
+    editableChords.find((entry) => entry.key === activePadKey) ??
+    (editableChords.length > 0
       ? {
-          leftHand: chords[0].leftHand,
-          rightHand: chords[0].rightHand,
+          leftHand: editableChords[0].leftHand,
+          rightHand: editableChords[0].rightHand,
         }
       : undefined);
 
@@ -189,8 +247,131 @@ export default function GeneratedChordGridDialog({
         },
       }}
     >
+      <DialogTitle sx={{ fontWeight: 700, fontSize: '1.25rem' }}>
+        <Typography variant="h5">Chord Playground</Typography>
+      </DialogTitle>
       <DialogContent dividers>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+        {isEditMode ? (
+          <Box
+            sx={{
+              mb: 1.5,
+              p: 1.5,
+              borderRadius: 1.5,
+              bgcolor: 'rgba(23, 27, 32, 0.45)',
+              border: '1px solid rgba(188, 194, 201, 0.2)',
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Select a pad, then pick a chord
+            </Typography>
+            <SelectField
+              label="Pad chord"
+              value={editingEntry?.chord ?? ''}
+              onChange={(event) => {
+                if (editingPadKey) {
+                  onPadChordChange(editingPadKey, event.target.value);
+                }
+              }}
+              options={editableChordOptions}
+              fullWidth
+              size="small"
+              disabled={!editingPadKey}
+            />
+          </Box>
+        ) : null}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'repeat(3, minmax(0, 1fr))',
+              sm: 'repeat(4, minmax(0, 1fr))',
+              lg: 'repeat(4, minmax(0, 1fr))',
+            },
+            gap: { xs: 1, sm: 1.5 },
+            p: { xs: 0.5, sm: 1 },
+            borderRadius: 2,
+            bgcolor: 'rgba(23, 27, 32, 0.5)',
+            border: '1px solid rgba(188, 194, 201, 0.2)',
+          }}
+        >
+          {editableChords.map((entry) => {
+            const isActive = activePadKey === entry.key;
+            const isEditing = editingPadKey === entry.key;
+            const borderColor = getChordBorderColor(entry.chord);
+            const editingBorderColor = '#ff4d9d';
+
+            return (
+              <Button
+                key={entry.key}
+                variant="contained"
+                onMouseDown={() => onPadPress(entry)}
+                sx={{
+                  aspectRatio: '1 / 1',
+                  minHeight: { xs: 82, sm: 108 },
+                  borderRadius: 1.5,
+                  fontWeight: 700,
+                  fontSize: { xs: '0.88rem', sm: '1.02rem' },
+                  letterSpacing: 0.2,
+                  textTransform: 'none',
+                  color: 'common.white',
+                  background: isActive ? padStyles.active.bg : padStyles.body.bg,
+                  backgroundColor: '#2e3136',
+                  border: '2px solid',
+                  borderColor: isEditing
+                    ? editingBorderColor
+                    : isActive
+                      ? padStyles.active.border
+                      : borderColor,
+                  boxShadow: isEditing
+                    ? '0 0 0 2px rgba(255, 77, 157, 0.45), 0 8px 0 rgba(20, 23, 28, 0.82)'
+                    : isActive
+                      ? '0 3px 0 rgba(20, 23, 28, 0.92)'
+                      : '0 8px 0 rgba(20, 23, 28, 0.82)',
+                  transform: isActive ? 'translateY(5px)' : 'translateY(0)',
+                  transition:
+                    'transform 90ms ease, box-shadow 90ms ease, background 120ms, border-color 120ms',
+                  '&:hover': {
+                    background: isActive ? padStyles.active.bg : padStyles.body.bgHover,
+                    boxShadow: isEditing
+                      ? '0 0 0 2px rgba(255, 77, 157, 0.6), 0 8px 0 rgba(20, 23, 28, 0.82)'
+                      : isActive
+                        ? '0 3px 0 rgba(20, 23, 28, 0.92)'
+                        : '0 8px 0 rgba(20, 23, 28, 0.82)',
+                    borderColor: isEditing
+                      ? editingBorderColor
+                      : isActive
+                        ? padStyles.active.border
+                        : borderColor,
+                  },
+                  '&:active': {
+                    transform: 'translateY(5px)',
+                    background: isActive ? padStyles.active.bg : padStyles.body.bgHover,
+                    boxShadow: '0 3px 0 rgba(20, 23, 28, 0.92)',
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography
+                    component="span"
+                    sx={{ fontWeight: 700, fontSize: { xs: '0.88rem', sm: '1.02rem' } }}
+                  >
+                    {entry.chord}
+                  </Typography>
+                </Box>
+              </Button>
+            );
+          })}
+        </Box>
+
+        {editableChords.length === 0 ? (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            No generated piano voicings available.
+          </Typography>
+        ) : null}
+      </DialogContent>
+
+      <DialogActions sx={{ justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <PlaybackSettingsButton
             playbackStyle={playbackStyle}
             onPlaybackStyleChange={onPlaybackStyleChange}
@@ -220,83 +401,42 @@ export default function GeneratedChordGridDialog({
             previewVoicing={previewEntry}
             position="modal"
           />
+          <Button
+            size="small"
+            variant={isEditMode ? 'contained' : 'outlined'}
+            onClick={() => {
+              setIsEditMode((prev) => !prev);
+              setEditingPadKey(null);
+            }}
+            sx={{
+              borderWidth: 1.5,
+              color: isEditMode ? '#1f1300' : '#60a5fa',
+              borderColor: isEditMode ? 'rgba(245, 158, 11, 0.95)' : 'rgba(96, 165, 250, 0.9)',
+              backgroundColor: isEditMode ? 'rgba(245, 158, 11, 0.95)' : 'transparent',
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: isEditMode
+                ? '0 0 0 2px rgba(245, 158, 11, 0.25), 0 4px 10px rgba(245, 158, 11, 0.25)'
+                : 'none',
+              '&:hover': {
+                borderColor: isEditMode ? 'rgba(251, 191, 36, 1)' : 'rgba(147, 197, 253, 1)',
+                backgroundColor: isEditMode
+                  ? 'rgba(251, 191, 36, 0.95)'
+                  : 'rgba(96, 165, 250, 0.08)',
+                borderWidth: 1.5,
+              },
+            }}
+          >
+            {isEditMode ? 'Save pad' : 'Edit'}
+          </Button>
         </Box>
 
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: 'repeat(3, minmax(0, 1fr))',
-              sm: 'repeat(4, minmax(0, 1fr))',
-              lg: 'repeat(4, minmax(0, 1fr))',
-            },
-            gap: { xs: 1, sm: 1.5 },
-            p: { xs: 0.5, sm: 1 },
-            borderRadius: 2,
-            bgcolor: 'rgba(23, 27, 32, 0.5)',
-            border: '1px solid rgba(188, 194, 201, 0.2)',
-          }}
-        >
-          {chords.map((entry) => {
-            const isActive = activePadKey === entry.key;
-            const borderColor = getChordBorderColor(entry.chord);
-
-            return (
-              <Button
-                key={entry.key}
-                variant="contained"
-                onMouseDown={() => triggerPad(entry)}
-                sx={{
-                  aspectRatio: '1 / 1',
-                  minHeight: { xs: 82, sm: 108 },
-                  borderRadius: 1.5,
-                  fontWeight: 700,
-                  fontSize: { xs: '0.88rem', sm: '1.02rem' },
-                  letterSpacing: 0.2,
-                  textTransform: 'none',
-                  color: 'common.white',
-                  background: isActive ? padStyles.active.bg : padStyles.body.bg,
-                  backgroundColor: '#2e3136',
-                  border: '2px solid',
-                  borderColor: isActive ? padStyles.active.border : borderColor,
-                  boxShadow: isActive
-                    ? '0 3px 0 rgba(20, 23, 28, 0.92)'
-                    : '0 8px 0 rgba(20, 23, 28, 0.82)',
-                  transform: isActive ? 'translateY(5px)' : 'translateY(0)',
-                  transition:
-                    'transform 90ms ease, box-shadow 90ms ease, background 120ms, border-color 120ms',
-                  '&:hover': {
-                    background: isActive ? padStyles.active.bg : padStyles.body.bgHover,
-                    boxShadow: isActive
-                      ? '0 3px 0 rgba(20, 23, 28, 0.92)'
-                      : '0 8px 0 rgba(20, 23, 28, 0.82)',
-                    borderColor: isActive ? padStyles.active.border : borderColor,
-                  },
-                  '&:active': {
-                    transform: 'translateY(5px)',
-                    background: isActive ? padStyles.active.bg : padStyles.body.bgHover,
-                    boxShadow: '0 3px 0 rgba(20, 23, 28, 0.92)',
-                  },
-                }}
-              >
-                {entry.chord}
-              </Button>
-            );
-          })}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button onClick={stopAllAudio}>Stop audio</Button>
+          <Button onClick={onClose} variant="contained">
+            Close
+          </Button>
         </Box>
-
-        {chords.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            No generated piano voicings available.
-          </Typography>
-        ) : null}
-      </DialogContent>
-
-      <DialogActions>
-        <Button onClick={stopAllAudio}>Stop audio</Button>
-        <Button onClick={onClose} variant="contained">
-          Close
-        </Button>
       </DialogActions>
     </Dialog>
   );
