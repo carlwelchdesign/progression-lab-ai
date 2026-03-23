@@ -13,6 +13,18 @@ type SessionPayload = {
   exp: number;
 };
 
+export type AuthRequestPayload = {
+  email?: string;
+  password?: string;
+  name?: string;
+};
+
+export type NormalizedAuthCredentials = {
+  email: string;
+  password: string;
+  name: string | null;
+};
+
 function base64UrlEncode(value: string | Buffer): string {
   return Buffer.from(value)
     .toString('base64')
@@ -47,6 +59,38 @@ function getAuthSecret(): string {
 
 function sign(value: string): string {
   return base64UrlEncode(createHmac('sha256', getAuthSecret()).update(value).digest());
+}
+
+/**
+ * Normalizes auth request payload values into a consistent internal shape.
+ */
+export function normalizeAuthCredentials(payload: AuthRequestPayload): NormalizedAuthCredentials {
+  return {
+    email: payload.email?.trim().toLowerCase() ?? '',
+    password: payload.password?.trim() ?? '',
+    name: payload.name?.trim() || null,
+  };
+}
+
+/**
+ * Validates shared login/register credential requirements.
+ */
+export function validateAuthCredentials(
+  credentials: Pick<NormalizedAuthCredentials, 'email' | 'password'>,
+  options?: { minPasswordLength?: number },
+): string | null {
+  if (!credentials.email || !credentials.password) {
+    return 'Email and password are required';
+  }
+
+  if (
+    options?.minPasswordLength !== undefined &&
+    credentials.password.length < options.minPasswordLength
+  ) {
+    return `Password must be at least ${options.minPasswordLength} characters`;
+  }
+
+  return null;
 }
 
 /**

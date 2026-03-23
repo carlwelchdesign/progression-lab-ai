@@ -1,30 +1,5 @@
 import type { PianoVoicing } from './types';
-
-const NOTE_TO_SEMITONE: Record<string, number> = {
-  C: 0,
-  'B#': 0,
-  'C#': 1,
-  Db: 1,
-  D: 2,
-  'D#': 3,
-  Eb: 3,
-  E: 4,
-  Fb: 4,
-  F: 5,
-  'E#': 5,
-  'F#': 6,
-  Gb: 6,
-  G: 7,
-  'G#': 8,
-  Ab: 8,
-  A: 9,
-  'A#': 10,
-  Bb: 10,
-  B: 11,
-  Cb: 11,
-};
-
-const SHARP_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+import { NOTE_NAME_TO_SEMITONE, SHARP_NOTE_NAMES } from './musicNoteConstants';
 
 const CHORD_PATTERN = /^([A-G](?:#|b)?)(.*)$/;
 
@@ -52,7 +27,7 @@ function getIntervalsFromSuffix(rawSuffix: string): number[] {
  * Converts a semitone value to a normalized sharp note name.
  */
 function semitoneToNoteName(semitone: number): string {
-  return SHARP_NOTES[((semitone % 12) + 12) % 12];
+  return SHARP_NOTE_NAMES[((semitone % 12) + 12) % 12];
 }
 
 function intervalToNote(rootSemitone: number, interval: number, octave: number): string {
@@ -73,7 +48,7 @@ export function createPianoVoicingFromChordSymbol(chordSymbol: string): PianoVoi
 
   const root = match[1];
   const suffix = match[2] ?? '';
-  const rootSemitone = NOTE_TO_SEMITONE[root];
+  const rootSemitone = NOTE_NAME_TO_SEMITONE[root];
 
   if (rootSemitone === undefined) {
     return null;

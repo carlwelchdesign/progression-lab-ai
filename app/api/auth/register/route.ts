@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { createSessionToken, hashPassword, setSessionCookie } from '../../../../lib/auth';
+import {
+  createSessionToken,
+  hashPassword,
+  normalizeAuthCredentials,
+  setSessionCookie,
+  validateAuthCredentials,
+} from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 
 /**
@@ -8,26 +14,14 @@ import { prisma } from '../../../../lib/prisma';
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as {
-      email?: string;
-      password?: string;
-      name?: string;
-    };
+    const credentials = normalizeAuthCredentials(await request.json());
+    const validationError = validateAuthCredentials(credentials, { minPasswordLength: 8 });
 
-    const email = body.email?.trim().toLowerCase();
-    const password = body.password?.trim();
-    const name = body.name?.trim();
-
-    if (!email || !password) {
-      return NextResponse.json({ message: 'Email and password are required' }, { status: 400 });
+    if (validationError) {
+      return NextResponse.json({ message: validationError }, { status: 400 });
     }
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { message: 'Password must be at least 8 characters' },
-        { status: 400 },
-      );
-    }
+    const { email, password, name } = credentials;
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -40,7 +34,7 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({
       data: {
         email,
-        name: name || null,
+        name,
         passwordHash: hashPassword(password),
       },
     });

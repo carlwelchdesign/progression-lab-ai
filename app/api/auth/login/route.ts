@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { createSessionToken, setSessionCookie, verifyPassword } from '../../../../lib/auth';
+import {
+  createSessionToken,
+  normalizeAuthCredentials,
+  setSessionCookie,
+  validateAuthCredentials,
+  verifyPassword,
+} from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 
 /**
@@ -8,17 +14,14 @@ import { prisma } from '../../../../lib/prisma';
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as {
-      email?: string;
-      password?: string;
-    };
+    const credentials = normalizeAuthCredentials(await request.json());
+    const validationError = validateAuthCredentials(credentials);
 
-    const email = body.email?.trim().toLowerCase();
-    const password = body.password?.trim();
-
-    if (!email || !password) {
-      return NextResponse.json({ message: 'Email and password are required' }, { status: 400 });
+    if (validationError) {
+      return NextResponse.json({ message: validationError }, { status: 400 });
     }
+
+    const { email, password } = credentials;
 
     const user = await prisma.user.findUnique({ where: { email } });
 

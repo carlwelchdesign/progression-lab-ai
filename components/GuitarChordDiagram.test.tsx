@@ -63,13 +63,13 @@ describe('GuitarChordDiagram', () => {
 
     expect(mockSVGuitarChord).toHaveBeenCalledWith(expect.stringMatching(/^#guitar-chart-/));
     expect(mockConfigure).toHaveBeenCalledWith(
-      expect.objectContaining({ position: 2, strings: 6, frets: 5 }),
+      expect.objectContaining({ position: 2, strings: 6, frets: 4 }),
     );
     expect(mockChord).toHaveBeenCalledWith(expect.objectContaining({ title: 'G7', position: 2 }));
     expect(mockDraw).toHaveBeenCalledTimes(1);
   });
 
-  it('filters malformed barres before drawing', () => {
+  it('filters malformed and partial barres before drawing', () => {
     render(
       <GuitarChordDiagram
         title="C#sus4"
@@ -81,7 +81,7 @@ describe('GuitarChordDiagram', () => {
         barres={[
           // Reversed and out-of-window after normalization; should be dropped.
           { fromString: 1, toString: 1, fret: 10 },
-          // Valid 3-string mini-bar on fret 4.
+          // Partial barres are intentionally hidden.
           { fromString: 1, toString: 3, fret: 4 },
         ]}
         position={4}
@@ -90,7 +90,7 @@ describe('GuitarChordDiagram', () => {
 
     expect(mockChord).toHaveBeenCalledWith(
       expect.objectContaining({
-        barres: [expect.objectContaining({ fromString: 1, toString: 3, fret: 1 })],
+        barres: [],
       }),
     );
   });

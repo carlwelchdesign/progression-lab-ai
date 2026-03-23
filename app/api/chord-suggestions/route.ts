@@ -229,6 +229,8 @@ const chordSuggestionSchema = {
     },
     nextChordSuggestions: {
       type: 'array',
+      minItems: 4,
+      maxItems: 4,
       items: {
         type: 'object',
         additionalProperties: false,
@@ -310,6 +312,8 @@ const chordSuggestionSchema = {
     },
     progressionIdeas: {
       type: 'array',
+      minItems: 3,
+      maxItems: 3,
       items: {
         type: 'object',
         additionalProperties: false,
@@ -345,6 +349,8 @@ const chordSuggestionSchema = {
     },
     structureSuggestions: {
       type: 'array',
+      minItems: 3,
+      maxItems: 3,
       items: {
         type: 'object',
         additionalProperties: false,

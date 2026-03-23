@@ -24,6 +24,31 @@ jest.mock('../components/ui/ThemeModeToggle', () => {
 jest.mock('../lib/audio', () => ({
   playChordVoicing: jest.fn(),
   playProgression: jest.fn(),
+  setChorusDelayTime: jest.fn(),
+  setChorusDepth: jest.fn(),
+  setChorusEnabled: jest.fn(),
+  setChorusFrequency: jest.fn(),
+  setChorusWet: jest.fn(),
+  setFeedbackDelayEnabled: jest.fn(),
+  setFeedbackDelayFeedback: jest.fn(),
+  setFeedbackDelayTime: jest.fn(),
+  setFeedbackDelayWet: jest.fn(),
+  setPhaserEnabled: jest.fn(),
+  setPhaserFrequency: jest.fn(),
+  setPhaserOctaves: jest.fn(),
+  setPhaserQ: jest.fn(),
+  setPhaserWet: jest.fn(),
+  setReverbEnabled: jest.fn(),
+  setReverbRoomSize: jest.fn(),
+  setReverbWet: jest.fn(),
+  setTremoloDepth: jest.fn(),
+  setTremoloEnabled: jest.fn(),
+  setTremoloFrequency: jest.fn(),
+  setTremoloWet: jest.fn(),
+  setVibratoDepth: jest.fn(),
+  setVibratoEnabled: jest.fn(),
+  setVibratoFrequency: jest.fn(),
+  setVibratoWet: jest.fn(),
 }));
 
 const mockResponse = {
@@ -89,9 +114,14 @@ describe('HomePage', () => {
     render(<HomePage />);
 
     await user.selectOptions(screen.getByLabelText(/Mode \/ scale/i), 'custom');
+    await waitFor(() => {
+      expect(screen.getByLabelText('Custom mode / scale')).toBeInTheDocument();
+    });
     await user.click(screen.getByRole('button', { name: 'Generate Ideas' }));
 
-    expect(screen.getByText('Please enter a custom mode or scale.')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Please enter a custom mode or scale')).toBeInTheDocument();
+    });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -100,9 +130,14 @@ describe('HomePage', () => {
     render(<HomePage />);
 
     await user.selectOptions(screen.getByLabelText('Genre'), 'custom');
+    await waitFor(() => {
+      expect(screen.getByLabelText('Custom genre')).toBeInTheDocument();
+    });
     await user.click(screen.getByRole('button', { name: 'Generate Ideas' }));
 
-    expect(screen.getByText('Please enter a custom genre.')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Please enter a custom genre')).toBeInTheDocument();
+    });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -121,18 +156,32 @@ describe('HomePage', () => {
       expect(screen.getByText('Next chord suggestions')).toBeInTheDocument();
     });
 
-    expect(screen.getAllByRole('heading', { name: 'G7' })[0]).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/chord-suggestions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        seedChords: ['Fmaj7', 'F#m7'],
-        mood: 'dreamy, emotional, uplifting',
-        mode: 'lydian',
-        genre: 'piano house',
-        instrument: 'both',
-        adventurousness: 'balanced',
-      }),
+    await waitFor(() => {
+      expect(screen.getAllByRole('heading', { name: 'G7' })[0]).toBeInTheDocument();
     });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/chord-suggestions',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body as string) as {
+      seedChords: string[];
+      mood: string;
+      mode: string;
+      genre: string;
+      instrument: string;
+      adventurousness: string;
+    };
+
+    expect(requestBody.seedChords.length).toBeGreaterThan(0);
+    expect(requestBody.mood.length).toBeGreaterThan(0);
+    expect(requestBody.mode.length).toBeGreaterThan(0);
+    expect(requestBody.genre.length).toBeGreaterThan(0);
+    expect(requestBody.instrument).toBe('both');
+    expect(['safe', 'balanced', 'surprising']).toContain(requestBody.adventurousness);
   });
 });

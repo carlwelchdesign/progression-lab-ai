@@ -1,0 +1,420 @@
+'use client';
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import {
+  setChorusDelayTime,
+  setChorusDepth,
+  setChorusEnabled,
+  setChorusFrequency,
+  setChorusWet,
+  setFeedbackDelayEnabled,
+  setFeedbackDelayFeedback,
+  setFeedbackDelayTime,
+  setFeedbackDelayWet,
+  setPhaserEnabled,
+  setPhaserFrequency,
+  setPhaserOctaves,
+  setPhaserQ,
+  setPhaserWet,
+  setReverbEnabled,
+  setReverbRoomSize,
+  setReverbWet,
+  setTremoloDepth,
+  setTremoloEnabled,
+  setTremoloFrequency,
+  setTremoloWet,
+  setVibratoDepth,
+  setVibratoEnabled,
+  setVibratoFrequency,
+  setVibratoWet,
+} from '../../lib/audio';
+import {
+  PLAYBACK_SETTINGS_DEFAULTS,
+  type PlaybackSettings,
+  type PlaybackSettingsChangeHandlers,
+  type PlaybackSettingsSetters,
+} from './playbackSettingsModel';
+
+type UsePlaybackSettingsResult = {
+  settings: PlaybackSettings;
+  changeHandlers: PlaybackSettingsChangeHandlers;
+  setters: PlaybackSettingsSetters;
+};
+
+/**
+ * Owns playback settings state and keeps the audio engine synchronized with UI changes.
+ */
+export default function usePlaybackSettings(): UsePlaybackSettingsResult {
+  const [playbackStyle, setPlaybackStyle] = useState(PLAYBACK_SETTINGS_DEFAULTS.playbackStyle);
+  const [instrument, setInstrument] = useState(PLAYBACK_SETTINGS_DEFAULTS.instrument);
+  const [attack, setAttack] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.attack);
+  const [decay, setDecay] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.decay);
+  const [padVelocity, setPadVelocity] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.padVelocity);
+  const [padSwing, setPadSwing] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.padSwing);
+  const [padLatchMode, setPadLatchMode] = useState(PLAYBACK_SETTINGS_DEFAULTS.padLatchMode);
+  const [humanize, setHumanize] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.humanize);
+  const [gate, setGate] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.gate);
+  const [inversionRegister, setInversionRegister] = useState(
+    PLAYBACK_SETTINGS_DEFAULTS.inversionRegister,
+  );
+  const [octaveShift, setOctaveShift] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.octaveShift);
+  const [reverbEnabled, setReverbEnabledState] = useState(PLAYBACK_SETTINGS_DEFAULTS.reverbEnabled);
+  const [reverb, setReverb] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.reverb);
+  const [chorusEnabled, setChorusEnabledState] = useState(PLAYBACK_SETTINGS_DEFAULTS.chorusEnabled);
+  const [chorus, setChorus] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.chorus);
+  const [chorusRate, setChorusRate] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.chorusRate);
+  const [chorusDepth, setChorusDepthState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.chorusDepth,
+  );
+  const [chorusDelayTime, setChorusDelayTimeState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.chorusDelayTime,
+  );
+  const [feedbackDelayEnabled, setFeedbackDelayEnabledState] = useState(
+    PLAYBACK_SETTINGS_DEFAULTS.feedbackDelayEnabled,
+  );
+  const [feedbackDelay, setFeedbackDelay] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.feedbackDelay,
+  );
+  const [feedbackDelayTime, setFeedbackDelayTimeState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.feedbackDelayTime,
+  );
+  const [feedbackDelayFeedback, setFeedbackDelayFeedbackState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.feedbackDelayFeedback,
+  );
+  const [tremoloEnabled, setTremoloEnabledState] = useState(
+    PLAYBACK_SETTINGS_DEFAULTS.tremoloEnabled,
+  );
+  const [tremolo, setTremolo] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.tremolo);
+  const [tremoloFrequency, setTremoloFrequencyState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.tremoloFrequency,
+  );
+  const [tremoloDepth, setTremoloDepthState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.tremoloDepth,
+  );
+  const [vibratoEnabled, setVibratoEnabledState] = useState(
+    PLAYBACK_SETTINGS_DEFAULTS.vibratoEnabled,
+  );
+  const [vibrato, setVibrato] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.vibrato);
+  const [vibratoFrequency, setVibratoFrequencyState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.vibratoFrequency,
+  );
+  const [vibratoDepth, setVibratoDepthState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.vibratoDepth,
+  );
+  const [phaserEnabled, setPhaserEnabledState] = useState(PLAYBACK_SETTINGS_DEFAULTS.phaserEnabled);
+  const [phaser, setPhaser] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.phaser);
+  const [phaserFrequency, setPhaserFrequencyState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.phaserFrequency,
+  );
+  const [phaserOctaves, setPhaserOctavesState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.phaserOctaves,
+  );
+  const [phaserQ, setPhaserQState] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.phaserQ);
+  const [roomSize, setRoomSize] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.roomSize);
+
+  const handleReverbChange = useCallback((value: number) => {
+    setReverb(value);
+    setReverbWet(value);
+  }, []);
+
+  const handleRoomSizeChange = useCallback((value: number) => {
+    const normalizedValue = Math.min(1, Math.max(0, value));
+    setRoomSize(normalizedValue);
+    setReverbRoomSize(normalizedValue);
+  }, []);
+
+  const handleChorusChange = useCallback((value: number) => {
+    const normalizedValue = Math.min(1, Math.max(0, value));
+    setChorus(normalizedValue);
+    setChorusWet(normalizedValue);
+  }, []);
+
+  const handleFeedbackDelayChange = useCallback((value: number) => {
+    const normalizedValue = Math.min(1, Math.max(0, value));
+    setFeedbackDelay(normalizedValue);
+    setFeedbackDelayWet(normalizedValue);
+  }, []);
+
+  const handleEffectToggle = useCallback(
+    (setState: (value: boolean) => void) => (value: boolean) => {
+      setState(value);
+    },
+    [],
+  );
+
+  const settings: PlaybackSettings = useMemo(
+    () => ({
+      playbackStyle,
+      attack,
+      decay,
+      padVelocity,
+      padSwing,
+      padLatchMode,
+      humanize,
+      gate,
+      inversionRegister,
+      instrument,
+      octaveShift,
+      reverbEnabled,
+      reverb,
+      chorusEnabled,
+      chorus,
+      chorusRate,
+      chorusDepth,
+      chorusDelayTime,
+      feedbackDelayEnabled,
+      feedbackDelay,
+      feedbackDelayTime,
+      feedbackDelayFeedback,
+      tremoloEnabled,
+      tremolo,
+      tremoloFrequency,
+      tremoloDepth,
+      vibratoEnabled,
+      vibrato,
+      vibratoFrequency,
+      vibratoDepth,
+      phaserEnabled,
+      phaser,
+      phaserFrequency,
+      phaserOctaves,
+      phaserQ,
+      roomSize,
+    }),
+    [
+      playbackStyle,
+      attack,
+      decay,
+      padVelocity,
+      padSwing,
+      padLatchMode,
+      humanize,
+      gate,
+      inversionRegister,
+      instrument,
+      octaveShift,
+      reverbEnabled,
+      reverb,
+      chorusEnabled,
+      chorus,
+      chorusRate,
+      chorusDepth,
+      chorusDelayTime,
+      feedbackDelayEnabled,
+      feedbackDelay,
+      feedbackDelayTime,
+      feedbackDelayFeedback,
+      tremoloEnabled,
+      tremolo,
+      tremoloFrequency,
+      tremoloDepth,
+      vibratoEnabled,
+      vibrato,
+      vibratoFrequency,
+      vibratoDepth,
+      phaserEnabled,
+      phaser,
+      phaserFrequency,
+      phaserOctaves,
+      phaserQ,
+      roomSize,
+    ],
+  );
+
+  const changeHandlers: PlaybackSettingsChangeHandlers = useMemo(
+    () => ({
+      onPlaybackStyleChange: setPlaybackStyle,
+      onAttackChange: setAttack,
+      onDecayChange: setDecay,
+      onPadVelocityChange: setPadVelocity,
+      onPadSwingChange: setPadSwing,
+      onPadLatchModeChange: setPadLatchMode,
+      onHumanizeChange: setHumanize,
+      onGateChange: setGate,
+      onInversionRegisterChange: setInversionRegister,
+      onInstrumentChange: setInstrument,
+      onOctaveShiftChange: setOctaveShift,
+      onReverbChange: handleReverbChange,
+      onReverbEnabledChange: handleEffectToggle(setReverbEnabledState),
+      onChorusChange: handleChorusChange,
+      onChorusEnabledChange: handleEffectToggle(setChorusEnabledState),
+      onChorusRateChange: setChorusRate,
+      onChorusDepthChange: setChorusDepthState,
+      onChorusDelayTimeChange: setChorusDelayTimeState,
+      onFeedbackDelayEnabledChange: handleEffectToggle(setFeedbackDelayEnabledState),
+      onFeedbackDelayChange: handleFeedbackDelayChange,
+      onFeedbackDelayTimeChange: setFeedbackDelayTimeState,
+      onFeedbackDelayFeedbackChange: setFeedbackDelayFeedbackState,
+      onTremoloEnabledChange: handleEffectToggle(setTremoloEnabledState),
+      onTremoloChange: setTremolo,
+      onTremoloFrequencyChange: setTremoloFrequencyState,
+      onTremoloDepthChange: setTremoloDepthState,
+      onVibratoEnabledChange: handleEffectToggle(setVibratoEnabledState),
+      onVibratoChange: setVibrato,
+      onVibratoFrequencyChange: setVibratoFrequencyState,
+      onVibratoDepthChange: setVibratoDepthState,
+      onPhaserEnabledChange: handleEffectToggle(setPhaserEnabledState),
+      onPhaserChange: setPhaser,
+      onPhaserFrequencyChange: setPhaserFrequencyState,
+      onPhaserOctavesChange: setPhaserOctavesState,
+      onPhaserQChange: setPhaserQState,
+      onRoomSizeChange: handleRoomSizeChange,
+    }),
+    [
+      handleChorusChange,
+      handleEffectToggle,
+      handleFeedbackDelayChange,
+      handleReverbChange,
+      handleRoomSizeChange,
+    ],
+  );
+
+  const setters: PlaybackSettingsSetters = useMemo(
+    () => ({
+      setPlaybackStyle,
+      setAttack,
+      setDecay,
+      setPadVelocity,
+      setPadSwing,
+      setPadLatchMode,
+      setHumanize,
+      setGate,
+      setInversionRegister,
+      setInstrument,
+      setOctaveShift,
+      setReverbEnabled: setReverbEnabledState,
+      setReverb,
+      setChorusEnabled: setChorusEnabledState,
+      setChorus,
+      setChorusRate,
+      setChorusDepth: setChorusDepthState,
+      setChorusDelayTime: setChorusDelayTimeState,
+      setFeedbackDelayEnabled: setFeedbackDelayEnabledState,
+      setFeedbackDelay,
+      setFeedbackDelayTime: setFeedbackDelayTimeState,
+      setFeedbackDelayFeedback: setFeedbackDelayFeedbackState,
+      setTremoloEnabled: setTremoloEnabledState,
+      setTremolo,
+      setTremoloFrequency: setTremoloFrequencyState,
+      setTremoloDepth: setTremoloDepthState,
+      setVibratoEnabled: setVibratoEnabledState,
+      setVibrato,
+      setVibratoFrequency: setVibratoFrequencyState,
+      setVibratoDepth: setVibratoDepthState,
+      setPhaserEnabled: setPhaserEnabledState,
+      setPhaser,
+      setPhaserFrequency: setPhaserFrequencyState,
+      setPhaserOctaves: setPhaserOctavesState,
+      setPhaserQ: setPhaserQState,
+      setRoomSize,
+    }),
+    [],
+  );
+
+  useEffect(() => {
+    setReverbEnabled(reverbEnabled);
+  }, [reverbEnabled]);
+
+  useEffect(() => {
+    setReverbWet(reverb);
+  }, [reverb]);
+
+  useEffect(() => {
+    setChorusEnabled(chorusEnabled);
+  }, [chorusEnabled]);
+
+  useEffect(() => {
+    setChorusWet(chorus);
+  }, [chorus]);
+
+  useEffect(() => {
+    setChorusFrequency(chorusRate);
+  }, [chorusRate]);
+
+  useEffect(() => {
+    setChorusDepth(chorusDepth);
+  }, [chorusDepth]);
+
+  useEffect(() => {
+    setChorusDelayTime(chorusDelayTime);
+  }, [chorusDelayTime]);
+
+  useEffect(() => {
+    setFeedbackDelayEnabled(feedbackDelayEnabled);
+  }, [feedbackDelayEnabled]);
+
+  useEffect(() => {
+    setFeedbackDelayWet(feedbackDelay);
+  }, [feedbackDelay]);
+
+  useEffect(() => {
+    setFeedbackDelayTime(feedbackDelayTime);
+  }, [feedbackDelayTime]);
+
+  useEffect(() => {
+    setFeedbackDelayFeedback(feedbackDelayFeedback);
+  }, [feedbackDelayFeedback]);
+
+  useEffect(() => {
+    setTremoloEnabled(tremoloEnabled);
+  }, [tremoloEnabled]);
+
+  useEffect(() => {
+    setTremoloWet(tremolo);
+  }, [tremolo]);
+
+  useEffect(() => {
+    setTremoloFrequency(tremoloFrequency);
+  }, [tremoloFrequency]);
+
+  useEffect(() => {
+    setTremoloDepth(tremoloDepth);
+  }, [tremoloDepth]);
+
+  useEffect(() => {
+    setVibratoEnabled(vibratoEnabled);
+  }, [vibratoEnabled]);
+
+  useEffect(() => {
+    setVibratoWet(vibrato);
+  }, [vibrato]);
+
+  useEffect(() => {
+    setVibratoFrequency(vibratoFrequency);
+  }, [vibratoFrequency]);
+
+  useEffect(() => {
+    setVibratoDepth(vibratoDepth);
+  }, [vibratoDepth]);
+
+  useEffect(() => {
+    setPhaserEnabled(phaserEnabled);
+  }, [phaserEnabled]);
+
+  useEffect(() => {
+    setPhaserWet(phaser);
+  }, [phaser]);
+
+  useEffect(() => {
+    setPhaserFrequency(phaserFrequency);
+  }, [phaserFrequency]);
+
+  useEffect(() => {
+    setPhaserOctaves(phaserOctaves);
+  }, [phaserOctaves]);
+
+  useEffect(() => {
+    setPhaserQ(phaserQ);
+  }, [phaserQ]);
+
+  useEffect(() => {
+    setReverbRoomSize(roomSize);
+  }, [roomSize]);
+
+  return {
+    settings,
+    changeHandlers,
+    setters,
+  };
+}
