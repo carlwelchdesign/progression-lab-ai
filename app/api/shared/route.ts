@@ -3,6 +3,9 @@ import type { Prisma } from '@prisma/client';
 
 import { prisma } from '../../../lib/prisma';
 
+/**
+ * Extracts first chord name from persisted progression chord JSON payload.
+ */
 function getFirstChordName(chords: Prisma.JsonValue): string {
   if (!Array.isArray(chords) || chords.length === 0) {
     return '';
@@ -26,6 +29,9 @@ function getFirstChordName(chords: Prisma.JsonValue): string {
   return '';
 }
 
+/**
+ * Lists public shared progressions with optional tag and key filtering.
+ */
 export async function GET(request: NextRequest) {
   try {
     const tagQuery = request.nextUrl.searchParams.get('tag')?.trim().toLowerCase() ?? '';

@@ -23,6 +23,9 @@ import { CHORD_OPTIONS, GENRE_OPTIONS, MODE_OPTIONS, MOOD_OPTIONS } from '../../
 import { getChordChipSx, getMoodChipSx } from '../../lib/tagMetadata';
 import type { GeneratorFormData } from './types';
 
+/**
+ * Props for the main generator form card.
+ */
 type GeneratorFormCardProps = {
   control: Control<GeneratorFormData>;
   handleSubmit: UseFormHandleSubmit<GeneratorFormData>;
@@ -36,6 +39,9 @@ type GeneratorFormCardProps = {
   onRandomize: () => void;
 };
 
+/**
+ * Form card used to collect seed chords, mood, mode, genre, and tempo.
+ */
 export default function GeneratorFormCard({
   control,
   handleSubmit,

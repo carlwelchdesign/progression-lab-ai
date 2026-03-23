@@ -4,6 +4,9 @@ import { getSessionFromRequest } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
 import type { CreateProgressionRequest } from '../../../lib/types';
 
+/**
+ * Creates a saved progression for the authenticated user.
+ */
 export async function POST(request: NextRequest) {
   try {
     const session = getSessionFromRequest(request);
@@ -50,6 +53,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * Lists saved progressions for the authenticated user.
+ */
 export async function GET(request: NextRequest) {
   try {
     const session = getSessionFromRequest(request);

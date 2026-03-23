@@ -1,5 +1,8 @@
 import type { PianoVoicing } from './types';
 
+/**
+ * MIDI encoding constants used for exported chord/progression files.
+ */
 const TICKS_PER_QUARTER = 480;
 const DEFAULT_VELOCITY = 84;
 const DEFAULT_TEMPO_BPM = 100;
@@ -34,6 +37,9 @@ type MidiNoteEvent = {
   velocity?: number;
 };
 
+/**
+ * Converts a note in scientific pitch notation (e.g., C#4) to a MIDI note number.
+ */
 function parseNoteToMidi(note: string): number {
   const parsed = note.trim().match(/^([A-Ga-g])([#b]?)(-?\d+)$/);
 
@@ -96,6 +102,9 @@ function normalizeTempoBpm(value?: number): number {
   return Math.min(MAX_TEMPO_BPM, Math.max(MIN_TEMPO_BPM, Math.round(value ?? DEFAULT_TEMPO_BPM)));
 }
 
+/**
+ * Builds a single MIDI track chunk including tempo and note events.
+ */
 function buildTrackChunk(events: MidiNoteEvent[], trackName: string, tempoBpm: number): Uint8Array {
   const sortedEvents = events
     .flatMap((event) => [
@@ -146,6 +155,9 @@ function buildTrackChunk(events: MidiNoteEvent[], trackName: string, tempoBpm: n
   ]);
 }
 
+/**
+ * Creates a complete Type-0 MIDI file containing one track.
+ */
 function buildMidiFile(events: MidiNoteEvent[], trackName: string, tempoBpm: number): Uint8Array {
   const header = new Uint8Array([
     0x4d,
@@ -177,6 +189,9 @@ function sanitizeFileName(value: string): string {
   );
 }
 
+/**
+ * Triggers browser download for generated MIDI bytes.
+ */
 function downloadMidi(bytes: Uint8Array, fileName: string): void {
   const arrayBuffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(arrayBuffer).set(bytes);
@@ -202,6 +217,9 @@ function getVoicingMidiEvents(voicing: PianoVoicing, startTick: number): MidiNot
   }));
 }
 
+/**
+ * Downloads a single voicing as a MIDI file.
+ */
 export function downloadChordMidi(
   chordName: string,
   voicing: PianoVoicing,
@@ -215,6 +233,9 @@ export function downloadChordMidi(
   downloadMidi(bytes, `${sanitizeFileName(chordName)}.mid`);
 }
 
+/**
+ * Downloads a full progression as a MIDI file, one chord per bar.
+ */
 export function downloadProgressionMidi(
   progressionName: string,
   voicings: PianoVoicing[],

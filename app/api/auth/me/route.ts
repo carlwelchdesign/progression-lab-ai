@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 
+/**
+ * Returns the authenticated user profile from current session.
+ */
 export async function GET(request: NextRequest) {
   const session = getSessionFromRequest(request);
   if (!session) {

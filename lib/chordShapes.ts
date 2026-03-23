@@ -1,14 +1,23 @@
+/**
+ * Static guitar shape metadata used as first-choice diagram presets.
+ */
 export type GuitarShape = {
   chord: string;
   frets: Array<number | 'x'>;
   baseFret?: number;
 };
 
+/**
+ * Static piano pitch-class spellings for common chords.
+ */
 export type PianoShape = {
   chord: string;
   notes: string[];
 };
 
+/**
+ * Preferred built-in guitar shapes keyed by chord symbol.
+ */
 export const GUITAR_SHAPES: Record<string, GuitarShape> = {
   Fmaj7: { chord: 'Fmaj7', frets: [1, 3, 3, 2, 1, 0], baseFret: 1 },
   'F#m7': { chord: 'F#m7', frets: [2, 4, 2, 2, 2, 2], baseFret: 1 },
@@ -19,6 +28,9 @@ export const GUITAR_SHAPES: Record<string, GuitarShape> = {
   Dm7: { chord: 'Dm7', frets: ['x', 'x', 0, 2, 1, 1], baseFret: 1 },
 };
 
+/**
+ * Preferred built-in piano note spellings keyed by chord symbol.
+ */
 export const PIANO_SHAPES: Record<string, PianoShape> = {
   Fmaj7: { chord: 'Fmaj7', notes: ['F', 'A', 'C', 'E'] },
   'F#m7': { chord: 'F#m7', notes: ['F#', 'A', 'C#', 'E'] },

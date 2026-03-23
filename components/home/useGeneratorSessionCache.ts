@@ -14,6 +14,9 @@ import {
 
 const GENERATOR_CACHE_KEY = 'generatorCache';
 
+/**
+ * Session payload persisted after generating results.
+ */
 type GeneratorCache = {
   seedChords: string;
   mood: string;
@@ -29,6 +32,9 @@ type GeneratorCache = {
   data: ChordSuggestionResponse;
 };
 
+/**
+ * Inputs required to restore and persist home page session state.
+ */
 type UseGeneratorSessionCacheParams = {
   reset: UseFormReset<GeneratorFormData>;
   setData: Dispatch<SetStateAction<ChordSuggestionResponse | null>>;
@@ -37,12 +43,21 @@ type UseGeneratorSessionCacheParams = {
   playbackSettingsSetters: PlaybackSettingsSetters;
 };
 
+/**
+ * API returned by the generator session cache hook.
+ */
 type UseGeneratorSessionCacheResult = {
   isRestoringState: boolean;
   hasRestoredSessionData: boolean;
   cacheGeneratorResult: (formData: GeneratorFormData, data: ChordSuggestionResponse) => void;
 };
 
+/**
+ * Restores generator state from sessionStorage and provides a cache writer.
+ *
+ * The hook handles both current cache shape and older roomSize-only payloads,
+ * and also supports the special saved progression bootstrap flow.
+ */
 export default function useGeneratorSessionCache({
   reset,
   setData,

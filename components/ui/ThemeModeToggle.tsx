@@ -6,6 +6,9 @@ import { IconButton, Tooltip } from '@mui/material';
 
 import { useThemeMode } from '../../lib/themeMode';
 
+/**
+ * Header action button that toggles between light and dark mode.
+ */
 export default function ThemeModeToggle() {
   const { mode, toggleMode } = useThemeMode();
   const isDark = mode === 'dark';

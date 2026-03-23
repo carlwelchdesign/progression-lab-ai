@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { prisma } from '../../../../lib/prisma';
 
+/**
+ * Fetches a public progression by shareId.
+ */
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ shareId: string }> },

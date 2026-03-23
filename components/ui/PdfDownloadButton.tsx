@@ -6,11 +6,17 @@ import { useState } from 'react';
 
 import type { PdfChartOptions } from '../../lib/pdf';
 
+/**
+ * Props for the async PDF download button wrapper.
+ */
 type PdfDownloadButtonProps = Omit<ButtonProps, 'children' | 'startIcon' | 'onClick'> & {
   chartOptions: PdfChartOptions;
   label?: string;
 };
 
+/**
+ * Button that lazily imports PDF generator code and downloads a session chart.
+ */
 export default function PdfDownloadButton({
   chartOptions,
   label = 'PDF',

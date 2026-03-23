@@ -1,11 +1,17 @@
 import { Card as MuiCard, CardContent, type CardProps } from '@mui/material';
 import type { ReactNode } from 'react';
 
+/**
+ * App card props with optional content padding bypass.
+ */
 type CardProps_Custom = CardProps & {
   children: ReactNode;
   noPadding?: boolean;
 };
 
+/**
+ * Shared card wrapper that applies outlined style by default.
+ */
 export default function Card({ children, noPadding = false, ...props }: CardProps_Custom) {
   return (
     <MuiCard variant="outlined" {...props}>

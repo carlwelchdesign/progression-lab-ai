@@ -96,6 +96,9 @@ const MOOD_COLORS = [
   '#00796b', // teal
 ];
 
+/**
+ * Produces a deterministic palette index from text content.
+ */
 function getColorIndex(tag: string, paletteLength: number): number {
   const normalized = normalize(tag);
   let hash = 0;
@@ -107,8 +110,14 @@ function getColorIndex(tag: string, paletteLength: number): number {
   return hash % paletteLength;
 }
 
+/**
+ * Predefined selectable tags shown in progression save/edit flows.
+ */
 export const PRESET_TAG_OPTIONS = [...GENRE_TAGS, ...FEELING_TAGS];
 
+/**
+ * Trims, deduplicates, and normalizes tag input order-preservingly.
+ */
 export function sanitizeTags(tags: string[]): string[] {
   const seen = new Set<string>();
 
@@ -125,6 +134,9 @@ export function sanitizeTags(tags: string[]): string[] {
     });
 }
 
+/**
+ * Categorizes a tag for palette selection.
+ */
 export function getTagCategory(tag: string): TagCategory {
   const normalized = normalize(tag);
 
@@ -139,6 +151,9 @@ export function getTagCategory(tag: string): TagCategory {
   return 'custom';
 }
 
+/**
+ * Returns MUI chip styling for general tags.
+ */
 export function getTagChipSx(tag: string) {
   const category = getTagCategory(tag);
   const palette =
@@ -153,6 +168,9 @@ export function getTagChipSx(tag: string) {
   };
 }
 
+/**
+ * Returns deterministic MUI chip styling for chord labels.
+ */
 export function getChordChipSx(chord: string) {
   const backgroundColor = CHORD_COLORS[getColorIndex(chord, CHORD_COLORS.length)];
 
@@ -164,6 +182,9 @@ export function getChordChipSx(chord: string) {
   };
 }
 
+/**
+ * Returns deterministic MUI chip styling for mood labels.
+ */
 export function getMoodChipSx(mood: string) {
   const backgroundColor = MOOD_COLORS[getColorIndex(mood, MOOD_COLORS.length)];
 

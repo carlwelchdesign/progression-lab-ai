@@ -66,6 +66,9 @@ const GUITAR_SHAPE_TEMPLATES: Record<
   },
 };
 
+/**
+ * Chooses low-E vs A-string root template based on target fret comfort.
+ */
 function getBestRootString(lowEFret: number, aFret: number): RootString {
   if (aFret <= 7 && lowEFret > 5) {
     return 'A';
@@ -74,6 +77,9 @@ function getBestRootString(lowEFret: number, aFret: number): RootString {
   return 'lowE';
 }
 
+/**
+ * Maps chord quality text to an available guitar shape template.
+ */
 function getTemplateFromSuffix(suffix: string): GuitarShapeTemplateKey | null {
   const normalized = suffix.trim().toLowerCase();
 
@@ -108,6 +114,9 @@ function getTemplateFromSuffix(suffix: string): GuitarShapeTemplateKey | null {
   return null;
 }
 
+/**
+ * Builds a generated chord diagram when no explicit preset shape exists.
+ */
 function getGeneratedGuitarDiagram(chord: string) {
   const parsed = chord.trim().match(/^([A-G](?:#|b)?)(.*)$/);
 
@@ -138,6 +147,9 @@ function getGeneratedGuitarDiagram(chord: string) {
   };
 }
 
+/**
+ * Returns a playable guitar diagram for a chord, using preset or generated fallback.
+ */
 export function getGuitarDiagramFromChord(chord: string) {
   const shape = GUITAR_SHAPES[chord];
 
@@ -152,6 +164,9 @@ export function getGuitarDiagramFromChord(chord: string) {
   };
 }
 
+/**
+ * Converts API guitar voicing payload to compact six-string text (e.g., x32010).
+ */
 export function getGuitarShapeTextFromVoicing(
   voicing: ChordSuggestionResponse['nextChordSuggestions'][number]['guitarVoicing'],
 ): string {
@@ -178,6 +193,9 @@ export function getGuitarShapeTextFromVoicing(
     .join('');
 }
 
+/**
+ * Converts internal diagram format to compact six-string text.
+ */
 export function getGuitarShapeTextFromDiagram(
   diagram: ReturnType<typeof getGuitarDiagramFromChord>,
 ): string {

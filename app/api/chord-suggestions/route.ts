@@ -33,6 +33,9 @@ const NOTE_TO_SEMITONE: Record<string, number> = {
   Cb: 11,
 };
 
+/**
+ * Returns chord-root pitch class from a chord symbol, or null when unknown.
+ */
 function getChordRootPitchClass(chordName: string): number | null {
   const match = chordName.match(CHORD_ROOT_PATTERN);
   if (!match) {
@@ -42,6 +45,9 @@ function getChordRootPitchClass(chordName: string): number | null {
   return NOTE_TO_SEMITONE[match[1]] ?? null;
 }
 
+/**
+ * Parses scientific-pitch note text (e.g., Eb4) into MIDI note number.
+ */
 function parseMidi(note: string): number | null {
   const match = note.match(NOTE_PATTERN);
   if (!match) {
@@ -58,6 +64,9 @@ function parseMidi(note: string): number | null {
   return (octave + 1) * 12 + semitone;
 }
 
+/**
+ * Returns pitch class [0..11] for a note name.
+ */
 function getPitchClass(note: string): number | null {
   const midi = parseMidi(note);
   if (midi === null) {
@@ -67,6 +76,9 @@ function getPitchClass(note: string): number | null {
   return ((midi % 12) + 12) % 12;
 }
 
+/**
+ * Shifts a note string by whole octaves while preserving spelling.
+ */
 function shiftNoteByOctaves(note: string, octaveDelta: number): string {
   const match = note.match(NOTE_PATTERN);
   if (!match) {
@@ -76,6 +88,9 @@ function shiftNoteByOctaves(note: string, octaveDelta: number): string {
   return `${match[1]}${Number.parseInt(match[2], 10) + octaveDelta}`;
 }
 
+/**
+ * Sorts notes in ascending pitch order.
+ */
 function sortNotesByPitch(notes: string[]): string[] {
   return [...notes].sort((left, right) => {
     const leftMidi = parseMidi(left);
@@ -89,6 +104,9 @@ function sortNotesByPitch(notes: string[]): string[] {
   });
 }
 
+/**
+ * Normalizes add2/add9/sus2 voicings to keep the color tone close to the chord body.
+ */
 function normalizeAddToneVoicing(chordName: string, voicing: PianoVoicing): PianoVoicing {
   if (!/(?:add(?:2|9)|sus2)/i.test(chordName) || voicing.rightHand.length === 0) {
     return voicing;
@@ -159,6 +177,9 @@ function normalizeAddToneVoicing(chordName: string, voicing: PianoVoicing): Pian
   };
 }
 
+/**
+ * Applies voicing normalization to all payload voicings returned by the model.
+ */
 function normalizeChordSuggestionResponse(
   payload: ChordSuggestionResponse,
 ): ChordSuggestionResponse {
@@ -341,6 +362,9 @@ const chordSuggestionSchema = {
   },
 } as const;
 
+/**
+ * Generates chord suggestions, progression ideas, and structure ideas via OpenAI.
+ */
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.OPENAI_API_KEY) {

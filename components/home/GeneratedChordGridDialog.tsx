@@ -20,6 +20,9 @@ import PlaybackSettingsButton from './PlaybackSettingsButton';
 import SelectField from '../ui/SelectField';
 import type { PlaybackSettings, PlaybackSettingsChangeHandlers } from './playbackSettingsModel';
 
+/**
+ * Render-ready chord data for each playable grid pad.
+ */
 type ChordGridEntry = {
   key: string;
   chord: string;
@@ -28,6 +31,9 @@ type ChordGridEntry = {
   rightHand: string[];
 };
 
+/**
+ * Props for the generated chord grid playground dialog.
+ */
 type GeneratedChordGridDialogProps = {
   open: boolean;
   onClose: () => void;
@@ -40,6 +46,9 @@ type GeneratedChordGridDialogProps = {
 
 const HAPPY_FALLBACK_BORDERS = ['#f97316', '#22d3ee', '#a3e635', '#f43f5e', '#f59e0b', '#60a5fa'];
 
+/**
+ * Picks a deterministic border color from chord quality or chord-name hash.
+ */
 function getChordBorderColor(chordName: string): string {
   if (/sus/i.test(chordName)) {
     return '#22d3ee';
@@ -69,6 +78,9 @@ function getChordBorderColor(chordName: string): string {
   return HAPPY_FALLBACK_BORDERS[Math.abs(hash) % HAPPY_FALLBACK_BORDERS.length];
 }
 
+/**
+ * Displays a playable and editable pad grid for generated chord voicings.
+ */
 export default function GeneratedChordGridDialog({
   open,
   onClose,

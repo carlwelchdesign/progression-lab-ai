@@ -4,6 +4,9 @@ import type { NextRequest, NextResponse } from 'next/server';
 const AUTH_COOKIE_NAME = 'progressionlab_session';
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
+/**
+ * Signed session payload stored in the auth cookie.
+ */
 type SessionPayload = {
   userId: string;
   email: string;
@@ -46,12 +49,18 @@ function sign(value: string): string {
   return base64UrlEncode(createHmac('sha256', getAuthSecret()).update(value).digest());
 }
 
+/**
+ * Hashes a plaintext password using scrypt + random salt.
+ */
 export function hashPassword(password: string): string {
   const salt = randomBytes(16).toString('hex');
   const hash = scryptSync(password, salt, 64).toString('hex');
   return `scrypt$${salt}$${hash}`;
 }
 
+/**
+ * Verifies a plaintext password against a stored scrypt hash.
+ */
 export function verifyPassword(password: string, storedHash: string): boolean {
   const [scheme, salt, hash] = storedHash.split('$');
 
@@ -74,6 +83,9 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   }
 }
 
+/**
+ * Creates an HMAC-signed session token for cookie storage.
+ */
 export function createSessionToken(userId: string, email: string): string {
   const payload: SessionPayload = {
     userId,
@@ -86,6 +98,9 @@ export function createSessionToken(userId: string, email: string): string {
   return `${encodedPayload}.${signature}`;
 }
 
+/**
+ * Parses and validates a session token from cookie value.
+ */
 export function parseSessionToken(token: string | undefined): SessionPayload | null {
   if (!token) {
     return null;
@@ -126,11 +141,17 @@ export function parseSessionToken(token: string | undefined): SessionPayload | n
   }
 }
 
+/**
+ * Reads and verifies the current session from request cookies.
+ */
 export function getSessionFromRequest(request: NextRequest): SessionPayload | null {
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
   return parseSessionToken(token);
 }
 
+/**
+ * Sets the signed session cookie on a response.
+ */
 export function setSessionCookie(response: NextResponse, token: string): void {
   response.cookies.set(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
@@ -141,6 +162,9 @@ export function setSessionCookie(response: NextResponse, token: string): void {
   });
 }
 
+/**
+ * Clears the session cookie on a response.
+ */
 export function clearSessionCookie(response: NextResponse): void {
   response.cookies.set(AUTH_COOKIE_NAME, '', {
     httpOnly: true,

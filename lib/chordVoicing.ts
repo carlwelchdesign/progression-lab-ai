@@ -28,6 +28,9 @@ const SHARP_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#',
 
 const CHORD_PATTERN = /^([A-G](?:#|b)?)(.*)$/;
 
+/**
+ * Returns semitone intervals for common chord suffixes.
+ */
 function getIntervalsFromSuffix(rawSuffix: string): number[] {
   const suffix = rawSuffix.trim();
 
@@ -45,6 +48,9 @@ function getIntervalsFromSuffix(rawSuffix: string): number[] {
   return [0, 4, 7];
 }
 
+/**
+ * Converts a semitone value to a normalized sharp note name.
+ */
 function semitoneToNoteName(semitone: number): string {
   return SHARP_NOTES[((semitone % 12) + 12) % 12];
 }
@@ -56,6 +62,9 @@ function intervalToNote(rootSemitone: number, interval: number, octave: number):
   return `${noteName}${noteOctave}`;
 }
 
+/**
+ * Generates a practical LH/RH piano voicing from a chord symbol.
+ */
 export function createPianoVoicingFromChordSymbol(chordSymbol: string): PianoVoicing | null {
   const match = chordSymbol.trim().match(CHORD_PATTERN);
   if (!match) {

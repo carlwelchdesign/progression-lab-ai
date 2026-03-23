@@ -5,11 +5,17 @@ import { Box, Typography } from '@mui/material';
 import Card from '../ui/Card';
 import type { ChordSuggestionResponse } from '../../lib/types';
 
+/**
+ * Props for displaying arrangement/structure suggestions.
+ */
 type StructureSuggestionsSectionProps = {
   structureSuggestions: ChordSuggestionResponse['structureSuggestions'];
   showTitle?: boolean;
 };
 
+/**
+ * Renders suggested song sections (verse/chorus/etc.) from API output.
+ */
 export default function StructureSuggestionsSection({
   structureSuggestions,
   showTitle = true,

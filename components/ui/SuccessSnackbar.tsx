@@ -1,5 +1,8 @@
 import { Alert, Snackbar } from '@mui/material';
 
+/**
+ * Props for the reusable success snackbar component.
+ */
 type SuccessSnackbarProps = {
   open: boolean;
   message: string;
@@ -7,6 +10,9 @@ type SuccessSnackbarProps = {
   autoHideDuration?: number;
 };
 
+/**
+ * Bottom-right success toast used after save/update actions.
+ */
 export default function SuccessSnackbar({
   open,
   message,

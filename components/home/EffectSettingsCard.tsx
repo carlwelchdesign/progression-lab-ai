@@ -3,6 +3,9 @@
 import type { ReactNode } from 'react';
 import { Box, Button, Card, CardContent, Slider, Stack, Switch, Typography } from '@mui/material';
 
+/**
+ * Props for reusable effect card with level and optional advanced controls.
+ */
 type EffectSettingsCardProps = {
   title: string;
   enabled: boolean;
@@ -15,6 +18,9 @@ type EffectSettingsCardProps = {
   children?: ReactNode;
 };
 
+/**
+ * Reusable card container for individual effect toggles and parameters.
+ */
 export default function EffectSettingsCard({
   title,
   enabled,

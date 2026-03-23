@@ -2,6 +2,9 @@
 
 import { Box, Slider, Typography } from '@mui/material';
 
+/**
+ * Props for attack/decay envelope controls.
+ */
 type EnvelopeControlsProps = {
   attack: number;
   onAttackChange: (value: number) => void;
@@ -10,6 +13,9 @@ type EnvelopeControlsProps = {
   direction?: 'row' | 'column';
 };
 
+/**
+ * Shared attack/decay slider pair used in playback settings.
+ */
 export default function EnvelopeControls({
   attack,
   onAttackChange,

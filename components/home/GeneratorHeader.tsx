@@ -3,6 +3,9 @@
 import Image from 'next/image';
 import { Box, Typography } from '@mui/material';
 
+/**
+ * Top-of-page branding and short generator description.
+ */
 export default function GeneratorHeader() {
   return (
     <Box id="generator">

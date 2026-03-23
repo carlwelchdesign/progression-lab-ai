@@ -1,3 +1,6 @@
+/**
+ * Mode/scale choices for generator form.
+ */
 export const MODE_OPTIONS = [
   { value: 'ionian', label: 'Ionian (Major)' },
   { value: 'dorian', label: 'Dorian' },
@@ -17,6 +20,9 @@ export const MODE_OPTIONS = [
   { value: 'custom', label: 'Custom' },
 ];
 
+/**
+ * Genre presets for generator form.
+ */
 export const GENRE_OPTIONS = [
   { value: 'house', label: 'House' },
   { value: 'piano house', label: 'Piano House' },
@@ -40,6 +46,9 @@ export const GENRE_OPTIONS = [
   { value: 'custom', label: 'Custom' },
 ];
 
+/**
+ * Seed chord presets used by randomizer and suggestions.
+ */
 export const CHORD_OPTIONS = [
   // Major chords
   'C',
@@ -157,6 +166,9 @@ export const CHORD_OPTIONS = [
   'Bbm7',
 ];
 
+/**
+ * Mood descriptors used for prompt shaping.
+ */
 export const MOOD_OPTIONS = [
   'Dreamy',
   'Dark',

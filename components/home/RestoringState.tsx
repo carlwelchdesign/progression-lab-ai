@@ -4,6 +4,9 @@ import { Box, CircularProgress, Stack, Typography } from '@mui/material';
 
 import GeneratorHeader from './GeneratorHeader';
 
+/**
+ * Placeholder screen shown while session state is being restored.
+ */
 export default function RestoringState() {
   return (
     <Stack spacing={3}>

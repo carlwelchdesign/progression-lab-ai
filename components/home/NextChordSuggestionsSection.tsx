@@ -14,6 +14,9 @@ import { downloadChordMidi } from '../../lib/midi';
 import type { ChordSuggestionResponse } from '../../lib/types';
 import type { ProgressionDiagramInstrument } from './types';
 
+/**
+ * Props for rendering next-chord recommendation cards.
+ */
 type NextChordSuggestionsSectionProps = {
   suggestions: ChordSuggestionResponse['nextChordSuggestions'];
   progressionDiagramInstrument: ProgressionDiagramInstrument;
@@ -30,6 +33,9 @@ type NextChordSuggestionsSectionProps = {
   genre?: string;
 };
 
+/**
+ * Displays next-chord suggestions with playback, MIDI, PDF, and diagram actions.
+ */
 export default function NextChordSuggestionsSection({
   suggestions,
   progressionDiagramInstrument,

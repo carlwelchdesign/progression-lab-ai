@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSessionToken, setSessionCookie, verifyPassword } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 
+/**
+ * Authenticates a user and returns user profile with session cookie.
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {

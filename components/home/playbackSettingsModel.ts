@@ -1,5 +1,8 @@
 import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
 
+/**
+ * Canonical playback settings used across home page state, dialogs, and session cache.
+ */
 export type PlaybackSettings = {
   playbackStyle: PlaybackStyle;
   attack: number;
@@ -39,6 +42,9 @@ export type PlaybackSettings = {
   roomSize: number;
 };
 
+/**
+ * Callback surface used by settings UI components.
+ */
 export type PlaybackSettingsChangeHandlers = {
   onPlaybackStyleChange: (value: PlaybackStyle) => void;
   onAttackChange: (value: number) => void;
@@ -78,6 +84,9 @@ export type PlaybackSettingsChangeHandlers = {
   onRoomSizeChange: (value: number) => void;
 };
 
+/**
+ * Setter surface used for restoring persisted settings into React state.
+ */
 export type PlaybackSettingsSetters = {
   setPlaybackStyle: (value: PlaybackStyle) => void;
   setAttack: (value: number) => void;
@@ -117,6 +126,9 @@ export type PlaybackSettingsSetters = {
   setRoomSize: (value: number) => void;
 };
 
+/**
+ * Baseline values used for first render and as merge defaults during sanitize.
+ */
 export const PLAYBACK_SETTINGS_DEFAULTS: PlaybackSettings = {
   playbackStyle: 'strum',
   attack: 0.01,
@@ -160,9 +172,19 @@ const PLAYBACK_STYLE_OPTIONS: PlaybackStyle[] = ['strum', 'block'];
 const INVERSION_REGISTER_OPTIONS: PlaybackRegister[] = ['off', 'low', 'mid', 'high'];
 const INSTRUMENT_OPTIONS: AudioInstrument[] = ['piano', 'rhodes'];
 
+/**
+ * Clamps a numeric value to an inclusive [min, max] range.
+ */
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
+/**
+ * Normalizes partial settings payloads from cache or external sources.
+ *
+ * - Merges with defaults to support missing fields.
+ * - Enforces enum validity for style/register/instrument values.
+ * - Clamps numeric values to safe ranges used by UI and audio engine.
+ */
 export const sanitizePlaybackSettings = (input?: Partial<PlaybackSettings>): PlaybackSettings => {
   const raw = { ...PLAYBACK_SETTINGS_DEFAULTS, ...(input ?? {}) };
 
@@ -208,6 +230,9 @@ export const sanitizePlaybackSettings = (input?: Partial<PlaybackSettings>): Pla
   };
 };
 
+/**
+ * Applies a full settings object to the provided React state setters.
+ */
 export const applyPlaybackSettings = (
   setters: PlaybackSettingsSetters,
   settings: PlaybackSettings,

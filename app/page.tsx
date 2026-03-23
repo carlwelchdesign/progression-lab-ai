@@ -85,10 +85,16 @@ const PROGRESSION_IDEAS_CHUNK_SIZE = 1;
 const STRUCTURE_SUGGESTIONS_CHUNK_SIZE = 3;
 const PROGRESSIVE_REVEAL_DELAY_MS = 24;
 
+/**
+ * Returns an integer in the inclusive [min, max] range.
+ */
 function getRandomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+/**
+ * Shuffles input items and returns the first `count` unique values.
+ */
 function pickRandomUnique<T>(items: T[], count: number): T[] {
   const pool = [...items];
 
@@ -100,6 +106,9 @@ function pickRandomUnique<T>(items: T[], count: number): T[] {
   return pool.slice(0, count);
 }
 
+/**
+ * Home page container for generator form, playback controls, and result sections.
+ */
 export default function HomePage() {
   const {
     control,

@@ -4,11 +4,17 @@ import { alpha, ToggleButton, ToggleButtonGroup } from '@mui/material';
 
 import type { ProgressionDiagramInstrument } from './types';
 
+/**
+ * Props for toggling displayed diagram instrument.
+ */
 type InstrumentToggleProps = {
   value: ProgressionDiagramInstrument;
   onChange: (value: ProgressionDiagramInstrument) => void;
 };
 
+/**
+ * Compact piano/guitar toggle used above result sections.
+ */
 export default function InstrumentToggle({ value, onChange }: InstrumentToggleProps) {
   return (
     <ToggleButtonGroup

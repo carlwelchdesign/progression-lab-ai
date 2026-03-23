@@ -28,11 +28,17 @@ import EffectSettingsCard from './EffectSettingsCard';
 import EnvelopeControls from './EnvelopeControls';
 import type { PlaybackSettings, PlaybackSettingsChangeHandlers } from './playbackSettingsModel';
 
+/**
+ * Lightweight voicing payload used for preview playback.
+ */
 type PreviewVoicing = {
   leftHand: string[];
   rightHand: string[];
 };
 
+/**
+ * Props for the playback settings trigger and dialog.
+ */
 type PlaybackSettingsButtonProps = {
   settings: PlaybackSettings;
   onChange: PlaybackSettingsChangeHandlers;
@@ -42,6 +48,9 @@ type PlaybackSettingsButtonProps = {
   position?: 'inline' | 'modal';
 };
 
+/**
+ * Renders playback settings controls and a preview action for the current voicing.
+ */
 export default function PlaybackSettingsButton({
   settings,
   onChange,
@@ -139,6 +148,9 @@ export default function PlaybackSettingsButton({
   const closeDialog = () => setIsSettingsOpen(false);
   const canPreview = Boolean(previewVoicing);
 
+  /**
+   * Plays a one-shot preview using the current settings.
+   */
   const previewSound = () => {
     if (!previewVoicing) {
       return;

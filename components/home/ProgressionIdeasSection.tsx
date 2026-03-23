@@ -17,6 +17,9 @@ import { downloadChordMidi, downloadProgressionMidi } from '../../lib/midi';
 import type { ChordItem, ChordSuggestionResponse } from '../../lib/types';
 import type { ProgressionDiagramInstrument } from './types';
 
+/**
+ * Props for progression idea cards and interaction callbacks.
+ */
 type ProgressionIdeasSectionProps = {
   progressionIdeas: ChordSuggestionResponse['progressionIdeas'];
   isLoadedFromSavedProgression: boolean;
@@ -41,6 +44,9 @@ type ProgressionIdeasSectionProps = {
   }) => void;
 };
 
+/**
+ * Displays progression ideas with voicings, playback, export, and save actions.
+ */
 export default function ProgressionIdeasSection({
   progressionIdeas,
   isLoadedFromSavedProgression,

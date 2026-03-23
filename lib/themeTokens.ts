@@ -1,5 +1,8 @@
 import type { PaletteMode, ThemeOptions } from '@mui/material/styles';
 
+/**
+ * Typed subset of MUI theme options used by this app.
+ */
 type ThemeTokens = {
   palette: ThemeOptions['palette'];
   shape: ThemeOptions['shape'];
@@ -48,6 +51,9 @@ const darkPalette: ThemeOptions['palette'] = {
   },
 };
 
+/**
+ * Returns mode-aware theme tokens merged with shared design tokens.
+ */
 export function getThemeTokens(mode: PaletteMode): ThemeTokens {
   return {
     palette: mode === 'light' ? lightPalette : darkPalette,

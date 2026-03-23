@@ -239,6 +239,9 @@ function inferTonicFromScaleOrChords(
   return null;
 }
 
+/**
+ * Converts a chord symbol into Nashville notation relative to a tonic.
+ */
 export function chordToNashville(chord: string, tonic: string): string | null {
   const parsed = parseChordSymbol(chord);
   if (!parsed) {

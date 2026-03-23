@@ -4,6 +4,9 @@ import { getSessionFromRequest } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import type { UpdateProgressionRequest } from '../../../../lib/types';
 
+/**
+ * Fetches a single saved progression for the authenticated user.
+ */
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = getSessionFromRequest(_request);
@@ -30,6 +33,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   }
 }
 
+/**
+ * Updates a saved progression owned by the authenticated user.
+ */
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = getSessionFromRequest(request);
@@ -75,6 +81,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
+/**
+ * Deletes a saved progression owned by the authenticated user.
+ */
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

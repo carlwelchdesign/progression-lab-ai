@@ -1,5 +1,8 @@
 import * as Tone from 'tone';
 
+/**
+ * Singleton Tone.js nodes and engine state used by playback controls.
+ */
 let pianoSampler: Tone.Sampler | null = null;
 let pianoSamplerLoaded: Promise<void> | null = null;
 let rhodesSampler: Tone.Sampler | null = null;
@@ -67,6 +70,9 @@ const REGISTER_MIDI_RANGES: Record<
 const MAX_HUMANIZE_TIMING_S = 0.05; // 50 ms at 100%
 const MAX_HUMANIZE_VELOCITY = 12; // ±12 MIDI velocity units at 100%
 
+/**
+ * Re-voices notes into the requested register while preserving note identity.
+ */
 const applyInversionLock = (notes: string[], register: PlaybackRegister): string[] => {
   if (register === 'off') return notes;
   const range = REGISTER_MIDI_RANGES[register];
@@ -136,6 +142,9 @@ const getChordDurationSeconds = (tempoBpm?: number): number => {
   return (60 / normalizedTempo) * CHORD_BEATS;
 };
 
+/**
+ * Lazily creates and returns the shared reverb node.
+ */
 const getReverbNode = (): Tone.Reverb => {
   if (!reverbNode) {
     reverbNode = new Tone.Reverb({ decay: 2.5, wet: 0 }).toDestination();
@@ -342,6 +351,9 @@ const ensureReverbReady = async (): Promise<void> => {
   }
 };
 
+/**
+ * Sets reverb wet mix (0..1).
+ */
 export const setReverbWet = (wet: number): void => {
   reverbWet = clampUnitValue(wet);
   if (reverbNode) {
@@ -365,6 +377,9 @@ export const setReverbRoomSize = (roomSize: number): void => {
   }
 };
 
+/**
+ * Enables/disables reverb and refreshes the effect routing graph.
+ */
 export const setReverbEnabled = (enabled: boolean): void => {
   reverbEnabled = enabled;
 
@@ -860,12 +875,18 @@ const triggerChordByStyle = ({
   triggerStrummedChord({ instrument, notes, duration, startTime, velocity });
 };
 
+/**
+ * Ensures the WebAudio context is started before playback begins.
+ */
 export const startAudio = async (): Promise<void> => {
   if (Tone.context.state !== 'running') {
     await Tone.start();
   }
 };
 
+/**
+ * Stops all scheduled progression events and releases active notes.
+ */
 export const stopAllAudio = (): void => {
   scheduledPlaybackTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
   scheduledPlaybackTimeouts = [];
@@ -882,6 +903,9 @@ export const stopAllAudio = (): void => {
   Tone.Transport.cancel();
 };
 
+/**
+ * Plays a single piano/rhodes voicing using the active playback/effect settings.
+ */
 export const playChordVoicing = async ({
   leftHand,
   rightHand,
@@ -953,6 +977,9 @@ export const playChordVoicing = async ({
   }
 };
 
+/**
+ * Plays a sequence of voicings with per-chord scheduling and optional humanization.
+ */
 export const playProgression = async (
   voicings: Array<{
     leftHand: string[];

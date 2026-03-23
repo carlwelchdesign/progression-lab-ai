@@ -2,6 +2,9 @@
 
 import { Slider, Typography } from '@mui/material';
 
+/**
+ * Props for a labeled effect parameter slider row.
+ */
 type EffectParamSliderProps = {
   label: string;
   valueText: string;
@@ -14,6 +17,9 @@ type EffectParamSliderProps = {
   disabled: boolean;
 };
 
+/**
+ * Small labeled slider used inside advanced effect sections.
+ */
 export default function EffectParamSlider({
   label,
   valueText,

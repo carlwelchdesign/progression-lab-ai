@@ -2,6 +2,9 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 
+/**
+ * Authenticated user shape returned by /api/auth/me.
+ */
 type User = {
   id: string;
   email: string;
@@ -23,6 +26,9 @@ const AUTH_CACHE_KEY = 'auth_cache_v1';
 // Global flag to track if auth has been initialized
 let authInitialized = false;
 
+/**
+ * Provides auth state, refresh, and logout actions to the client app tree.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -139,6 +145,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Accesses the auth context and enforces provider usage.
+ */
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
