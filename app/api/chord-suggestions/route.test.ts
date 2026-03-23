@@ -114,6 +114,30 @@ describe('POST /api/chord-suggestions', () => {
     expect(response.status).toBe(200);
     expect(body).toEqual(validModelPayload);
     expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.objectContaining({
+          format: expect.objectContaining({
+            schema: expect.objectContaining({
+              properties: expect.objectContaining({
+                nextChordSuggestions: expect.objectContaining({
+                  minItems: 4,
+                  maxItems: 4,
+                }),
+                progressionIdeas: expect.objectContaining({
+                  minItems: 3,
+                  maxItems: 3,
+                }),
+                structureSuggestions: expect.objectContaining({
+                  minItems: 3,
+                  maxItems: 3,
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    );
   });
 
   it('returns 500 when the model returns invalid JSON', async () => {

@@ -46,10 +46,10 @@ const StructureSuggestionsSection = lazy(
   () => import('../components/home/StructureSuggestionsSection'),
 );
 const INITIAL_NEXT_SUGGESTIONS = 3;
-const INITIAL_PROGRESSION_IDEAS = 1;
+const INITIAL_PROGRESSION_IDEAS = 3;
 const INITIAL_STRUCTURE_SUGGESTIONS = 3;
 const NEXT_SUGGESTIONS_CHUNK_SIZE = 3;
-const PROGRESSION_IDEAS_CHUNK_SIZE = 1;
+const PROGRESSION_IDEAS_CHUNK_SIZE = 3;
 const STRUCTURE_SUGGESTIONS_CHUNK_SIZE = 3;
 const PROGRESSIVE_REVEAL_DELAY_MS = 24;
 
