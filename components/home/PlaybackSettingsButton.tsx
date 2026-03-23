@@ -2,6 +2,24 @@
 
 import SettingsIcon from '@mui/icons-material/Settings';
 import {
+  GATE_RANGE,
+  INSTRUMENT_OPTIONS,
+  INVERSION_OPTIONS,
+  OCTAVE_SHIFT_MARKS,
+  OCTAVE_SHIFT_RANGE,
+  PLAYBACK_SETTINGS_COPY,
+  PLAYBACK_STYLE_OPTIONS,
+  TEMPO_RANGE,
+  createEffectConfigs,
+  createPadSliderConfigs,
+  formatGateLabel,
+  getSettingsTriggerButtonSx,
+  type EffectId,
+  type EffectConfig,
+  type SliderRowConfig,
+} from './playbackSettingsConfigs';
+
+import {
   Box,
   Button,
   Card,
@@ -18,7 +36,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { playChordVoicing } from '../../lib/audio';
 import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
@@ -64,89 +82,46 @@ export default function PlaybackSettingsButton({
     attack,
     decay,
     padVelocity,
-    padSwing,
     padLatchMode,
     humanize,
     gate,
     inversionRegister,
     instrument,
     octaveShift,
-    reverb,
-    reverbEnabled,
-    chorus,
-    chorusEnabled,
-    chorusRate,
-    chorusDepth,
-    chorusDelayTime,
-    feedbackDelayEnabled,
-    feedbackDelay,
-    feedbackDelayTime,
-    feedbackDelayFeedback,
-    tremoloEnabled,
-    tremolo,
-    tremoloFrequency,
-    tremoloDepth,
-    vibratoEnabled,
-    vibrato,
-    vibratoFrequency,
-    vibratoDepth,
-    phaserEnabled,
-    phaser,
-    phaserFrequency,
-    phaserOctaves,
-    phaserQ,
-    roomSize,
   } = settings;
 
   const {
     onPlaybackStyleChange,
     onAttackChange,
     onDecayChange,
-    onPadVelocityChange,
-    onPadSwingChange,
     onPadLatchModeChange,
-    onHumanizeChange,
     onGateChange,
     onInversionRegisterChange,
     onInstrumentChange,
     onOctaveShiftChange,
-    onReverbChange,
-    onReverbEnabledChange,
-    onChorusChange,
-    onChorusEnabledChange,
-    onChorusRateChange,
-    onChorusDepthChange,
-    onChorusDelayTimeChange,
-    onFeedbackDelayEnabledChange,
-    onFeedbackDelayChange,
-    onFeedbackDelayTimeChange,
-    onFeedbackDelayFeedbackChange,
-    onTremoloEnabledChange,
-    onTremoloChange,
-    onTremoloFrequencyChange,
-    onTremoloDepthChange,
-    onVibratoEnabledChange,
-    onVibratoChange,
-    onVibratoFrequencyChange,
-    onVibratoDepthChange,
-    onPhaserEnabledChange,
-    onPhaserChange,
-    onPhaserFrequencyChange,
-    onPhaserOctavesChange,
-    onPhaserQChange,
-    onRoomSizeChange,
   } = onChange;
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [reverbAdvancedOpen, setReverbAdvancedOpen] = useState(false);
-  const [chorusAdvancedOpen, setChorusAdvancedOpen] = useState(false);
-  const [feedbackDelayAdvancedOpen, setFeedbackDelayAdvancedOpen] = useState(false);
-  const [tremoloAdvancedOpen, setTremoloAdvancedOpen] = useState(false);
-  const [vibratoAdvancedOpen, setVibratoAdvancedOpen] = useState(false);
-  const [phaserAdvancedOpen, setPhaserAdvancedOpen] = useState(false);
+  const [advancedOpenByEffect, setAdvancedOpenByEffect] = useState<Record<EffectId, boolean>>({
+    reverb: false,
+    chorus: false,
+    tremolo: false,
+    feedbackDelay: false,
+    vibrato: false,
+    phaser: false,
+  });
 
   const closeDialog = () => setIsSettingsOpen(false);
   const canPreview = Boolean(previewVoicing);
+  const toggleAdvanced = useCallback((effectId: EffectId) => {
+    setAdvancedOpenByEffect((previousState) => ({
+      ...previousState,
+      [effectId]: !previousState[effectId],
+    }));
+  }, []);
+
+  const effectConfigs: EffectConfig[] = createEffectConfigs(settings, onChange);
+  const padSliderConfigs: SliderRowConfig[] = createPadSliderConfigs(settings, onChange);
 
   /**
    * Plays a one-shot preview using the current settings.
@@ -185,49 +160,29 @@ export default function PlaybackSettingsButton({
           size="small"
           startIcon={<SettingsIcon />}
           onClick={() => setIsSettingsOpen(true)}
-          sx={{
-            borderWidth: 1.5,
-            color: '#60a5fa',
-            borderColor: 'rgba(96, 165, 250, 0.9)',
-            backgroundColor:
-              position === 'inline'
-                ? (theme) =>
-                    theme.palette.mode === 'dark'
-                      ? 'rgba(15, 23, 42, 0.35)'
-                      : 'rgba(255, 255, 255, 0.5)'
-                : 'transparent',
-            textTransform: 'none',
-            fontWeight: 600,
-            backdropFilter: position === 'inline' ? 'blur(10px)' : 'none',
-            WebkitBackdropFilter: position === 'inline' ? 'blur(10px)' : 'none',
-            '&:hover': {
-              borderColor: 'rgba(147, 197, 253, 1)',
-              backgroundColor: 'rgba(96, 165, 250, 0.08)',
-              borderWidth: 1.5,
-            },
-          }}
+          sx={getSettingsTriggerButtonSx(position)}
         >
-          Settings
+          {PLAYBACK_SETTINGS_COPY.triggerButtonLabel}
         </Button>
       </Box>
 
       <Dialog open={isSettingsOpen} onClose={closeDialog} maxWidth="md" fullWidth>
-        <DialogTitle>Playback Settings</DialogTitle>
+        <DialogTitle>{PLAYBACK_SETTINGS_COPY.dialogTitle}</DialogTitle>
         <DialogContent>
           <Stack spacing={2.5}>
             <Box>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Instrument
+                {PLAYBACK_SETTINGS_COPY.instrumentLabel}
               </Typography>
               <SelectField
                 value={instrument}
                 onChange={(e) => {
                   onInstrumentChange(e.target.value as AudioInstrument);
                 }}
-                options={[
-                  { value: 'piano', label: 'Piano' },
-                  { value: 'rhodes', label: 'Rhodes' },
-                ]}
+                options={INSTRUMENT_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: option.label,
+                }))}
                 size="small"
                 fullWidth
               />
@@ -235,20 +190,16 @@ export default function PlaybackSettingsButton({
 
             <Box>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Octave shift
+                {PLAYBACK_SETTINGS_COPY.octaveShiftLabel}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Slider
                   value={octaveShift}
                   onChange={(_, value) => onOctaveShiftChange(value as number)}
-                  min={-3}
-                  max={3}
-                  step={1}
-                  marks={[
-                    { value: -3, label: '-3' },
-                    { value: 0, label: '0' },
-                    { value: 3, label: '+3' },
-                  ]}
+                  min={OCTAVE_SHIFT_RANGE.min}
+                  max={OCTAVE_SHIFT_RANGE.max}
+                  step={OCTAVE_SHIFT_RANGE.step}
+                  marks={OCTAVE_SHIFT_MARKS}
                   valueLabelDisplay="auto"
                   aria-label="Octave shift"
                   sx={{ flex: 1 }}
@@ -259,14 +210,13 @@ export default function PlaybackSettingsButton({
                 color="text.secondary"
                 sx={{ mt: 0.5, display: 'block' }}
               >
-                Transposes all notes by octaves. Positive values shift higher, negative values shift
-                lower.
+                {PLAYBACK_SETTINGS_COPY.octaveShiftHelp}
               </Typography>
             </Box>
 
             <Box>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Inversion lock
+                {PLAYBACK_SETTINGS_COPY.inversionLockLabel}
               </Typography>
               <ToggleButtonGroup
                 size="small"
@@ -281,32 +231,28 @@ export default function PlaybackSettingsButton({
                 aria-label="Inversion register"
                 fullWidth
               >
-                <ToggleButton value="off" aria-label="Off">
-                  Off
-                </ToggleButton>
-                <ToggleButton value="low" aria-label="Low register (C2–B3)">
-                  Low
-                </ToggleButton>
-                <ToggleButton value="mid" aria-label="Mid register (C3–B4)">
-                  Mid
-                </ToggleButton>
-                <ToggleButton value="high" aria-label="High register (C4–B5)">
-                  High
-                </ToggleButton>
+                {INVERSION_OPTIONS.map((option) => (
+                  <ToggleButton
+                    key={option.value}
+                    value={option.value}
+                    aria-label={option.ariaLabel}
+                  >
+                    {option.label}
+                  </ToggleButton>
+                ))}
               </ToggleButtonGroup>
               <Typography
                 variant="caption"
                 color="text.secondary"
                 sx={{ mt: 0.5, display: 'block' }}
               >
-                Shifts chord notes to stay in the chosen register using nearest-octave voice
-                leading.
+                {PLAYBACK_SETTINGS_COPY.inversionLockHelp}
               </Typography>
             </Box>
 
             <Box>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Playback style
+                {PLAYBACK_SETTINGS_COPY.playbackStyleLabel}
               </Typography>
               <ToggleButtonGroup
                 size="small"
@@ -321,18 +267,21 @@ export default function PlaybackSettingsButton({
                 aria-label="Playback style"
                 fullWidth
               >
-                <ToggleButton value="strum" aria-label="Strum playback">
-                  Strum
-                </ToggleButton>
-                <ToggleButton value="block" aria-label="Block playback">
-                  Block
-                </ToggleButton>
+                {PLAYBACK_STYLE_OPTIONS.map((option) => (
+                  <ToggleButton
+                    key={option.value}
+                    value={option.value}
+                    aria-label={option.ariaLabel}
+                  >
+                    {option.label}
+                  </ToggleButton>
+                ))}
               </ToggleButtonGroup>
             </Box>
 
             <Box>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Tempo
+                {PLAYBACK_SETTINGS_COPY.tempoLabel}
               </Typography>
               <Stack spacing={1.25}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -340,10 +289,10 @@ export default function PlaybackSettingsButton({
                     size="small"
                     value={tempoBpm}
                     onChange={(_, value) => onTempoBpmChange(value as number)}
-                    min={40}
-                    max={240}
-                    step={1}
-                    aria-label="Tempo in BPM"
+                    min={TEMPO_RANGE.min}
+                    max={TEMPO_RANGE.max}
+                    step={TEMPO_RANGE.step}
+                    aria-label={PLAYBACK_SETTINGS_COPY.tempoAriaLabel}
                     sx={{ flex: 1 }}
                   />
                   <Typography
@@ -366,7 +315,7 @@ export default function PlaybackSettingsButton({
               <Card variant="outlined">
                 <CardContent>
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                    Envelope
+                    {PLAYBACK_SETTINGS_COPY.envelopeLabel}
                   </Typography>
                   <EnvelopeControls
                     attack={attack}
@@ -377,21 +326,16 @@ export default function PlaybackSettingsButton({
                   />
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                      Gate:{' '}
-                      {gate === 0
-                        ? 'staccato'
-                        : gate === 1
-                          ? 'sustained'
-                          : `${Math.round(gate * 100)}%`}
+                      {PLAYBACK_SETTINGS_COPY.gateLabel}: {formatGateLabel(gate)}
                     </Typography>
                     <Slider
                       size="small"
                       value={gate}
                       onChange={(_, value) => onGateChange(value as number)}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      aria-label="Gate (note length)"
+                      min={GATE_RANGE.min}
+                      max={GATE_RANGE.max}
+                      step={GATE_RANGE.step}
+                      aria-label={PLAYBACK_SETTINGS_COPY.gateAriaLabel}
                     />
                   </Box>
                 </CardContent>
@@ -400,52 +344,29 @@ export default function PlaybackSettingsButton({
               <Card variant="outlined">
                 <CardContent>
                   <Stack spacing={2}>
-                    <Typography variant="subtitle2">Pads</Typography>
+                    <Typography variant="subtitle2">{PLAYBACK_SETTINGS_COPY.padsLabel}</Typography>
 
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                        Velocity: {Math.round(padVelocity)}
-                      </Typography>
-                      <Slider
-                        size="small"
-                        value={padVelocity}
-                        onChange={(_, value) => onPadVelocityChange(value as number)}
-                        min={20}
-                        max={127}
-                        step={1}
-                        aria-label="Pad velocity"
-                      />
-                    </Box>
-
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                        Humanize: {Math.round(humanize * 100)}%
-                      </Typography>
-                      <Slider
-                        size="small"
-                        value={humanize}
-                        onChange={(_, value) => onHumanizeChange(value as number)}
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        aria-label="Humanize amount"
-                      />
-                    </Box>
-
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                        Swing: {padSwing}%
-                      </Typography>
-                      <Slider
-                        size="small"
-                        value={padSwing}
-                        onChange={(_, value) => onPadSwingChange(value as number)}
-                        min={0}
-                        max={100}
-                        step={1}
-                        aria-label="Pad swing"
-                      />
-                    </Box>
+                    {padSliderConfigs.map((slider) => (
+                      <Box key={slider.key}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                          mb={0.5}
+                        >
+                          {slider.label}: {slider.valueText}
+                        </Typography>
+                        <Slider
+                          size="small"
+                          value={slider.value}
+                          onChange={(_, value) => slider.onChange(value as number)}
+                          min={slider.min}
+                          max={slider.max}
+                          step={slider.step}
+                          aria-label={slider.ariaLabel}
+                        />
+                      </Box>
+                    ))}
 
                     <FormControlLabel
                       control={
@@ -454,7 +375,7 @@ export default function PlaybackSettingsButton({
                           onChange={(event) => onPadLatchModeChange(event.target.checked)}
                         />
                       }
-                      label="Latch mode"
+                      label={PLAYBACK_SETTINGS_COPY.latchModeLabel}
                     />
                   </Stack>
                 </CardContent>
@@ -463,7 +384,7 @@ export default function PlaybackSettingsButton({
 
             <Box>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Effects
+                {PLAYBACK_SETTINGS_COPY.effectsLabel}
               </Typography>
               <Box
                 sx={{
@@ -472,264 +393,43 @@ export default function PlaybackSettingsButton({
                   gap: 1.5,
                 }}
               >
-                <EffectSettingsCard
-                  title="Reverb"
-                  enabled={reverbEnabled}
-                  onEnabledChange={onReverbEnabledChange}
-                  level={reverb}
-                  onLevelChange={onReverbChange}
-                  levelAriaLabel="Reverb level"
-                  advancedOpen={reverbAdvancedOpen}
-                  onAdvancedToggle={() => setReverbAdvancedOpen((prev) => !prev)}
-                >
-                  <Box>
-                    <EffectParamSlider
-                      label="Room size"
-                      valueText={`${Math.round(roomSize * 100)}%`}
-                      value={roomSize}
-                      onChange={onRoomSizeChange}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      ariaLabel="Reverb room size"
-                      disabled={!reverbEnabled}
-                    />
-                  </Box>
-                </EffectSettingsCard>
-
-                <EffectSettingsCard
-                  title="Chorus"
-                  enabled={chorusEnabled}
-                  onEnabledChange={onChorusEnabledChange}
-                  level={chorus}
-                  onLevelChange={onChorusChange}
-                  levelAriaLabel="Chorus level"
-                  advancedOpen={chorusAdvancedOpen}
-                  onAdvancedToggle={() => setChorusAdvancedOpen((prev) => !prev)}
-                >
-                  <>
-                    <Box>
-                      <EffectParamSlider
-                        label="Rate"
-                        valueText={`${chorusRate.toFixed(1)} Hz`}
-                        value={chorusRate}
-                        onChange={onChorusRateChange}
-                        min={0.1}
-                        max={8}
-                        step={0.1}
-                        ariaLabel="Chorus rate"
-                        disabled={!chorusEnabled}
-                      />
-                    </Box>
-                    <Box>
-                      <EffectParamSlider
-                        label="Depth"
-                        valueText={`${Math.round(chorusDepth * 100)}%`}
-                        value={chorusDepth}
-                        onChange={onChorusDepthChange}
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        ariaLabel="Chorus depth"
-                        disabled={!chorusEnabled}
-                      />
-                    </Box>
-                    <Box>
-                      <EffectParamSlider
-                        label="Delay time"
-                        valueText={`${chorusDelayTime.toFixed(1)} ms`}
-                        value={chorusDelayTime}
-                        onChange={onChorusDelayTimeChange}
-                        min={0.1}
-                        max={20}
-                        step={0.1}
-                        ariaLabel="Chorus delay time"
-                        disabled={!chorusEnabled}
-                      />
-                    </Box>
-                  </>
-                </EffectSettingsCard>
-
-                <EffectSettingsCard
-                  title="Tremolo"
-                  enabled={tremoloEnabled}
-                  onEnabledChange={onTremoloEnabledChange}
-                  level={tremolo}
-                  onLevelChange={onTremoloChange}
-                  levelAriaLabel="Tremolo level"
-                  advancedOpen={tremoloAdvancedOpen}
-                  onAdvancedToggle={() => setTremoloAdvancedOpen((prev) => !prev)}
-                >
-                  <>
-                    <Box>
-                      <EffectParamSlider
-                        label="Rate"
-                        valueText={`${tremoloFrequency.toFixed(1)} Hz`}
-                        value={tremoloFrequency}
-                        onChange={onTremoloFrequencyChange}
-                        min={0.1}
-                        max={20}
-                        step={0.1}
-                        ariaLabel="Tremolo rate"
-                        disabled={!tremoloEnabled}
-                      />
-                    </Box>
-                    <Box>
-                      <EffectParamSlider
-                        label="Depth"
-                        valueText={`${Math.round(tremoloDepth * 100)}%`}
-                        value={tremoloDepth}
-                        onChange={onTremoloDepthChange}
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        ariaLabel="Tremolo depth"
-                        disabled={!tremoloEnabled}
-                      />
-                    </Box>
-                  </>
-                </EffectSettingsCard>
-
-                <EffectSettingsCard
-                  title="Feedback delay"
-                  enabled={feedbackDelayEnabled}
-                  onEnabledChange={onFeedbackDelayEnabledChange}
-                  level={feedbackDelay}
-                  onLevelChange={onFeedbackDelayChange}
-                  levelAriaLabel="Feedback delay level"
-                  advancedOpen={feedbackDelayAdvancedOpen}
-                  onAdvancedToggle={() => setFeedbackDelayAdvancedOpen((prev) => !prev)}
-                >
-                  <>
-                    <Box>
-                      <EffectParamSlider
-                        label="Delay time"
-                        valueText={`${feedbackDelayTime.toFixed(2)} s`}
-                        value={feedbackDelayTime}
-                        onChange={onFeedbackDelayTimeChange}
-                        min={0.01}
-                        max={1.5}
-                        step={0.01}
-                        ariaLabel="Feedback delay time"
-                        disabled={!feedbackDelayEnabled}
-                      />
-                    </Box>
-                    <Box>
-                      <EffectParamSlider
-                        label="Feedback"
-                        valueText={`${Math.round(feedbackDelayFeedback * 100)}%`}
-                        value={feedbackDelayFeedback}
-                        onChange={onFeedbackDelayFeedbackChange}
-                        min={0}
-                        max={0.95}
-                        step={0.01}
-                        ariaLabel="Feedback delay feedback"
-                        disabled={!feedbackDelayEnabled}
-                      />
-                    </Box>
-                  </>
-                </EffectSettingsCard>
-
-                <EffectSettingsCard
-                  title="Vibrato"
-                  enabled={vibratoEnabled}
-                  onEnabledChange={onVibratoEnabledChange}
-                  level={vibrato}
-                  onLevelChange={onVibratoChange}
-                  levelAriaLabel="Vibrato level"
-                  advancedOpen={vibratoAdvancedOpen}
-                  onAdvancedToggle={() => setVibratoAdvancedOpen((prev) => !prev)}
-                >
-                  <>
-                    <Box>
-                      <EffectParamSlider
-                        label="Frequency"
-                        valueText={`${vibratoFrequency.toFixed(1)} Hz`}
-                        value={vibratoFrequency}
-                        onChange={onVibratoFrequencyChange}
-                        min={0.1}
-                        max={12}
-                        step={0.1}
-                        ariaLabel="Vibrato frequency"
-                        disabled={!vibratoEnabled}
-                      />
-                    </Box>
-                    <Box>
-                      <EffectParamSlider
-                        label="Depth"
-                        valueText={`${Math.round(vibratoDepth * 100)}%`}
-                        value={vibratoDepth}
-                        onChange={onVibratoDepthChange}
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        ariaLabel="Vibrato depth"
-                        disabled={!vibratoEnabled}
-                      />
-                    </Box>
-                  </>
-                </EffectSettingsCard>
-
-                <EffectSettingsCard
-                  title="Phaser"
-                  enabled={phaserEnabled}
-                  onEnabledChange={onPhaserEnabledChange}
-                  level={phaser}
-                  onLevelChange={onPhaserChange}
-                  levelAriaLabel="Phaser level"
-                  advancedOpen={phaserAdvancedOpen}
-                  onAdvancedToggle={() => setPhaserAdvancedOpen((prev) => !prev)}
-                >
-                  <>
-                    <Box>
-                      <EffectParamSlider
-                        label="Frequency"
-                        valueText={`${phaserFrequency.toFixed(1)} Hz`}
-                        value={phaserFrequency}
-                        onChange={onPhaserFrequencyChange}
-                        min={0.1}
-                        max={8}
-                        step={0.1}
-                        ariaLabel="Phaser frequency"
-                        disabled={!phaserEnabled}
-                      />
-                    </Box>
-                    <Box>
-                      <EffectParamSlider
-                        label="Octaves"
-                        valueText={phaserOctaves.toFixed(1)}
-                        value={phaserOctaves}
-                        onChange={onPhaserOctavesChange}
-                        min={0.1}
-                        max={6}
-                        step={0.1}
-                        ariaLabel="Phaser octaves"
-                        disabled={!phaserEnabled}
-                      />
-                    </Box>
-                    <Box>
-                      <EffectParamSlider
-                        label="Q"
-                        valueText={phaserQ.toFixed(1)}
-                        value={phaserQ}
-                        onChange={onPhaserQChange}
-                        min={0.1}
-                        max={20}
-                        step={0.1}
-                        ariaLabel="Phaser Q"
-                        disabled={!phaserEnabled}
-                      />
-                    </Box>
-                  </>
-                </EffectSettingsCard>
+                {effectConfigs.map((effect) => (
+                  <EffectSettingsCard
+                    key={effect.id}
+                    title={effect.title}
+                    enabled={effect.enabled}
+                    onEnabledChange={effect.onEnabledChange}
+                    level={effect.level}
+                    onLevelChange={effect.onLevelChange}
+                    levelAriaLabel={effect.levelAriaLabel}
+                    advancedOpen={advancedOpenByEffect[effect.id]}
+                    onAdvancedToggle={() => toggleAdvanced(effect.id)}
+                  >
+                    {effect.sliders.map((slider) => (
+                      <Box key={`${effect.id}-${slider.label}`}>
+                        <EffectParamSlider
+                          label={slider.label}
+                          valueText={slider.valueText}
+                          value={slider.value}
+                          onChange={slider.onChange}
+                          min={slider.min}
+                          max={slider.max}
+                          step={slider.step}
+                          ariaLabel={slider.ariaLabel}
+                          disabled={!effect.enabled}
+                        />
+                      </Box>
+                    ))}
+                  </EffectSettingsCard>
+                ))}
               </Box>
             </Box>
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeDialog}>Close</Button>
+          <Button onClick={closeDialog}>{PLAYBACK_SETTINGS_COPY.closeButtonLabel}</Button>
           <Button variant="contained" onClick={previewSound} disabled={!canPreview}>
-            Test sound
+            {PLAYBACK_SETTINGS_COPY.testSoundButtonLabel}
           </Button>
         </DialogActions>
       </Dialog>
