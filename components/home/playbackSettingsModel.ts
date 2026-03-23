@@ -74,7 +74,7 @@ export const PLAYBACK_SETTINGS_DEFAULTS: PlaybackSettings = {
   humanize: 0,
   gate: 1,
   inversionRegister: 'off',
-  instrument: 'piano',
+  instrument: 'rhodes',
   octaveShift: 0,
   reverbEnabled: false,
   reverb: 0,
@@ -135,7 +135,7 @@ export const sanitizePlaybackSettings = (input?: Partial<PlaybackSettings>): Pla
     inversionRegister: INVERSION_REGISTER_OPTIONS.includes(raw.inversionRegister)
       ? raw.inversionRegister
       : 'off',
-    instrument: INSTRUMENT_OPTIONS.includes(raw.instrument) ? raw.instrument : 'piano',
+    instrument: INSTRUMENT_OPTIONS.includes(raw.instrument) ? raw.instrument : 'rhodes',
     octaveShift: Math.round(clamp(raw.octaveShift, -3, 3)),
     reverbEnabled: Boolean(raw.reverbEnabled),
     reverb: clamp(raw.reverb, 0, 1),
