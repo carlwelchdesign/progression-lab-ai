@@ -1,0 +1,251 @@
+import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
+
+export type PlaybackSettings = {
+  playbackStyle: PlaybackStyle;
+  attack: number;
+  decay: number;
+  padVelocity: number;
+  padSwing: number;
+  padLatchMode: boolean;
+  humanize: number;
+  gate: number;
+  inversionRegister: PlaybackRegister;
+  instrument: AudioInstrument;
+  octaveShift: number;
+  reverbEnabled: boolean;
+  reverb: number;
+  chorusEnabled: boolean;
+  chorus: number;
+  chorusRate: number;
+  chorusDepth: number;
+  chorusDelayTime: number;
+  feedbackDelayEnabled: boolean;
+  feedbackDelay: number;
+  feedbackDelayTime: number;
+  feedbackDelayFeedback: number;
+  tremoloEnabled: boolean;
+  tremolo: number;
+  tremoloFrequency: number;
+  tremoloDepth: number;
+  vibratoEnabled: boolean;
+  vibrato: number;
+  vibratoFrequency: number;
+  vibratoDepth: number;
+  phaserEnabled: boolean;
+  phaser: number;
+  phaserFrequency: number;
+  phaserOctaves: number;
+  phaserQ: number;
+  roomSize: number;
+};
+
+export type PlaybackSettingsChangeHandlers = {
+  onPlaybackStyleChange: (value: PlaybackStyle) => void;
+  onAttackChange: (value: number) => void;
+  onDecayChange: (value: number) => void;
+  onPadVelocityChange: (value: number) => void;
+  onPadSwingChange: (value: number) => void;
+  onPadLatchModeChange: (value: boolean) => void;
+  onHumanizeChange: (value: number) => void;
+  onGateChange: (value: number) => void;
+  onInversionRegisterChange: (value: PlaybackRegister) => void;
+  onInstrumentChange: (value: AudioInstrument) => void;
+  onOctaveShiftChange: (value: number) => void;
+  onReverbChange: (value: number) => void;
+  onReverbEnabledChange: (value: boolean) => void;
+  onChorusChange: (value: number) => void;
+  onChorusEnabledChange: (value: boolean) => void;
+  onChorusRateChange: (value: number) => void;
+  onChorusDepthChange: (value: number) => void;
+  onChorusDelayTimeChange: (value: number) => void;
+  onFeedbackDelayEnabledChange: (value: boolean) => void;
+  onFeedbackDelayChange: (value: number) => void;
+  onFeedbackDelayTimeChange: (value: number) => void;
+  onFeedbackDelayFeedbackChange: (value: number) => void;
+  onTremoloEnabledChange: (value: boolean) => void;
+  onTremoloChange: (value: number) => void;
+  onTremoloFrequencyChange: (value: number) => void;
+  onTremoloDepthChange: (value: number) => void;
+  onVibratoEnabledChange: (value: boolean) => void;
+  onVibratoChange: (value: number) => void;
+  onVibratoFrequencyChange: (value: number) => void;
+  onVibratoDepthChange: (value: number) => void;
+  onPhaserEnabledChange: (value: boolean) => void;
+  onPhaserChange: (value: number) => void;
+  onPhaserFrequencyChange: (value: number) => void;
+  onPhaserOctavesChange: (value: number) => void;
+  onPhaserQChange: (value: number) => void;
+  onRoomSizeChange: (value: number) => void;
+};
+
+export type PlaybackSettingsSetters = {
+  setPlaybackStyle: (value: PlaybackStyle) => void;
+  setAttack: (value: number) => void;
+  setDecay: (value: number) => void;
+  setPadVelocity: (value: number) => void;
+  setPadSwing: (value: number) => void;
+  setPadLatchMode: (value: boolean) => void;
+  setHumanize: (value: number) => void;
+  setGate: (value: number) => void;
+  setInversionRegister: (value: PlaybackRegister) => void;
+  setInstrument: (value: AudioInstrument) => void;
+  setOctaveShift: (value: number) => void;
+  setReverbEnabled: (value: boolean) => void;
+  setReverb: (value: number) => void;
+  setChorusEnabled: (value: boolean) => void;
+  setChorus: (value: number) => void;
+  setChorusRate: (value: number) => void;
+  setChorusDepth: (value: number) => void;
+  setChorusDelayTime: (value: number) => void;
+  setFeedbackDelayEnabled: (value: boolean) => void;
+  setFeedbackDelay: (value: number) => void;
+  setFeedbackDelayTime: (value: number) => void;
+  setFeedbackDelayFeedback: (value: number) => void;
+  setTremoloEnabled: (value: boolean) => void;
+  setTremolo: (value: number) => void;
+  setTremoloFrequency: (value: number) => void;
+  setTremoloDepth: (value: number) => void;
+  setVibratoEnabled: (value: boolean) => void;
+  setVibrato: (value: number) => void;
+  setVibratoFrequency: (value: number) => void;
+  setVibratoDepth: (value: number) => void;
+  setPhaserEnabled: (value: boolean) => void;
+  setPhaser: (value: number) => void;
+  setPhaserFrequency: (value: number) => void;
+  setPhaserOctaves: (value: number) => void;
+  setPhaserQ: (value: number) => void;
+  setRoomSize: (value: number) => void;
+};
+
+export const PLAYBACK_SETTINGS_DEFAULTS: PlaybackSettings = {
+  playbackStyle: 'strum',
+  attack: 0.01,
+  decay: 0.5,
+  padVelocity: 96,
+  padSwing: 0,
+  padLatchMode: false,
+  humanize: 0,
+  gate: 1,
+  inversionRegister: 'off',
+  instrument: 'piano',
+  octaveShift: 0,
+  reverbEnabled: false,
+  reverb: 0,
+  chorusEnabled: false,
+  chorus: 0,
+  chorusRate: 1.5,
+  chorusDepth: 0.7,
+  chorusDelayTime: 3.5,
+  feedbackDelayEnabled: false,
+  feedbackDelay: 0,
+  feedbackDelayTime: 0.25,
+  feedbackDelayFeedback: 0.35,
+  tremoloEnabled: false,
+  tremolo: 0,
+  tremoloFrequency: 9,
+  tremoloDepth: 0.5,
+  vibratoEnabled: false,
+  vibrato: 0,
+  vibratoFrequency: 5,
+  vibratoDepth: 0.1,
+  phaserEnabled: false,
+  phaser: 0,
+  phaserFrequency: 0.5,
+  phaserOctaves: 3,
+  phaserQ: 10,
+  roomSize: 0.25,
+};
+
+const PLAYBACK_STYLE_OPTIONS: PlaybackStyle[] = ['strum', 'block'];
+const INVERSION_REGISTER_OPTIONS: PlaybackRegister[] = ['off', 'low', 'mid', 'high'];
+const INSTRUMENT_OPTIONS: AudioInstrument[] = ['piano', 'rhodes'];
+
+const clamp = (value: number, min: number, max: number): number =>
+  Math.min(max, Math.max(min, value));
+
+export const sanitizePlaybackSettings = (input?: Partial<PlaybackSettings>): PlaybackSettings => {
+  const raw = { ...PLAYBACK_SETTINGS_DEFAULTS, ...(input ?? {}) };
+
+  return {
+    playbackStyle: PLAYBACK_STYLE_OPTIONS.includes(raw.playbackStyle) ? raw.playbackStyle : 'strum',
+    attack: clamp(raw.attack, 0, 1),
+    decay: clamp(raw.decay, 0, 2),
+    padVelocity: Math.round(clamp(raw.padVelocity, 20, 127)),
+    padSwing: Math.round(clamp(raw.padSwing, 0, 100)),
+    padLatchMode: Boolean(raw.padLatchMode),
+    humanize: clamp(raw.humanize, 0, 1),
+    gate: clamp(raw.gate, 0, 1),
+    inversionRegister: INVERSION_REGISTER_OPTIONS.includes(raw.inversionRegister)
+      ? raw.inversionRegister
+      : 'off',
+    instrument: INSTRUMENT_OPTIONS.includes(raw.instrument) ? raw.instrument : 'piano',
+    octaveShift: Math.round(clamp(raw.octaveShift, -3, 3)),
+    reverbEnabled: Boolean(raw.reverbEnabled),
+    reverb: clamp(raw.reverb, 0, 1),
+    chorusEnabled: Boolean(raw.chorusEnabled),
+    chorus: clamp(raw.chorus, 0, 1),
+    chorusRate: clamp(raw.chorusRate, 0.1, 8),
+    chorusDepth: clamp(raw.chorusDepth, 0, 1),
+    chorusDelayTime: clamp(raw.chorusDelayTime, 0.1, 20),
+    feedbackDelayEnabled: Boolean(raw.feedbackDelayEnabled),
+    feedbackDelay: clamp(raw.feedbackDelay, 0, 1),
+    feedbackDelayTime: clamp(raw.feedbackDelayTime, 0.01, 1.5),
+    feedbackDelayFeedback: clamp(raw.feedbackDelayFeedback, 0, 0.95),
+    tremoloEnabled: Boolean(raw.tremoloEnabled),
+    tremolo: clamp(raw.tremolo, 0, 1),
+    tremoloFrequency: clamp(raw.tremoloFrequency, 0.1, 20),
+    tremoloDepth: clamp(raw.tremoloDepth, 0, 1),
+    vibratoEnabled: Boolean(raw.vibratoEnabled),
+    vibrato: clamp(raw.vibrato, 0, 1),
+    vibratoFrequency: clamp(raw.vibratoFrequency, 0.1, 12),
+    vibratoDepth: clamp(raw.vibratoDepth, 0, 1),
+    phaserEnabled: Boolean(raw.phaserEnabled),
+    phaser: clamp(raw.phaser, 0, 1),
+    phaserFrequency: clamp(raw.phaserFrequency, 0.1, 8),
+    phaserOctaves: clamp(raw.phaserOctaves, 0.1, 6),
+    phaserQ: clamp(raw.phaserQ, 0.1, 20),
+    roomSize: clamp(raw.roomSize, 0, 1),
+  };
+};
+
+export const applyPlaybackSettings = (
+  setters: PlaybackSettingsSetters,
+  settings: PlaybackSettings,
+): void => {
+  setters.setPlaybackStyle(settings.playbackStyle);
+  setters.setAttack(settings.attack);
+  setters.setDecay(settings.decay);
+  setters.setPadVelocity(settings.padVelocity);
+  setters.setPadSwing(settings.padSwing);
+  setters.setPadLatchMode(settings.padLatchMode);
+  setters.setHumanize(settings.humanize);
+  setters.setGate(settings.gate);
+  setters.setInversionRegister(settings.inversionRegister);
+  setters.setInstrument(settings.instrument);
+  setters.setOctaveShift(settings.octaveShift);
+  setters.setReverbEnabled(settings.reverbEnabled);
+  setters.setReverb(settings.reverb);
+  setters.setChorusEnabled(settings.chorusEnabled);
+  setters.setChorus(settings.chorus);
+  setters.setChorusRate(settings.chorusRate);
+  setters.setChorusDepth(settings.chorusDepth);
+  setters.setChorusDelayTime(settings.chorusDelayTime);
+  setters.setFeedbackDelayEnabled(settings.feedbackDelayEnabled);
+  setters.setFeedbackDelay(settings.feedbackDelay);
+  setters.setFeedbackDelayTime(settings.feedbackDelayTime);
+  setters.setFeedbackDelayFeedback(settings.feedbackDelayFeedback);
+  setters.setTremoloEnabled(settings.tremoloEnabled);
+  setters.setTremolo(settings.tremolo);
+  setters.setTremoloFrequency(settings.tremoloFrequency);
+  setters.setTremoloDepth(settings.tremoloDepth);
+  setters.setVibratoEnabled(settings.vibratoEnabled);
+  setters.setVibrato(settings.vibrato);
+  setters.setVibratoFrequency(settings.vibratoFrequency);
+  setters.setVibratoDepth(settings.vibratoDepth);
+  setters.setPhaserEnabled(settings.phaserEnabled);
+  setters.setPhaser(settings.phaser);
+  setters.setPhaserFrequency(settings.phaserFrequency);
+  setters.setPhaserOctaves(settings.phaserOctaves);
+  setters.setPhaserQ(settings.phaserQ);
+  setters.setRoomSize(settings.roomSize);
+};

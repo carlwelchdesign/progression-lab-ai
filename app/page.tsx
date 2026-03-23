@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import GridViewIcon from '@mui/icons-material/GridView';
@@ -22,14 +22,16 @@ import GeneratorFormCard from '../components/home/GeneratorFormCard';
 import GeneratedChordGridDialog from '../components/home/GeneratedChordGridDialog';
 import GeneratorHeader from '../components/home/GeneratorHeader';
 import InstrumentToggle from '../components/home/InstrumentToggle';
-import NextChordSuggestionsSection from '../components/home/NextChordSuggestionsSection';
 import PlaybackSettingsButton from '../components/home/PlaybackSettingsButton';
-import ProgressionIdeasSection from '../components/home/ProgressionIdeasSection';
 import RestoringState from '../components/home/RestoringState';
-import StructureSuggestionsSection from '../components/home/StructureSuggestionsSection';
 import useGeneratorSessionCache from '../components/home/useGeneratorSessionCache';
+import {
+  type PlaybackSettings,
+  type PlaybackSettingsChangeHandlers,
+  type PlaybackSettingsSetters,
+  PLAYBACK_SETTINGS_DEFAULTS,
+} from '../components/home/playbackSettingsModel';
 import type { GeneratorFormData, ProgressionDiagramInstrument } from '../components/home/types';
-import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../lib/audio';
 import {
   setChorusDelayTime,
   setChorusDepth,
@@ -68,6 +70,20 @@ const RANDOM_MODE_OPTIONS = MODE_OPTIONS.filter((option) => option.value !== 'cu
 const RANDOM_GENRE_OPTIONS = GENRE_OPTIONS.filter((option) => option.value !== 'custom').map(
   (option) => option.value,
 );
+const NextChordSuggestionsSection = lazy(
+  () => import('../components/home/NextChordSuggestionsSection'),
+);
+const ProgressionIdeasSection = lazy(() => import('../components/home/ProgressionIdeasSection'));
+const StructureSuggestionsSection = lazy(
+  () => import('../components/home/StructureSuggestionsSection'),
+);
+const INITIAL_NEXT_SUGGESTIONS = 3;
+const INITIAL_PROGRESSION_IDEAS = 1;
+const INITIAL_STRUCTURE_SUGGESTIONS = 3;
+const NEXT_SUGGESTIONS_CHUNK_SIZE = 3;
+const PROGRESSION_IDEAS_CHUNK_SIZE = 1;
+const STRUCTURE_SUGGESTIONS_CHUNK_SIZE = 3;
+const PROGRESSIVE_REVEAL_DELAY_MS = 24;
 
 function getRandomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -112,14 +128,17 @@ export default function HomePage() {
   const customGenre = watch('customGenre');
   const tempoBpm = watch('tempoBpm');
 
-  const handleTempoBpmChange = (value: number) => {
-    const roundedValue = Number.isFinite(value) ? Math.round(value) : 100;
-    const normalizedValue = Math.min(240, Math.max(40, roundedValue));
-    setValue('tempoBpm', normalizedValue, {
-      shouldDirty: true,
-      shouldValidate: false,
-    });
-  };
+  const handleTempoBpmChange = useCallback(
+    (value: number) => {
+      const roundedValue = Number.isFinite(value) ? Math.round(value) : 100;
+      const normalizedValue = Math.min(240, Math.max(40, roundedValue));
+      setValue('tempoBpm', normalizedValue, {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
+    },
+    [setValue],
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -134,69 +153,271 @@ export default function HomePage() {
   const [selectedProgressionGenre, setSelectedProgressionGenre] = useState('');
   const [progressionDiagramInstrument, setProgressionDiagramInstrument] =
     useState<ProgressionDiagramInstrument>('piano');
-  const [playbackStyle, setPlaybackStyle] = useState<PlaybackStyle>('strum');
-  const [instrument, setInstrument] = useState<AudioInstrument>('piano');
-  const [attack, setAttack] = useState<number>(0.01);
-  const [decay, setDecay] = useState<number>(0.5);
-  const [padVelocity, setPadVelocity] = useState<number>(96);
-  const [padSwing, setPadSwing] = useState<number>(0);
-  const [padLatchMode, setPadLatchMode] = useState(false);
-  const [humanize, setHumanize] = useState<number>(0);
-  const [gate, setGate] = useState<number>(1);
-  const [inversionRegister, setInversionRegister] = useState<PlaybackRegister>('off');
-  const [octaveShift, setOctaveShift] = useState<number>(0);
-  const [reverbEnabled, setReverbEnabledState] = useState(false);
-  const [reverb, setReverb] = useState<number>(0);
-  const [chorusEnabled, setChorusEnabledState] = useState(false);
-  const [chorus, setChorus] = useState<number>(0);
-  const [chorusRate, setChorusRate] = useState<number>(1.5);
-  const [chorusDepth, setChorusDepthState] = useState<number>(0.7);
-  const [chorusDelayTime, setChorusDelayTimeState] = useState<number>(3.5);
-  const [feedbackDelayEnabled, setFeedbackDelayEnabledState] = useState(false);
-  const [feedbackDelay, setFeedbackDelay] = useState<number>(0);
-  const [feedbackDelayTime, setFeedbackDelayTimeState] = useState<number>(0.25);
-  const [feedbackDelayFeedback, setFeedbackDelayFeedbackState] = useState<number>(0.35);
-  const [tremoloEnabled, setTremoloEnabledState] = useState(false);
-  const [tremolo, setTremolo] = useState<number>(0);
-  const [tremoloFrequency, setTremoloFrequencyState] = useState<number>(9);
-  const [tremoloDepth, setTremoloDepthState] = useState<number>(0.5);
-  const [vibratoEnabled, setVibratoEnabledState] = useState(false);
-  const [vibrato, setVibrato] = useState<number>(0);
-  const [vibratoFrequency, setVibratoFrequencyState] = useState<number>(5);
-  const [vibratoDepth, setVibratoDepthState] = useState<number>(0.1);
-  const [phaserEnabled, setPhaserEnabledState] = useState(false);
-  const [phaser, setPhaser] = useState<number>(0);
-  const [phaserFrequency, setPhaserFrequencyState] = useState<number>(0.5);
-  const [phaserOctaves, setPhaserOctavesState] = useState<number>(3);
-  const [phaserQ, setPhaserQState] = useState<number>(10);
-  const [roomSize, setRoomSize] = useState<number>(0.25);
+  const [playbackStyle, setPlaybackStyle] = useState(PLAYBACK_SETTINGS_DEFAULTS.playbackStyle);
+  const [instrument, setInstrument] = useState(PLAYBACK_SETTINGS_DEFAULTS.instrument);
+  const [attack, setAttack] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.attack);
+  const [decay, setDecay] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.decay);
+  const [padVelocity, setPadVelocity] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.padVelocity);
+  const [padSwing, setPadSwing] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.padSwing);
+  const [padLatchMode, setPadLatchMode] = useState(PLAYBACK_SETTINGS_DEFAULTS.padLatchMode);
+  const [humanize, setHumanize] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.humanize);
+  const [gate, setGate] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.gate);
+  const [inversionRegister, setInversionRegister] = useState(
+    PLAYBACK_SETTINGS_DEFAULTS.inversionRegister,
+  );
+  const [octaveShift, setOctaveShift] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.octaveShift);
+  const [reverbEnabled, setReverbEnabledState] = useState(PLAYBACK_SETTINGS_DEFAULTS.reverbEnabled);
+  const [reverb, setReverb] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.reverb);
+  const [chorusEnabled, setChorusEnabledState] = useState(PLAYBACK_SETTINGS_DEFAULTS.chorusEnabled);
+  const [chorus, setChorus] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.chorus);
+  const [chorusRate, setChorusRate] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.chorusRate);
+  const [chorusDepth, setChorusDepthState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.chorusDepth,
+  );
+  const [chorusDelayTime, setChorusDelayTimeState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.chorusDelayTime,
+  );
+  const [feedbackDelayEnabled, setFeedbackDelayEnabledState] = useState(
+    PLAYBACK_SETTINGS_DEFAULTS.feedbackDelayEnabled,
+  );
+  const [feedbackDelay, setFeedbackDelay] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.feedbackDelay,
+  );
+  const [feedbackDelayTime, setFeedbackDelayTimeState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.feedbackDelayTime,
+  );
+  const [feedbackDelayFeedback, setFeedbackDelayFeedbackState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.feedbackDelayFeedback,
+  );
+  const [tremoloEnabled, setTremoloEnabledState] = useState(
+    PLAYBACK_SETTINGS_DEFAULTS.tremoloEnabled,
+  );
+  const [tremolo, setTremolo] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.tremolo);
+  const [tremoloFrequency, setTremoloFrequencyState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.tremoloFrequency,
+  );
+  const [tremoloDepth, setTremoloDepthState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.tremoloDepth,
+  );
+  const [vibratoEnabled, setVibratoEnabledState] = useState(
+    PLAYBACK_SETTINGS_DEFAULTS.vibratoEnabled,
+  );
+  const [vibrato, setVibrato] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.vibrato);
+  const [vibratoFrequency, setVibratoFrequencyState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.vibratoFrequency,
+  );
+  const [vibratoDepth, setVibratoDepthState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.vibratoDepth,
+  );
+  const [phaserEnabled, setPhaserEnabledState] = useState(PLAYBACK_SETTINGS_DEFAULTS.phaserEnabled);
+  const [phaser, setPhaser] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.phaser);
+  const [phaserFrequency, setPhaserFrequencyState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.phaserFrequency,
+  );
+  const [phaserOctaves, setPhaserOctavesState] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.phaserOctaves,
+  );
+  const [phaserQ, setPhaserQState] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.phaserQ);
+  const [roomSize, setRoomSize] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.roomSize);
 
-  const handleReverbChange = (value: number) => {
+  const handleReverbChange = useCallback((value: number) => {
     setReverb(value);
     setReverbWet(value);
-  };
+  }, []);
 
-  const handleRoomSizeChange = (value: number) => {
+  const handleRoomSizeChange = useCallback((value: number) => {
     const normalizedValue = Math.min(1, Math.max(0, value));
     setRoomSize(normalizedValue);
     setReverbRoomSize(normalizedValue);
-  };
+  }, []);
 
-  const handleChorusChange = (value: number) => {
+  const handleChorusChange = useCallback((value: number) => {
     const normalizedValue = Math.min(1, Math.max(0, value));
     setChorus(normalizedValue);
     setChorusWet(normalizedValue);
-  };
+  }, []);
 
-  const handleFeedbackDelayChange = (value: number) => {
+  const handleFeedbackDelayChange = useCallback((value: number) => {
     const normalizedValue = Math.min(1, Math.max(0, value));
     setFeedbackDelay(normalizedValue);
     setFeedbackDelayWet(normalizedValue);
-  };
+  }, []);
 
-  const handleEffectToggle = (setState: (value: boolean) => void) => (value: boolean) => {
-    setState(value);
-  };
+  const handleEffectToggle = useCallback(
+    (setState: (value: boolean) => void) => (value: boolean) => {
+      setState(value);
+    },
+    [],
+  );
+
+  const playbackSettings: PlaybackSettings = useMemo(
+    () => ({
+      playbackStyle,
+      attack,
+      decay,
+      padVelocity,
+      padSwing,
+      padLatchMode,
+      humanize,
+      gate,
+      inversionRegister,
+      instrument,
+      octaveShift,
+      reverbEnabled,
+      reverb,
+      chorusEnabled,
+      chorus,
+      chorusRate,
+      chorusDepth,
+      chorusDelayTime,
+      feedbackDelayEnabled,
+      feedbackDelay,
+      feedbackDelayTime,
+      feedbackDelayFeedback,
+      tremoloEnabled,
+      tremolo,
+      tremoloFrequency,
+      tremoloDepth,
+      vibratoEnabled,
+      vibrato,
+      vibratoFrequency,
+      vibratoDepth,
+      phaserEnabled,
+      phaser,
+      phaserFrequency,
+      phaserOctaves,
+      phaserQ,
+      roomSize,
+    }),
+    [
+      playbackStyle,
+      attack,
+      decay,
+      padVelocity,
+      padSwing,
+      padLatchMode,
+      humanize,
+      gate,
+      inversionRegister,
+      instrument,
+      octaveShift,
+      reverbEnabled,
+      reverb,
+      chorusEnabled,
+      chorus,
+      chorusRate,
+      chorusDepth,
+      chorusDelayTime,
+      feedbackDelayEnabled,
+      feedbackDelay,
+      feedbackDelayTime,
+      feedbackDelayFeedback,
+      tremoloEnabled,
+      tremolo,
+      tremoloFrequency,
+      tremoloDepth,
+      vibratoEnabled,
+      vibrato,
+      vibratoFrequency,
+      vibratoDepth,
+      phaserEnabled,
+      phaser,
+      phaserFrequency,
+      phaserOctaves,
+      phaserQ,
+      roomSize,
+    ],
+  );
+
+  const playbackSettingsChangeHandlers: PlaybackSettingsChangeHandlers = useMemo(
+    () => ({
+      onPlaybackStyleChange: setPlaybackStyle,
+      onAttackChange: setAttack,
+      onDecayChange: setDecay,
+      onPadVelocityChange: setPadVelocity,
+      onPadSwingChange: setPadSwing,
+      onPadLatchModeChange: setPadLatchMode,
+      onHumanizeChange: setHumanize,
+      onGateChange: setGate,
+      onInversionRegisterChange: setInversionRegister,
+      onInstrumentChange: setInstrument,
+      onOctaveShiftChange: setOctaveShift,
+      onReverbChange: handleReverbChange,
+      onReverbEnabledChange: handleEffectToggle(setReverbEnabledState),
+      onChorusChange: handleChorusChange,
+      onChorusEnabledChange: handleEffectToggle(setChorusEnabledState),
+      onChorusRateChange: setChorusRate,
+      onChorusDepthChange: setChorusDepthState,
+      onChorusDelayTimeChange: setChorusDelayTimeState,
+      onFeedbackDelayEnabledChange: handleEffectToggle(setFeedbackDelayEnabledState),
+      onFeedbackDelayChange: handleFeedbackDelayChange,
+      onFeedbackDelayTimeChange: setFeedbackDelayTimeState,
+      onFeedbackDelayFeedbackChange: setFeedbackDelayFeedbackState,
+      onTremoloEnabledChange: handleEffectToggle(setTremoloEnabledState),
+      onTremoloChange: setTremolo,
+      onTremoloFrequencyChange: setTremoloFrequencyState,
+      onTremoloDepthChange: setTremoloDepthState,
+      onVibratoEnabledChange: handleEffectToggle(setVibratoEnabledState),
+      onVibratoChange: setVibrato,
+      onVibratoFrequencyChange: setVibratoFrequencyState,
+      onVibratoDepthChange: setVibratoDepthState,
+      onPhaserEnabledChange: handleEffectToggle(setPhaserEnabledState),
+      onPhaserChange: setPhaser,
+      onPhaserFrequencyChange: setPhaserFrequencyState,
+      onPhaserOctavesChange: setPhaserOctavesState,
+      onPhaserQChange: setPhaserQState,
+      onRoomSizeChange: handleRoomSizeChange,
+    }),
+    [
+      handleChorusChange,
+      handleEffectToggle,
+      handleFeedbackDelayChange,
+      handleReverbChange,
+      handleRoomSizeChange,
+    ],
+  );
+
+  const playbackSettingsSetters: PlaybackSettingsSetters = useMemo(
+    () => ({
+      setPlaybackStyle,
+      setAttack,
+      setDecay,
+      setPadVelocity,
+      setPadSwing,
+      setPadLatchMode,
+      setHumanize,
+      setGate,
+      setInversionRegister,
+      setInstrument,
+      setOctaveShift,
+      setReverbEnabled: setReverbEnabledState,
+      setReverb,
+      setChorusEnabled: setChorusEnabledState,
+      setChorus,
+      setChorusRate,
+      setChorusDepth: setChorusDepthState,
+      setChorusDelayTime: setChorusDelayTimeState,
+      setFeedbackDelayEnabled: setFeedbackDelayEnabledState,
+      setFeedbackDelay,
+      setFeedbackDelayTime: setFeedbackDelayTimeState,
+      setFeedbackDelayFeedback: setFeedbackDelayFeedbackState,
+      setTremoloEnabled: setTremoloEnabledState,
+      setTremolo,
+      setTremoloFrequency: setTremoloFrequencyState,
+      setTremoloDepth: setTremoloDepthState,
+      setVibratoEnabled: setVibratoEnabledState,
+      setVibrato,
+      setVibratoFrequency: setVibratoFrequencyState,
+      setVibratoDepth: setVibratoDepthState,
+      setPhaserEnabled: setPhaserEnabledState,
+      setPhaser,
+      setPhaserFrequency: setPhaserFrequencyState,
+      setPhaserOctaves: setPhaserOctavesState,
+      setPhaserQ: setPhaserQState,
+      setRoomSize,
+    }),
+    [],
+  );
 
   useEffect(() => {
     setReverbEnabled(reverbEnabled);
@@ -301,85 +522,19 @@ export default function HomePage() {
   const [isGeneratedChordGridOpen, setIsGeneratedChordGridOpen] = useState(false);
   const [successMessageOpen, setSuccessMessageOpen] = useState(false);
   const [isNextSectionExpanded, setIsNextSectionExpanded] = useState(true);
+  const [visibleNextSuggestionsCount, setVisibleNextSuggestionsCount] = useState(0);
+  const [visibleProgressionIdeasCount, setVisibleProgressionIdeasCount] = useState(0);
+  const [visibleStructureSuggestionsCount, setVisibleStructureSuggestionsCount] = useState(0);
   const autoRandomizedOnFirstLoad = useRef(false);
+  const progressiveRevealTimerRef = useRef<number | null>(null);
 
   const { isRestoringState, hasRestoredSessionData, cacheGeneratorResult } =
     useGeneratorSessionCache({
       reset,
       setData,
       setIsLoadedFromSavedProgression,
-      playbackStyle,
-      setPlaybackStyle,
-      attack,
-      setAttack,
-      decay,
-      setDecay,
-      padVelocity,
-      setPadVelocity,
-      padSwing,
-      setPadSwing,
-      padLatchMode,
-      setPadLatchMode,
-      humanize,
-      setHumanize,
-      gate,
-      setGate,
-      inversionRegister,
-      setInversionRegister,
-      instrument,
-      setInstrument,
-      octaveShift,
-      setOctaveShift,
-      reverbEnabled,
-      setReverbEnabled: setReverbEnabledState,
-      reverb,
-      setReverb,
-      chorusEnabled,
-      setChorusEnabled: setChorusEnabledState,
-      chorus,
-      setChorus,
-      chorusRate,
-      setChorusRate,
-      chorusDepth,
-      setChorusDepth: setChorusDepthState,
-      chorusDelayTime,
-      setChorusDelayTime: setChorusDelayTimeState,
-      feedbackDelayEnabled,
-      setFeedbackDelayEnabled: setFeedbackDelayEnabledState,
-      feedbackDelay,
-      setFeedbackDelay,
-      feedbackDelayTime,
-      setFeedbackDelayTime: setFeedbackDelayTimeState,
-      feedbackDelayFeedback,
-      setFeedbackDelayFeedback: setFeedbackDelayFeedbackState,
-      tremoloEnabled,
-      setTremoloEnabled: setTremoloEnabledState,
-      tremolo,
-      setTremolo,
-      tremoloFrequency,
-      setTremoloFrequency: setTremoloFrequencyState,
-      tremoloDepth,
-      setTremoloDepth: setTremoloDepthState,
-      vibratoEnabled,
-      setVibratoEnabled: setVibratoEnabledState,
-      vibrato,
-      setVibrato,
-      vibratoFrequency,
-      setVibratoFrequency: setVibratoFrequencyState,
-      vibratoDepth,
-      setVibratoDepth: setVibratoDepthState,
-      phaserEnabled,
-      setPhaserEnabled: setPhaserEnabledState,
-      phaser,
-      setPhaser,
-      phaserFrequency,
-      setPhaserFrequency: setPhaserFrequencyState,
-      phaserOctaves,
-      setPhaserOctaves: setPhaserOctavesState,
-      phaserQ,
-      setPhaserQ: setPhaserQState,
-      roomSize,
-      setRoomSize,
+      playbackSettings,
+      playbackSettingsSetters,
     });
 
   const generatedChordGridEntries = useMemo(() => {
@@ -447,6 +602,119 @@ export default function HomePage() {
 
     return entries;
   }, [data]);
+
+  useEffect(() => {
+    if (progressiveRevealTimerRef.current) {
+      window.clearTimeout(progressiveRevealTimerRef.current);
+      progressiveRevealTimerRef.current = null;
+    }
+
+    if (!data) {
+      setVisibleNextSuggestionsCount(0);
+      setVisibleProgressionIdeasCount(0);
+      setVisibleStructureSuggestionsCount(0);
+      return;
+    }
+
+    const totalNextSuggestions = data.nextChordSuggestions.length;
+    const totalProgressionIdeas = data.progressionIdeas.length;
+    const totalStructureSuggestions = data.structureSuggestions.length;
+
+    setVisibleNextSuggestionsCount(Math.min(INITIAL_NEXT_SUGGESTIONS, totalNextSuggestions));
+    setVisibleProgressionIdeasCount(Math.min(INITIAL_PROGRESSION_IDEAS, totalProgressionIdeas));
+    setVisibleStructureSuggestionsCount(
+      Math.min(INITIAL_STRUCTURE_SUGGESTIONS, totalStructureSuggestions),
+    );
+
+    const revealMore = () => {
+      let hasMoreToReveal = false;
+
+      setVisibleNextSuggestionsCount((previousCount) => {
+        const nextCount = Math.min(
+          previousCount + NEXT_SUGGESTIONS_CHUNK_SIZE,
+          totalNextSuggestions,
+        );
+        if (nextCount < totalNextSuggestions) {
+          hasMoreToReveal = true;
+        }
+        return nextCount;
+      });
+
+      setVisibleProgressionIdeasCount((previousCount) => {
+        const nextCount = Math.min(
+          previousCount + PROGRESSION_IDEAS_CHUNK_SIZE,
+          totalProgressionIdeas,
+        );
+        if (nextCount < totalProgressionIdeas) {
+          hasMoreToReveal = true;
+        }
+        return nextCount;
+      });
+
+      setVisibleStructureSuggestionsCount((previousCount) => {
+        const nextCount = Math.min(
+          previousCount + STRUCTURE_SUGGESTIONS_CHUNK_SIZE,
+          totalStructureSuggestions,
+        );
+        if (nextCount < totalStructureSuggestions) {
+          hasMoreToReveal = true;
+        }
+        return nextCount;
+      });
+
+      if (hasMoreToReveal) {
+        progressiveRevealTimerRef.current = window.setTimeout(
+          revealMore,
+          PROGRESSIVE_REVEAL_DELAY_MS,
+        );
+      }
+    };
+
+    progressiveRevealTimerRef.current = window.setTimeout(revealMore, PROGRESSIVE_REVEAL_DELAY_MS);
+
+    return () => {
+      if (progressiveRevealTimerRef.current) {
+        window.clearTimeout(progressiveRevealTimerRef.current);
+        progressiveRevealTimerRef.current = null;
+      }
+    };
+  }, [data]);
+
+  const visibleNextChordSuggestions = useMemo(
+    () => data?.nextChordSuggestions.slice(0, visibleNextSuggestionsCount) ?? [],
+    [data, visibleNextSuggestionsCount],
+  );
+
+  const visibleProgressionIdeas = useMemo(
+    () => data?.progressionIdeas.slice(0, visibleProgressionIdeasCount) ?? [],
+    [data, visibleProgressionIdeasCount],
+  );
+
+  const visibleStructureSuggestions = useMemo(
+    () => data?.structureSuggestions.slice(0, visibleStructureSuggestionsCount) ?? [],
+    [data, visibleStructureSuggestionsCount],
+  );
+
+  const handleRequestSaveProgression = useCallback(
+    ({
+      chords,
+      pianoVoicings,
+      feel,
+      genre: progressionGenre,
+    }: {
+      chords: ChordItem[];
+      pianoVoicings: ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings'];
+      feel: string;
+      genre: string;
+    }) => {
+      setSelectedProgressionChords(chords);
+      setSelectedProgressionVoicings(pianoVoicings);
+      setSelectedProgressionFeel(feel);
+      setSelectedProgressionGenre(progressionGenre);
+      setSaveDialogOpen(true);
+    },
+    [],
+  );
 
   const previewVoicing = generatedChordGridEntries[0]
     ? {
@@ -638,80 +906,8 @@ export default function HomePage() {
                   >
                     <Stack direction="row" spacing={1} alignItems="center">
                       <PlaybackSettingsButton
-                        playbackStyle={playbackStyle}
-                        onPlaybackStyleChange={setPlaybackStyle}
-                        attack={attack}
-                        onAttackChange={setAttack}
-                        decay={decay}
-                        onDecayChange={setDecay}
-                        padVelocity={padVelocity}
-                        onPadVelocityChange={setPadVelocity}
-                        padSwing={padSwing}
-                        onPadSwingChange={setPadSwing}
-                        padLatchMode={padLatchMode}
-                        onPadLatchModeChange={setPadLatchMode}
-                        humanize={humanize}
-                        onHumanizeChange={setHumanize}
-                        gate={gate}
-                        onGateChange={setGate}
-                        inversionRegister={inversionRegister}
-                        onInversionRegisterChange={setInversionRegister}
-                        instrument={instrument}
-                        onInstrumentChange={setInstrument}
-                        octaveShift={octaveShift}
-                        onOctaveShiftChange={setOctaveShift}
-                        reverb={reverb}
-                        onReverbChange={handleReverbChange}
-                        reverbEnabled={reverbEnabled}
-                        onReverbEnabledChange={handleEffectToggle(setReverbEnabledState)}
-                        chorus={chorus}
-                        onChorusChange={handleChorusChange}
-                        chorusEnabled={chorusEnabled}
-                        onChorusEnabledChange={handleEffectToggle(setChorusEnabledState)}
-                        chorusRate={chorusRate}
-                        onChorusRateChange={setChorusRate}
-                        chorusDepth={chorusDepth}
-                        onChorusDepthChange={setChorusDepthState}
-                        chorusDelayTime={chorusDelayTime}
-                        onChorusDelayTimeChange={setChorusDelayTimeState}
-                        feedbackDelayEnabled={feedbackDelayEnabled}
-                        onFeedbackDelayEnabledChange={handleEffectToggle(
-                          setFeedbackDelayEnabledState,
-                        )}
-                        feedbackDelay={feedbackDelay}
-                        onFeedbackDelayChange={handleFeedbackDelayChange}
-                        feedbackDelayTime={feedbackDelayTime}
-                        onFeedbackDelayTimeChange={setFeedbackDelayTimeState}
-                        feedbackDelayFeedback={feedbackDelayFeedback}
-                        onFeedbackDelayFeedbackChange={setFeedbackDelayFeedbackState}
-                        tremoloEnabled={tremoloEnabled}
-                        onTremoloEnabledChange={handleEffectToggle(setTremoloEnabledState)}
-                        tremolo={tremolo}
-                        onTremoloChange={setTremolo}
-                        tremoloFrequency={tremoloFrequency}
-                        onTremoloFrequencyChange={setTremoloFrequencyState}
-                        tremoloDepth={tremoloDepth}
-                        onTremoloDepthChange={setTremoloDepthState}
-                        vibratoEnabled={vibratoEnabled}
-                        onVibratoEnabledChange={handleEffectToggle(setVibratoEnabledState)}
-                        vibrato={vibrato}
-                        onVibratoChange={setVibrato}
-                        vibratoFrequency={vibratoFrequency}
-                        onVibratoFrequencyChange={setVibratoFrequencyState}
-                        vibratoDepth={vibratoDepth}
-                        onVibratoDepthChange={setVibratoDepthState}
-                        phaserEnabled={phaserEnabled}
-                        onPhaserEnabledChange={handleEffectToggle(setPhaserEnabledState)}
-                        phaser={phaser}
-                        onPhaserChange={setPhaser}
-                        phaserFrequency={phaserFrequency}
-                        onPhaserFrequencyChange={setPhaserFrequencyState}
-                        phaserOctaves={phaserOctaves}
-                        onPhaserOctavesChange={setPhaserOctavesState}
-                        phaserQ={phaserQ}
-                        onPhaserQChange={setPhaserQState}
-                        roomSize={roomSize}
-                        onRoomSizeChange={handleRoomSizeChange}
+                        settings={playbackSettings}
+                        onChange={playbackSettingsChangeHandlers}
                         tempoBpm={tempoBpm}
                         onTempoBpmChange={handleTempoBpmChange}
                         previewVoicing={previewVoicing}
@@ -764,63 +960,43 @@ export default function HomePage() {
                             </Typography>
                           </AccordionSummary>
                           <AccordionDetails>
-                            <NextChordSuggestionsSection
-                              suggestions={data.nextChordSuggestions}
-                              progressionDiagramInstrument={progressionDiagramInstrument}
-                              tempoBpm={tempoBpm}
-                              playbackStyle={playbackStyle}
-                              attack={attack}
-                              decay={decay}
-                              humanize={humanize}
-                              gate={gate}
-                              inversionRegister={inversionRegister}
-                              instrument={instrument}
-                              scale={mode === 'custom' ? customMode.trim() : mode}
-                              genre={genre === 'custom' ? customGenre.trim() : genre}
-                              showTitle={false}
-                            />
+                            <Suspense
+                              fallback={
+                                <Typography variant="body2" color="text.secondary">
+                                  Loading suggestions...
+                                </Typography>
+                              }
+                            >
+                              <NextChordSuggestionsSection
+                                suggestions={visibleNextChordSuggestions}
+                                progressionDiagramInstrument={progressionDiagramInstrument}
+                                tempoBpm={tempoBpm}
+                                playbackStyle={playbackStyle}
+                                attack={attack}
+                                decay={decay}
+                                humanize={humanize}
+                                gate={gate}
+                                inversionRegister={inversionRegister}
+                                instrument={instrument}
+                                scale={mode === 'custom' ? customMode.trim() : mode}
+                                genre={genre === 'custom' ? customGenre.trim() : genre}
+                                showTitle={false}
+                              />
+                            </Suspense>
                           </AccordionDetails>
                         </Accordion>
                       </Box>
 
-                      <ProgressionIdeasSection
-                        progressionIdeas={data.progressionIdeas}
-                        isLoadedFromSavedProgression={isLoadedFromSavedProgression}
-                        progressionDiagramInstrument={progressionDiagramInstrument}
-                        tempoBpm={tempoBpm}
-                        playbackStyle={playbackStyle}
-                        attack={attack}
-                        decay={decay}
-                        humanize={humanize}
-                        gate={gate}
-                        inversionRegister={inversionRegister}
-                        instrument={instrument}
-                        octaveShift={octaveShift}
-                        scale={mode === 'custom' ? customMode.trim() : mode}
-                        resolvedGenreForSave={genre === 'custom' ? customGenre.trim() : genre}
-                        onRequestSaveProgression={({
-                          chords,
-                          pianoVoicings,
-                          feel,
-                          genre: progressionGenre,
-                        }) => {
-                          setSelectedProgressionChords(chords);
-                          setSelectedProgressionVoicings(pianoVoicings);
-                          setSelectedProgressionFeel(feel);
-                          setSelectedProgressionGenre(progressionGenre);
-                          setSaveDialogOpen(true);
-                        }}
-                      />
-
-                      <StructureSuggestionsSection
-                        structureSuggestions={data.structureSuggestions}
-                      />
-                    </Stack>
-                  ) : (
-                    <Stack spacing={4}>
-                      {!isLoadedFromSavedProgression ? (
-                        <NextChordSuggestionsSection
-                          suggestions={data.nextChordSuggestions}
+                      <Suspense
+                        fallback={
+                          <Typography variant="body2" color="text.secondary">
+                            Loading progression ideas...
+                          </Typography>
+                        }
+                      >
+                        <ProgressionIdeasSection
+                          progressionIdeas={visibleProgressionIdeas}
+                          isLoadedFromSavedProgression={isLoadedFromSavedProgression}
                           progressionDiagramInstrument={progressionDiagramInstrument}
                           tempoBpm={tempoBpm}
                           playbackStyle={playbackStyle}
@@ -830,44 +1006,90 @@ export default function HomePage() {
                           gate={gate}
                           inversionRegister={inversionRegister}
                           instrument={instrument}
+                          octaveShift={octaveShift}
                           scale={mode === 'custom' ? customMode.trim() : mode}
-                          genre={genre === 'custom' ? customGenre.trim() : genre}
+                          resolvedGenreForSave={genre === 'custom' ? customGenre.trim() : genre}
+                          onRequestSaveProgression={handleRequestSaveProgression}
                         />
+                      </Suspense>
+
+                      <Suspense
+                        fallback={
+                          <Typography variant="body2" color="text.secondary">
+                            Loading structure suggestions...
+                          </Typography>
+                        }
+                      >
+                        <StructureSuggestionsSection
+                          structureSuggestions={visibleStructureSuggestions}
+                        />
+                      </Suspense>
+                    </Stack>
+                  ) : (
+                    <Stack spacing={4}>
+                      {!isLoadedFromSavedProgression ? (
+                        <Suspense
+                          fallback={
+                            <Typography variant="body2" color="text.secondary">
+                              Loading suggestions...
+                            </Typography>
+                          }
+                        >
+                          <NextChordSuggestionsSection
+                            suggestions={visibleNextChordSuggestions}
+                            progressionDiagramInstrument={progressionDiagramInstrument}
+                            tempoBpm={tempoBpm}
+                            playbackStyle={playbackStyle}
+                            attack={attack}
+                            decay={decay}
+                            humanize={humanize}
+                            gate={gate}
+                            inversionRegister={inversionRegister}
+                            instrument={instrument}
+                            scale={mode === 'custom' ? customMode.trim() : mode}
+                            genre={genre === 'custom' ? customGenre.trim() : genre}
+                          />
+                        </Suspense>
                       ) : null}
 
-                      <ProgressionIdeasSection
-                        progressionIdeas={data.progressionIdeas}
-                        isLoadedFromSavedProgression={isLoadedFromSavedProgression}
-                        progressionDiagramInstrument={progressionDiagramInstrument}
-                        tempoBpm={tempoBpm}
-                        playbackStyle={playbackStyle}
-                        attack={attack}
-                        decay={decay}
-                        humanize={humanize}
-                        gate={gate}
-                        inversionRegister={inversionRegister}
-                        instrument={instrument}
-                        octaveShift={octaveShift}
-                        scale={mode === 'custom' ? customMode.trim() : mode}
-                        resolvedGenreForSave={genre === 'custom' ? customGenre.trim() : genre}
-                        onRequestSaveProgression={({
-                          chords,
-                          pianoVoicings,
-                          feel,
-                          genre: progressionGenre,
-                        }) => {
-                          setSelectedProgressionChords(chords);
-                          setSelectedProgressionVoicings(pianoVoicings);
-                          setSelectedProgressionFeel(feel);
-                          setSelectedProgressionGenre(progressionGenre);
-                          setSaveDialogOpen(true);
-                        }}
-                      />
+                      <Suspense
+                        fallback={
+                          <Typography variant="body2" color="text.secondary">
+                            Loading progression ideas...
+                          </Typography>
+                        }
+                      >
+                        <ProgressionIdeasSection
+                          progressionIdeas={visibleProgressionIdeas}
+                          isLoadedFromSavedProgression={isLoadedFromSavedProgression}
+                          progressionDiagramInstrument={progressionDiagramInstrument}
+                          tempoBpm={tempoBpm}
+                          playbackStyle={playbackStyle}
+                          attack={attack}
+                          decay={decay}
+                          humanize={humanize}
+                          gate={gate}
+                          inversionRegister={inversionRegister}
+                          instrument={instrument}
+                          octaveShift={octaveShift}
+                          scale={mode === 'custom' ? customMode.trim() : mode}
+                          resolvedGenreForSave={genre === 'custom' ? customGenre.trim() : genre}
+                          onRequestSaveProgression={handleRequestSaveProgression}
+                        />
+                      </Suspense>
 
                       {!isLoadedFromSavedProgression ? (
-                        <StructureSuggestionsSection
-                          structureSuggestions={data.structureSuggestions}
-                        />
+                        <Suspense
+                          fallback={
+                            <Typography variant="body2" color="text.secondary">
+                              Loading structure suggestions...
+                            </Typography>
+                          }
+                        >
+                          <StructureSuggestionsSection
+                            structureSuggestions={visibleStructureSuggestions}
+                          />
+                        </Suspense>
                       ) : null}
                     </Stack>
                   )}
@@ -894,78 +1116,8 @@ export default function HomePage() {
                     open={isGeneratedChordGridOpen}
                     onClose={() => setIsGeneratedChordGridOpen(false)}
                     tempoBpm={tempoBpm}
-                    playbackStyle={playbackStyle}
-                    onPlaybackStyleChange={setPlaybackStyle}
-                    attack={attack}
-                    onAttackChange={setAttack}
-                    decay={decay}
-                    onDecayChange={setDecay}
-                    padVelocity={padVelocity}
-                    onPadVelocityChange={setPadVelocity}
-                    padSwing={padSwing}
-                    onPadSwingChange={setPadSwing}
-                    padLatchMode={padLatchMode}
-                    onPadLatchModeChange={setPadLatchMode}
-                    humanize={humanize}
-                    onHumanizeChange={setHumanize}
-                    gate={gate}
-                    onGateChange={setGate}
-                    inversionRegister={inversionRegister}
-                    onInversionRegisterChange={setInversionRegister}
-                    instrument={instrument}
-                    onInstrumentChange={setInstrument}
-                    octaveShift={octaveShift}
-                    onOctaveShiftChange={setOctaveShift}
-                    reverb={reverb}
-                    onReverbChange={handleReverbChange}
-                    reverbEnabled={reverbEnabled}
-                    onReverbEnabledChange={handleEffectToggle(setReverbEnabledState)}
-                    chorus={chorus}
-                    onChorusChange={handleChorusChange}
-                    chorusEnabled={chorusEnabled}
-                    onChorusEnabledChange={handleEffectToggle(setChorusEnabledState)}
-                    chorusRate={chorusRate}
-                    onChorusRateChange={setChorusRate}
-                    chorusDepth={chorusDepth}
-                    onChorusDepthChange={setChorusDepthState}
-                    chorusDelayTime={chorusDelayTime}
-                    onChorusDelayTimeChange={setChorusDelayTimeState}
-                    feedbackDelayEnabled={feedbackDelayEnabled}
-                    onFeedbackDelayEnabledChange={handleEffectToggle(setFeedbackDelayEnabledState)}
-                    feedbackDelay={feedbackDelay}
-                    onFeedbackDelayChange={handleFeedbackDelayChange}
-                    feedbackDelayTime={feedbackDelayTime}
-                    onFeedbackDelayTimeChange={setFeedbackDelayTimeState}
-                    feedbackDelayFeedback={feedbackDelayFeedback}
-                    onFeedbackDelayFeedbackChange={setFeedbackDelayFeedbackState}
-                    tremoloEnabled={tremoloEnabled}
-                    onTremoloEnabledChange={handleEffectToggle(setTremoloEnabledState)}
-                    tremolo={tremolo}
-                    onTremoloChange={setTremolo}
-                    tremoloFrequency={tremoloFrequency}
-                    onTremoloFrequencyChange={setTremoloFrequencyState}
-                    tremoloDepth={tremoloDepth}
-                    onTremoloDepthChange={setTremoloDepthState}
-                    vibratoEnabled={vibratoEnabled}
-                    onVibratoEnabledChange={handleEffectToggle(setVibratoEnabledState)}
-                    vibrato={vibrato}
-                    onVibratoChange={setVibrato}
-                    vibratoFrequency={vibratoFrequency}
-                    onVibratoFrequencyChange={setVibratoFrequencyState}
-                    vibratoDepth={vibratoDepth}
-                    onVibratoDepthChange={setVibratoDepthState}
-                    phaserEnabled={phaserEnabled}
-                    onPhaserEnabledChange={handleEffectToggle(setPhaserEnabledState)}
-                    phaser={phaser}
-                    onPhaserChange={setPhaser}
-                    phaserFrequency={phaserFrequency}
-                    onPhaserFrequencyChange={setPhaserFrequencyState}
-                    phaserOctaves={phaserOctaves}
-                    onPhaserOctavesChange={setPhaserOctavesState}
-                    phaserQ={phaserQ}
-                    onPhaserQChange={setPhaserQState}
-                    roomSize={roomSize}
-                    onRoomSizeChange={handleRoomSizeChange}
+                    settings={playbackSettings}
+                    onSettingsChange={playbackSettingsChangeHandlers}
                     chords={generatedChordGridEntries}
                     onTempoBpmChange={handleTempoBpmChange}
                   />

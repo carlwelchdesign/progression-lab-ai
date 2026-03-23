@@ -26,6 +26,7 @@ import SelectField from '../ui/SelectField';
 import EffectParamSlider from './EffectParamSlider';
 import EffectSettingsCard from './EffectSettingsCard';
 import EnvelopeControls from './EnvelopeControls';
+import type { PlaybackSettings, PlaybackSettingsChangeHandlers } from './playbackSettingsModel';
 
 type PreviewVoicing = {
   leftHand: string[];
@@ -33,78 +34,8 @@ type PreviewVoicing = {
 };
 
 type PlaybackSettingsButtonProps = {
-  playbackStyle: PlaybackStyle;
-  onPlaybackStyleChange: (value: PlaybackStyle) => void;
-  attack: number;
-  onAttackChange: (value: number) => void;
-  decay: number;
-  onDecayChange: (value: number) => void;
-  padVelocity: number;
-  onPadVelocityChange: (value: number) => void;
-  padSwing: number;
-  onPadSwingChange: (value: number) => void;
-  padLatchMode: boolean;
-  onPadLatchModeChange: (value: boolean) => void;
-  humanize: number;
-  onHumanizeChange: (value: number) => void;
-  gate: number;
-  onGateChange: (value: number) => void;
-  inversionRegister: PlaybackRegister;
-  onInversionRegisterChange: (value: PlaybackRegister) => void;
-  instrument: AudioInstrument;
-  onInstrumentChange: (value: AudioInstrument) => void;
-  octaveShift: number;
-  onOctaveShiftChange: (value: number) => void;
-  reverb: number;
-  onReverbChange: (value: number) => void;
-  reverbEnabled: boolean;
-  onReverbEnabledChange: (value: boolean) => void;
-  chorus: number;
-  onChorusChange: (value: number) => void;
-  chorusEnabled: boolean;
-  onChorusEnabledChange: (value: boolean) => void;
-  chorusRate: number;
-  onChorusRateChange: (value: number) => void;
-  chorusDepth: number;
-  onChorusDepthChange: (value: number) => void;
-  chorusDelayTime: number;
-  onChorusDelayTimeChange: (value: number) => void;
-  feedbackDelayEnabled: boolean;
-  onFeedbackDelayEnabledChange: (value: boolean) => void;
-  feedbackDelay: number;
-  onFeedbackDelayChange: (value: number) => void;
-  feedbackDelayTime: number;
-  onFeedbackDelayTimeChange: (value: number) => void;
-  feedbackDelayFeedback: number;
-  onFeedbackDelayFeedbackChange: (value: number) => void;
-  tremoloEnabled: boolean;
-  onTremoloEnabledChange: (value: boolean) => void;
-  tremolo: number;
-  onTremoloChange: (value: number) => void;
-  tremoloFrequency: number;
-  onTremoloFrequencyChange: (value: number) => void;
-  tremoloDepth: number;
-  onTremoloDepthChange: (value: number) => void;
-  vibratoEnabled: boolean;
-  onVibratoEnabledChange: (value: boolean) => void;
-  vibrato: number;
-  onVibratoChange: (value: number) => void;
-  vibratoFrequency: number;
-  onVibratoFrequencyChange: (value: number) => void;
-  vibratoDepth: number;
-  onVibratoDepthChange: (value: number) => void;
-  phaserEnabled: boolean;
-  onPhaserEnabledChange: (value: boolean) => void;
-  phaser: number;
-  onPhaserChange: (value: number) => void;
-  phaserFrequency: number;
-  onPhaserFrequencyChange: (value: number) => void;
-  phaserOctaves: number;
-  onPhaserOctavesChange: (value: number) => void;
-  phaserQ: number;
-  onPhaserQChange: (value: number) => void;
-  roomSize: number;
-  onRoomSizeChange: (value: number) => void;
+  settings: PlaybackSettings;
+  onChange: PlaybackSettingsChangeHandlers;
   tempoBpm: number;
   onTempoBpmChange: (value: number) => void;
   previewVoicing?: PreviewVoicing;
@@ -112,83 +43,91 @@ type PlaybackSettingsButtonProps = {
 };
 
 export default function PlaybackSettingsButton({
-  playbackStyle,
-  onPlaybackStyleChange,
-  attack,
-  onAttackChange,
-  decay,
-  onDecayChange,
-  padVelocity,
-  onPadVelocityChange,
-  padSwing,
-  onPadSwingChange,
-  padLatchMode,
-  onPadLatchModeChange,
-  humanize,
-  onHumanizeChange,
-  gate,
-  onGateChange,
-  inversionRegister,
-  onInversionRegisterChange,
-  instrument,
-  onInstrumentChange,
-  octaveShift,
-  onOctaveShiftChange,
-  reverb,
-  onReverbChange,
-  reverbEnabled,
-  onReverbEnabledChange,
-  chorus,
-  onChorusChange,
-  chorusEnabled,
-  onChorusEnabledChange,
-  chorusRate,
-  onChorusRateChange,
-  chorusDepth,
-  onChorusDepthChange,
-  chorusDelayTime,
-  onChorusDelayTimeChange,
-  feedbackDelayEnabled,
-  onFeedbackDelayEnabledChange,
-  feedbackDelay,
-  onFeedbackDelayChange,
-  feedbackDelayTime,
-  onFeedbackDelayTimeChange,
-  feedbackDelayFeedback,
-  onFeedbackDelayFeedbackChange,
-  tremoloEnabled,
-  onTremoloEnabledChange,
-  tremolo,
-  onTremoloChange,
-  tremoloFrequency,
-  onTremoloFrequencyChange,
-  tremoloDepth,
-  onTremoloDepthChange,
-  vibratoEnabled,
-  onVibratoEnabledChange,
-  vibrato,
-  onVibratoChange,
-  vibratoFrequency,
-  onVibratoFrequencyChange,
-  vibratoDepth,
-  onVibratoDepthChange,
-  phaserEnabled,
-  onPhaserEnabledChange,
-  phaser,
-  onPhaserChange,
-  phaserFrequency,
-  onPhaserFrequencyChange,
-  phaserOctaves,
-  onPhaserOctavesChange,
-  phaserQ,
-  onPhaserQChange,
-  roomSize,
-  onRoomSizeChange,
+  settings,
+  onChange,
   tempoBpm,
   onTempoBpmChange,
   previewVoicing,
   position = 'inline',
 }: PlaybackSettingsButtonProps) {
+  const {
+    playbackStyle,
+    attack,
+    decay,
+    padVelocity,
+    padSwing,
+    padLatchMode,
+    humanize,
+    gate,
+    inversionRegister,
+    instrument,
+    octaveShift,
+    reverb,
+    reverbEnabled,
+    chorus,
+    chorusEnabled,
+    chorusRate,
+    chorusDepth,
+    chorusDelayTime,
+    feedbackDelayEnabled,
+    feedbackDelay,
+    feedbackDelayTime,
+    feedbackDelayFeedback,
+    tremoloEnabled,
+    tremolo,
+    tremoloFrequency,
+    tremoloDepth,
+    vibratoEnabled,
+    vibrato,
+    vibratoFrequency,
+    vibratoDepth,
+    phaserEnabled,
+    phaser,
+    phaserFrequency,
+    phaserOctaves,
+    phaserQ,
+    roomSize,
+  } = settings;
+
+  const {
+    onPlaybackStyleChange,
+    onAttackChange,
+    onDecayChange,
+    onPadVelocityChange,
+    onPadSwingChange,
+    onPadLatchModeChange,
+    onHumanizeChange,
+    onGateChange,
+    onInversionRegisterChange,
+    onInstrumentChange,
+    onOctaveShiftChange,
+    onReverbChange,
+    onReverbEnabledChange,
+    onChorusChange,
+    onChorusEnabledChange,
+    onChorusRateChange,
+    onChorusDepthChange,
+    onChorusDelayTimeChange,
+    onFeedbackDelayEnabledChange,
+    onFeedbackDelayChange,
+    onFeedbackDelayTimeChange,
+    onFeedbackDelayFeedbackChange,
+    onTremoloEnabledChange,
+    onTremoloChange,
+    onTremoloFrequencyChange,
+    onTremoloDepthChange,
+    onVibratoEnabledChange,
+    onVibratoChange,
+    onVibratoFrequencyChange,
+    onVibratoDepthChange,
+    onPhaserEnabledChange,
+    onPhaserChange,
+    onPhaserFrequencyChange,
+    onPhaserOctavesChange,
+    onPhaserQChange,
+    onRoomSizeChange,
+  } = onChange;
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [reverbAdvancedOpen, setReverbAdvancedOpen] = useState(false);
   const [chorusAdvancedOpen, setChorusAdvancedOpen] = useState(false);
