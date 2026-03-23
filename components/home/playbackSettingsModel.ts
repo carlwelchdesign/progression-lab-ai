@@ -42,88 +42,23 @@ export type PlaybackSettings = {
   roomSize: number;
 };
 
+type PlaybackSettingsKey = keyof PlaybackSettings & string;
+type SettingsValueUpdater<T> = (value: T) => void;
+type ChangeHandlerKey<K extends PlaybackSettingsKey> = `on${Capitalize<K>}Change`;
+type SetterKey<K extends PlaybackSettingsKey> = `set${Capitalize<K>}`;
+
 /**
  * Callback surface used by settings UI components.
  */
 export type PlaybackSettingsChangeHandlers = {
-  onPlaybackStyleChange: (value: PlaybackStyle) => void;
-  onAttackChange: (value: number) => void;
-  onDecayChange: (value: number) => void;
-  onPadVelocityChange: (value: number) => void;
-  onPadSwingChange: (value: number) => void;
-  onPadLatchModeChange: (value: boolean) => void;
-  onHumanizeChange: (value: number) => void;
-  onGateChange: (value: number) => void;
-  onInversionRegisterChange: (value: PlaybackRegister) => void;
-  onInstrumentChange: (value: AudioInstrument) => void;
-  onOctaveShiftChange: (value: number) => void;
-  onReverbChange: (value: number) => void;
-  onReverbEnabledChange: (value: boolean) => void;
-  onChorusChange: (value: number) => void;
-  onChorusEnabledChange: (value: boolean) => void;
-  onChorusRateChange: (value: number) => void;
-  onChorusDepthChange: (value: number) => void;
-  onChorusDelayTimeChange: (value: number) => void;
-  onFeedbackDelayEnabledChange: (value: boolean) => void;
-  onFeedbackDelayChange: (value: number) => void;
-  onFeedbackDelayTimeChange: (value: number) => void;
-  onFeedbackDelayFeedbackChange: (value: number) => void;
-  onTremoloEnabledChange: (value: boolean) => void;
-  onTremoloChange: (value: number) => void;
-  onTremoloFrequencyChange: (value: number) => void;
-  onTremoloDepthChange: (value: number) => void;
-  onVibratoEnabledChange: (value: boolean) => void;
-  onVibratoChange: (value: number) => void;
-  onVibratoFrequencyChange: (value: number) => void;
-  onVibratoDepthChange: (value: number) => void;
-  onPhaserEnabledChange: (value: boolean) => void;
-  onPhaserChange: (value: number) => void;
-  onPhaserFrequencyChange: (value: number) => void;
-  onPhaserOctavesChange: (value: number) => void;
-  onPhaserQChange: (value: number) => void;
-  onRoomSizeChange: (value: number) => void;
+  [K in PlaybackSettingsKey as ChangeHandlerKey<K>]: SettingsValueUpdater<PlaybackSettings[K]>;
 };
 
 /**
  * Setter surface used for restoring persisted settings into React state.
  */
 export type PlaybackSettingsSetters = {
-  setPlaybackStyle: (value: PlaybackStyle) => void;
-  setAttack: (value: number) => void;
-  setDecay: (value: number) => void;
-  setPadVelocity: (value: number) => void;
-  setPadSwing: (value: number) => void;
-  setPadLatchMode: (value: boolean) => void;
-  setHumanize: (value: number) => void;
-  setGate: (value: number) => void;
-  setInversionRegister: (value: PlaybackRegister) => void;
-  setInstrument: (value: AudioInstrument) => void;
-  setOctaveShift: (value: number) => void;
-  setReverbEnabled: (value: boolean) => void;
-  setReverb: (value: number) => void;
-  setChorusEnabled: (value: boolean) => void;
-  setChorus: (value: number) => void;
-  setChorusRate: (value: number) => void;
-  setChorusDepth: (value: number) => void;
-  setChorusDelayTime: (value: number) => void;
-  setFeedbackDelayEnabled: (value: boolean) => void;
-  setFeedbackDelay: (value: number) => void;
-  setFeedbackDelayTime: (value: number) => void;
-  setFeedbackDelayFeedback: (value: number) => void;
-  setTremoloEnabled: (value: boolean) => void;
-  setTremolo: (value: number) => void;
-  setTremoloFrequency: (value: number) => void;
-  setTremoloDepth: (value: number) => void;
-  setVibratoEnabled: (value: boolean) => void;
-  setVibrato: (value: number) => void;
-  setVibratoFrequency: (value: number) => void;
-  setVibratoDepth: (value: number) => void;
-  setPhaserEnabled: (value: boolean) => void;
-  setPhaser: (value: number) => void;
-  setPhaserFrequency: (value: number) => void;
-  setPhaserOctaves: (value: number) => void;
-  setPhaserQ: (value: number) => void;
-  setRoomSize: (value: number) => void;
+  [K in PlaybackSettingsKey as SetterKey<K>]: SettingsValueUpdater<PlaybackSettings[K]>;
 };
 
 /**
