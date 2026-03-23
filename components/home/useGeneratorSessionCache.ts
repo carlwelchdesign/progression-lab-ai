@@ -14,6 +14,8 @@ import {
 
 const GENERATOR_CACHE_KEY = 'generatorCache';
 
+const LOADED_PROGRESSION_KEY = 'loadedProgression';
+
 /**
  * Session payload persisted after generating results.
  */
@@ -30,6 +32,20 @@ type GeneratorCache = {
   // Backward compatibility for the prior cache format.
   roomSize?: number;
   data: ChordSuggestionResponse;
+};
+
+type LoadedProgressionPayload = {
+  title?: string;
+  chords?: Array<{ name?: string } | string>;
+  pianoVoicings?: ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings'];
+  feel?: string;
+  scale?: string;
+  genre?: string;
+};
+
+type LoadedProgressionRestorePayload = {
+  resetPayload: GeneratorFormData;
+  dataUpdater: (prev: ChordSuggestionResponse | null) => ChordSuggestionResponse;
 };
 
 /**
@@ -50,6 +66,197 @@ type UseGeneratorSessionCacheResult = {
   isRestoringState: boolean;
   hasRestoredSessionData: boolean;
   cacheGeneratorResult: (formData: GeneratorFormData, data: ChordSuggestionResponse) => void;
+};
+
+const readSessionStorage = (key: string): string | null => sessionStorage.getItem(key);
+
+const writeSessionStorage = (key: string, value: string): void => {
+  sessionStorage.setItem(key, value);
+};
+
+const removeSessionStorage = (key: string): void => {
+  sessionStorage.removeItem(key);
+};
+
+const removeSessionStorageKeys = (keys: string[]): void => {
+  keys.forEach(removeSessionStorage);
+};
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const parseJsonObject = (raw: string): Record<string, unknown> => {
+  const parsed: unknown = JSON.parse(raw);
+  if (!isObject(parsed)) {
+    throw new Error('Expected JSON object payload');
+  }
+
+  return parsed;
+};
+
+const mapRestoredGenre = (rawGenre: string): { genre: string; customGenre: string } => {
+  const normalizedGenre = rawGenre.trim();
+  if (normalizedGenre.length === 0) {
+    return { genre: '', customGenre: '' };
+  }
+
+  const hasMatchingGenreOption = GENRE_OPTIONS.some((option) => option.value === normalizedGenre);
+  if (hasMatchingGenreOption) {
+    return { genre: normalizedGenre, customGenre: '' };
+  }
+
+  return { genre: 'custom', customGenre: normalizedGenre };
+};
+
+const extractChordNames = (chords: LoadedProgressionPayload['chords']): string[] =>
+  (chords ?? [])
+    .map((chord) => (typeof chord === 'string' ? chord : (chord.name ?? '').trim()))
+    .filter(Boolean);
+
+const parseLoadedProgressionPayload = (
+  rawLoadedProgression: string,
+): LoadedProgressionRestorePayload | null => {
+  const parsed = parseJsonObject(rawLoadedProgression) as LoadedProgressionPayload;
+  const chordNames = extractChordNames(parsed.chords);
+
+  if (chordNames.length === 0) {
+    return null;
+  }
+
+  const { genre, customGenre } = mapRestoredGenre(parsed.genre ?? '');
+  const loadedVoicings = Array.isArray(parsed.pianoVoicings) ? parsed.pianoVoicings : [];
+
+  return {
+    resetPayload: {
+      seedChords: chordNames.join(', '),
+      mood: parsed.feel || '',
+      mode: parsed.scale || '',
+      customMode: '',
+      genre,
+      customGenre,
+      adventurousness: 'balanced',
+      tempoBpm: 100,
+    },
+    dataUpdater: (prev) => ({
+      inputSummary: {
+        seedChords: chordNames,
+        mood: parsed.feel ?? prev?.inputSummary.mood ?? null,
+        mode: parsed.scale ?? prev?.inputSummary.mode ?? null,
+        genre: parsed.genre ?? prev?.inputSummary.genre ?? null,
+        instrument: 'both',
+        adventurousness: prev?.inputSummary.adventurousness ?? null,
+      },
+      nextChordSuggestions: prev?.nextChordSuggestions ?? [],
+      progressionIdeas: [
+        {
+          label: parsed.title || 'Loaded progression',
+          chords: chordNames,
+          feel: parsed.feel || 'Loaded from saved progression',
+          performanceTip: null,
+          pianoVoicings: loadedVoicings,
+        },
+      ],
+      structureSuggestions: prev?.structureSuggestions ?? [],
+    }),
+  };
+};
+
+type ParsedGeneratorCache = {
+  formData: GeneratorFormData;
+  data: ChordSuggestionResponse;
+  playbackSettings: PlaybackSettings;
+};
+
+const parseGeneratorCachePayload = (rawGeneratorCache: string): ParsedGeneratorCache => {
+  const parsedCache = parseJsonObject(rawGeneratorCache) as GeneratorCache;
+
+  return {
+    formData: {
+      seedChords: parsedCache.seedChords,
+      mood: parsedCache.mood,
+      mode: parsedCache.mode,
+      customMode: parsedCache.customMode,
+      genre: parsedCache.genre,
+      customGenre: parsedCache.customGenre,
+      adventurousness: parsedCache.adventurousness,
+      tempoBpm: parsedCache.tempoBpm ?? 100,
+    },
+    data: parsedCache.data,
+    playbackSettings: sanitizePlaybackSettings({
+      ...parsedCache.playbackSettings,
+      roomSize: parsedCache.playbackSettings?.roomSize ?? parsedCache.roomSize,
+    }),
+  };
+};
+
+const buildGeneratorCachePayload = (
+  formData: GeneratorFormData,
+  data: ChordSuggestionResponse,
+  playbackSettings: PlaybackSettings,
+): GeneratorCache => ({
+  seedChords: formData.seedChords,
+  mood: formData.mood,
+  mode: formData.mode,
+  customMode: formData.customMode,
+  genre: formData.genre,
+  customGenre: formData.customGenre,
+  adventurousness: formData.adventurousness,
+  tempoBpm: formData.tempoBpm,
+  playbackSettings,
+  roomSize: playbackSettings.roomSize,
+  data,
+});
+
+type RestoreGeneratorCacheParams = {
+  rawGeneratorCache: string;
+  reset: UseFormReset<GeneratorFormData>;
+  setData: Dispatch<SetStateAction<ChordSuggestionResponse | null>>;
+  setIsLoadedFromSavedProgression: Dispatch<SetStateAction<boolean>>;
+  setHasRestoredSessionData: Dispatch<SetStateAction<boolean>>;
+  playbackSettingsSetters: PlaybackSettingsSetters;
+};
+
+const restoreFromGeneratorCache = ({
+  rawGeneratorCache,
+  reset,
+  setData,
+  setIsLoadedFromSavedProgression,
+  setHasRestoredSessionData,
+  playbackSettingsSetters,
+}: RestoreGeneratorCacheParams): void => {
+  const parsedCache = parseGeneratorCachePayload(rawGeneratorCache);
+
+  reset(parsedCache.formData);
+  setIsLoadedFromSavedProgression(false);
+  setHasRestoredSessionData(true);
+  setData(parsedCache.data);
+  applyPlaybackSettings(playbackSettingsSetters, parsedCache.playbackSettings);
+};
+
+type RestoreLoadedProgressionParams = {
+  rawLoadedProgression: string;
+  reset: UseFormReset<GeneratorFormData>;
+  setData: Dispatch<SetStateAction<ChordSuggestionResponse | null>>;
+  setIsLoadedFromSavedProgression: Dispatch<SetStateAction<boolean>>;
+  setHasRestoredSessionData: Dispatch<SetStateAction<boolean>>;
+};
+
+const restoreFromLoadedProgression = ({
+  rawLoadedProgression,
+  reset,
+  setData,
+  setIsLoadedFromSavedProgression,
+  setHasRestoredSessionData,
+}: RestoreLoadedProgressionParams): void => {
+  const parsed = parseLoadedProgressionPayload(rawLoadedProgression);
+  if (!parsed) {
+    return;
+  }
+
+  reset(parsed.resetPayload);
+  setHasRestoredSessionData(true);
+  setIsLoadedFromSavedProgression(true);
+  setData(parsed.dataUpdater);
 };
 
 /**
@@ -75,116 +282,43 @@ export default function useGeneratorSessionCache({
 
   useEffect(() => {
     try {
-      const rawLoadedProgression = sessionStorage.getItem('loadedProgression');
+      const rawLoadedProgression = readSessionStorage(LOADED_PROGRESSION_KEY);
 
       if (rawLoadedProgression) {
         try {
-          const parsed = JSON.parse(rawLoadedProgression) as {
-            title?: string;
-            chords?: Array<{ name?: string } | string>;
-            pianoVoicings?: ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings'];
-            feel?: string;
-            scale?: string;
-            genre?: string;
-          };
-
-          const normalizedGenre = parsed.genre?.trim() ?? '';
-          const hasMatchingGenreOption = GENRE_OPTIONS.some(
-            (option) => option.value === normalizedGenre,
-          );
-          let restoredGenre = '';
-          if (normalizedGenre.length > 0) {
-            restoredGenre = hasMatchingGenreOption ? normalizedGenre : 'custom';
-          }
-          const restoredCustomGenre =
-            normalizedGenre.length === 0 || hasMatchingGenreOption ? '' : normalizedGenre;
-
-          const chordNames = (parsed.chords ?? [])
-            .map((chord) => (typeof chord === 'string' ? chord : (chord.name ?? '').trim()))
-            .filter(Boolean);
-
-          if (chordNames.length > 0) {
-            reset({
-              seedChords: chordNames.join(', '),
-              mood: parsed.feel || '',
-              mode: parsed.scale || '',
-              customMode: '',
-              genre: restoredGenre,
-              customGenre: restoredCustomGenre,
-              adventurousness: 'balanced',
-              tempoBpm: 100,
-            });
-          }
-
-          if (chordNames.length > 0) {
-            setHasRestoredSessionData(true);
-            setIsLoadedFromSavedProgression(true);
-            const loadedVoicings = Array.isArray(parsed.pianoVoicings) ? parsed.pianoVoicings : [];
-
-            setData((prev) => ({
-              inputSummary: {
-                seedChords: chordNames,
-                mood: parsed.feel ?? prev?.inputSummary.mood ?? null,
-                mode: parsed.scale ?? prev?.inputSummary.mode ?? null,
-                genre: parsed.genre ?? prev?.inputSummary.genre ?? null,
-                instrument: 'both',
-                adventurousness: prev?.inputSummary.adventurousness ?? null,
-              },
-              nextChordSuggestions: prev?.nextChordSuggestions ?? [],
-              progressionIdeas: [
-                {
-                  label: parsed.title || 'Loaded progression',
-                  chords: chordNames,
-                  feel: parsed.feel || 'Loaded from saved progression',
-                  performanceTip: null,
-                  pianoVoicings: loadedVoicings,
-                },
-              ],
-              structureSuggestions: prev?.structureSuggestions ?? [],
-            }));
-          }
+          restoreFromLoadedProgression({
+            rawLoadedProgression,
+            reset,
+            setData,
+            setIsLoadedFromSavedProgression,
+            setHasRestoredSessionData,
+          });
         } catch (err) {
           console.error('Failed to load saved progression from session storage:', err);
         } finally {
-          sessionStorage.removeItem('loadedProgression');
-          sessionStorage.removeItem(GENERATOR_CACHE_KEY);
+          removeSessionStorageKeys([LOADED_PROGRESSION_KEY, GENERATOR_CACHE_KEY]);
         }
 
         return;
       }
 
-      const rawGeneratorCache = sessionStorage.getItem(GENERATOR_CACHE_KEY);
+      const rawGeneratorCache = readSessionStorage(GENERATOR_CACHE_KEY);
       if (!rawGeneratorCache) {
         return;
       }
 
       try {
-        const parsedCache = JSON.parse(rawGeneratorCache) as GeneratorCache;
-
-        reset({
-          seedChords: parsedCache.seedChords,
-          mood: parsedCache.mood,
-          mode: parsedCache.mode,
-          customMode: parsedCache.customMode,
-          genre: parsedCache.genre,
-          customGenre: parsedCache.customGenre,
-          adventurousness: parsedCache.adventurousness,
-          tempoBpm: parsedCache.tempoBpm ?? 100,
+        restoreFromGeneratorCache({
+          rawGeneratorCache,
+          reset,
+          setData,
+          setIsLoadedFromSavedProgression,
+          setHasRestoredSessionData,
+          playbackSettingsSetters: playbackSettingsSettersRef.current,
         });
-
-        setIsLoadedFromSavedProgression(false);
-        setHasRestoredSessionData(true);
-        setData(parsedCache.data);
-
-        const sanitizedSettings = sanitizePlaybackSettings({
-          ...parsedCache.playbackSettings,
-          roomSize: parsedCache.playbackSettings?.roomSize ?? parsedCache.roomSize,
-        });
-
-        applyPlaybackSettings(playbackSettingsSettersRef.current, sanitizedSettings);
       } catch (err) {
         console.error('Failed to restore generator cache from session storage:', err);
-        sessionStorage.removeItem(GENERATOR_CACHE_KEY);
+        removeSessionStorage(GENERATOR_CACHE_KEY);
       }
     } finally {
       setIsRestoringState(false);
@@ -192,21 +326,8 @@ export default function useGeneratorSessionCache({
   }, [reset, setData, setIsLoadedFromSavedProgression]);
 
   const cacheGeneratorResult = (formData: GeneratorFormData, data: ChordSuggestionResponse) => {
-    const cachePayload: GeneratorCache = {
-      seedChords: formData.seedChords,
-      mood: formData.mood,
-      mode: formData.mode,
-      customMode: formData.customMode,
-      genre: formData.genre,
-      customGenre: formData.customGenre,
-      adventurousness: formData.adventurousness,
-      tempoBpm: formData.tempoBpm,
-      playbackSettings,
-      roomSize: playbackSettings.roomSize,
-      data,
-    };
-
-    sessionStorage.setItem(GENERATOR_CACHE_KEY, JSON.stringify(cachePayload));
+    const cachePayload = buildGeneratorCachePayload(formData, data, playbackSettings);
+    writeSessionStorage(GENERATOR_CACHE_KEY, JSON.stringify(cachePayload));
   };
 
   return {
