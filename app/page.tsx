@@ -28,7 +28,12 @@ import usePlaybackSettings from '../components/home/usePlaybackSettings';
 import useGeneratorSessionCache from '../components/home/useGeneratorSessionCache';
 import type { GeneratorFormData, ProgressionDiagramInstrument } from '../components/home/types';
 import { CHORD_OPTIONS, GENRE_OPTIONS, MODE_OPTIONS, MOOD_OPTIONS } from '../lib/formOptions';
-import type { Adventurousness, ChordItem, ChordSuggestionResponse } from '../lib/types';
+import type {
+  Adventurousness,
+  ChordItem,
+  ChordSuggestionResponse,
+  GuitarVoicing,
+} from '../lib/types';
 
 const MAX_RANDOM_SELECTIONS = 7;
 const ADVENTUROUSNESS_OPTIONS: Adventurousness[] = ['safe', 'balanced', 'surprising'];
@@ -471,6 +476,21 @@ export default function HomePage() {
 
   const resolvedScale = mode === 'custom' ? customMode.trim() : mode;
   const resolvedGenre = genre === 'custom' ? customGenre.trim() : genre;
+  const guitarVoicingByChord = useMemo(() => {
+    const byChord: Partial<Record<string, GuitarVoicing>> = {};
+
+    data?.nextChordSuggestions.forEach((suggestion) => {
+      if (!suggestion.guitarVoicing) {
+        return;
+      }
+
+      if (!byChord[suggestion.chord]) {
+        byChord[suggestion.chord] = suggestion.guitarVoicing;
+      }
+    });
+
+    return byChord;
+  }, [data]);
 
   const resultSectionConfigs: ResultSectionConfig[] = [
     {
@@ -515,6 +535,7 @@ export default function HomePage() {
           octaveShift={octaveShift}
           scale={resolvedScale}
           resolvedGenreForSave={resolvedGenre}
+          guitarVoicingByChord={guitarVoicingByChord}
           onRequestSaveProgression={handleRequestSaveProgression}
         />
       ),
