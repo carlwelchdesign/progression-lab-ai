@@ -56,6 +56,54 @@ type GeneratedChordGridDialogProps = {
   onOctaveShiftChange: (value: number) => void;
   reverb: number;
   onReverbChange: (value: number) => void;
+  reverbEnabled: boolean;
+  onReverbEnabledChange: (value: boolean) => void;
+  chorus: number;
+  onChorusChange: (value: number) => void;
+  chorusEnabled: boolean;
+  onChorusEnabledChange: (value: boolean) => void;
+  chorusRate: number;
+  onChorusRateChange: (value: number) => void;
+  chorusDepth: number;
+  onChorusDepthChange: (value: number) => void;
+  chorusDelayTime: number;
+  onChorusDelayTimeChange: (value: number) => void;
+  feedbackDelayEnabled: boolean;
+  onFeedbackDelayEnabledChange: (value: boolean) => void;
+  feedbackDelay: number;
+  onFeedbackDelayChange: (value: number) => void;
+  feedbackDelayTime: number;
+  onFeedbackDelayTimeChange: (value: number) => void;
+  feedbackDelayFeedback: number;
+  onFeedbackDelayFeedbackChange: (value: number) => void;
+  tremoloEnabled: boolean;
+  onTremoloEnabledChange: (value: boolean) => void;
+  tremolo: number;
+  onTremoloChange: (value: number) => void;
+  tremoloFrequency: number;
+  onTremoloFrequencyChange: (value: number) => void;
+  tremoloDepth: number;
+  onTremoloDepthChange: (value: number) => void;
+  vibratoEnabled: boolean;
+  onVibratoEnabledChange: (value: boolean) => void;
+  vibrato: number;
+  onVibratoChange: (value: number) => void;
+  vibratoFrequency: number;
+  onVibratoFrequencyChange: (value: number) => void;
+  vibratoDepth: number;
+  onVibratoDepthChange: (value: number) => void;
+  phaserEnabled: boolean;
+  onPhaserEnabledChange: (value: boolean) => void;
+  phaser: number;
+  onPhaserChange: (value: number) => void;
+  phaserFrequency: number;
+  onPhaserFrequencyChange: (value: number) => void;
+  phaserOctaves: number;
+  onPhaserOctavesChange: (value: number) => void;
+  phaserQ: number;
+  onPhaserQChange: (value: number) => void;
+  roomSize: number;
+  onRoomSizeChange: (value: number) => void;
   onTempoBpmChange: (value: number) => void;
   chords: ChordGridEntry[];
 };
@@ -119,6 +167,54 @@ export default function GeneratedChordGridDialog({
   onOctaveShiftChange,
   reverb,
   onReverbChange,
+  reverbEnabled,
+  onReverbEnabledChange,
+  chorus,
+  onChorusChange,
+  chorusEnabled,
+  onChorusEnabledChange,
+  chorusRate,
+  onChorusRateChange,
+  chorusDepth,
+  onChorusDepthChange,
+  chorusDelayTime,
+  onChorusDelayTimeChange,
+  feedbackDelayEnabled,
+  onFeedbackDelayEnabledChange,
+  feedbackDelay,
+  onFeedbackDelayChange,
+  feedbackDelayTime,
+  onFeedbackDelayTimeChange,
+  feedbackDelayFeedback,
+  onFeedbackDelayFeedbackChange,
+  tremoloEnabled,
+  onTremoloEnabledChange,
+  tremolo,
+  onTremoloChange,
+  tremoloFrequency,
+  onTremoloFrequencyChange,
+  tremoloDepth,
+  onTremoloDepthChange,
+  vibratoEnabled,
+  onVibratoEnabledChange,
+  vibrato,
+  onVibratoChange,
+  vibratoFrequency,
+  onVibratoFrequencyChange,
+  vibratoDepth,
+  onVibratoDepthChange,
+  phaserEnabled,
+  onPhaserEnabledChange,
+  phaser,
+  onPhaserChange,
+  phaserFrequency,
+  onPhaserFrequencyChange,
+  phaserOctaves,
+  onPhaserOctavesChange,
+  phaserQ,
+  onPhaserQChange,
+  roomSize,
+  onRoomSizeChange,
   onTempoBpmChange,
   chords,
 }: GeneratedChordGridDialogProps) {
@@ -445,6 +541,54 @@ export default function GeneratedChordGridDialog({
             onOctaveShiftChange={onOctaveShiftChange}
             reverb={reverb}
             onReverbChange={onReverbChange}
+            reverbEnabled={reverbEnabled}
+            onReverbEnabledChange={onReverbEnabledChange}
+            chorus={chorus}
+            onChorusChange={onChorusChange}
+            chorusEnabled={chorusEnabled}
+            onChorusEnabledChange={onChorusEnabledChange}
+            chorusRate={chorusRate}
+            onChorusRateChange={onChorusRateChange}
+            chorusDepth={chorusDepth}
+            onChorusDepthChange={onChorusDepthChange}
+            chorusDelayTime={chorusDelayTime}
+            onChorusDelayTimeChange={onChorusDelayTimeChange}
+            feedbackDelayEnabled={feedbackDelayEnabled}
+            onFeedbackDelayEnabledChange={onFeedbackDelayEnabledChange}
+            feedbackDelay={feedbackDelay}
+            onFeedbackDelayChange={onFeedbackDelayChange}
+            feedbackDelayTime={feedbackDelayTime}
+            onFeedbackDelayTimeChange={onFeedbackDelayTimeChange}
+            feedbackDelayFeedback={feedbackDelayFeedback}
+            onFeedbackDelayFeedbackChange={onFeedbackDelayFeedbackChange}
+            tremoloEnabled={tremoloEnabled}
+            onTremoloEnabledChange={onTremoloEnabledChange}
+            tremolo={tremolo}
+            onTremoloChange={onTremoloChange}
+            tremoloFrequency={tremoloFrequency}
+            onTremoloFrequencyChange={onTremoloFrequencyChange}
+            tremoloDepth={tremoloDepth}
+            onTremoloDepthChange={onTremoloDepthChange}
+            vibratoEnabled={vibratoEnabled}
+            onVibratoEnabledChange={onVibratoEnabledChange}
+            vibrato={vibrato}
+            onVibratoChange={onVibratoChange}
+            vibratoFrequency={vibratoFrequency}
+            onVibratoFrequencyChange={onVibratoFrequencyChange}
+            vibratoDepth={vibratoDepth}
+            onVibratoDepthChange={onVibratoDepthChange}
+            phaserEnabled={phaserEnabled}
+            onPhaserEnabledChange={onPhaserEnabledChange}
+            phaser={phaser}
+            onPhaserChange={onPhaserChange}
+            phaserFrequency={phaserFrequency}
+            onPhaserFrequencyChange={onPhaserFrequencyChange}
+            phaserOctaves={phaserOctaves}
+            onPhaserOctavesChange={onPhaserOctavesChange}
+            phaserQ={phaserQ}
+            onPhaserQChange={onPhaserQChange}
+            roomSize={roomSize}
+            onRoomSizeChange={onRoomSizeChange}
             tempoBpm={tempoBpm}
             onTempoBpmChange={onTempoBpmChange}
             previewVoicing={previewEntry}

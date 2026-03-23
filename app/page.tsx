@@ -30,7 +30,33 @@ import StructureSuggestionsSection from '../components/home/StructureSuggestions
 import useGeneratorSessionCache from '../components/home/useGeneratorSessionCache';
 import type { GeneratorFormData, ProgressionDiagramInstrument } from '../components/home/types';
 import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../lib/audio';
-import { setReverbWet } from '../lib/audio';
+import {
+  setChorusDelayTime,
+  setChorusDepth,
+  setChorusEnabled,
+  setChorusFrequency,
+  setChorusWet,
+  setFeedbackDelayEnabled,
+  setFeedbackDelayFeedback,
+  setFeedbackDelayTime,
+  setFeedbackDelayWet,
+  setPhaserEnabled,
+  setPhaserFrequency,
+  setPhaserOctaves,
+  setPhaserQ,
+  setPhaserWet,
+  setReverbEnabled,
+  setReverbRoomSize,
+  setReverbWet,
+  setTremoloDepth,
+  setTremoloEnabled,
+  setTremoloFrequency,
+  setTremoloWet,
+  setVibratoDepth,
+  setVibratoEnabled,
+  setVibratoFrequency,
+  setVibratoWet,
+} from '../lib/audio';
 import { CHORD_OPTIONS, GENRE_OPTIONS, MODE_OPTIONS, MOOD_OPTIONS } from '../lib/formOptions';
 import type { Adventurousness, ChordItem, ChordSuggestionResponse } from '../lib/types';
 
@@ -119,12 +145,158 @@ export default function HomePage() {
   const [gate, setGate] = useState<number>(1);
   const [inversionRegister, setInversionRegister] = useState<PlaybackRegister>('off');
   const [octaveShift, setOctaveShift] = useState<number>(0);
+  const [reverbEnabled, setReverbEnabledState] = useState(false);
   const [reverb, setReverb] = useState<number>(0);
+  const [chorusEnabled, setChorusEnabledState] = useState(false);
+  const [chorus, setChorus] = useState<number>(0);
+  const [chorusRate, setChorusRate] = useState<number>(1.5);
+  const [chorusDepth, setChorusDepthState] = useState<number>(0.7);
+  const [chorusDelayTime, setChorusDelayTimeState] = useState<number>(3.5);
+  const [feedbackDelayEnabled, setFeedbackDelayEnabledState] = useState(false);
+  const [feedbackDelay, setFeedbackDelay] = useState<number>(0);
+  const [feedbackDelayTime, setFeedbackDelayTimeState] = useState<number>(0.25);
+  const [feedbackDelayFeedback, setFeedbackDelayFeedbackState] = useState<number>(0.35);
+  const [tremoloEnabled, setTremoloEnabledState] = useState(false);
+  const [tremolo, setTremolo] = useState<number>(0);
+  const [tremoloFrequency, setTremoloFrequencyState] = useState<number>(9);
+  const [tremoloDepth, setTremoloDepthState] = useState<number>(0.5);
+  const [vibratoEnabled, setVibratoEnabledState] = useState(false);
+  const [vibrato, setVibrato] = useState<number>(0);
+  const [vibratoFrequency, setVibratoFrequencyState] = useState<number>(5);
+  const [vibratoDepth, setVibratoDepthState] = useState<number>(0.1);
+  const [phaserEnabled, setPhaserEnabledState] = useState(false);
+  const [phaser, setPhaser] = useState<number>(0);
+  const [phaserFrequency, setPhaserFrequencyState] = useState<number>(0.5);
+  const [phaserOctaves, setPhaserOctavesState] = useState<number>(3);
+  const [phaserQ, setPhaserQState] = useState<number>(10);
+  const [roomSize, setRoomSize] = useState<number>(0.25);
 
   const handleReverbChange = (value: number) => {
     setReverb(value);
     setReverbWet(value);
   };
+
+  const handleRoomSizeChange = (value: number) => {
+    const normalizedValue = Math.min(1, Math.max(0, value));
+    setRoomSize(normalizedValue);
+    setReverbRoomSize(normalizedValue);
+  };
+
+  const handleChorusChange = (value: number) => {
+    const normalizedValue = Math.min(1, Math.max(0, value));
+    setChorus(normalizedValue);
+    setChorusWet(normalizedValue);
+  };
+
+  const handleFeedbackDelayChange = (value: number) => {
+    const normalizedValue = Math.min(1, Math.max(0, value));
+    setFeedbackDelay(normalizedValue);
+    setFeedbackDelayWet(normalizedValue);
+  };
+
+  const handleEffectToggle = (setState: (value: boolean) => void) => (value: boolean) => {
+    setState(value);
+  };
+
+  useEffect(() => {
+    setReverbEnabled(reverbEnabled);
+  }, [reverbEnabled]);
+
+  useEffect(() => {
+    setReverbWet(reverb);
+  }, [reverb]);
+
+  useEffect(() => {
+    setChorusEnabled(chorusEnabled);
+  }, [chorusEnabled]);
+
+  useEffect(() => {
+    setChorusWet(chorus);
+  }, [chorus]);
+
+  useEffect(() => {
+    setChorusFrequency(chorusRate);
+  }, [chorusRate]);
+
+  useEffect(() => {
+    setChorusDepth(chorusDepth);
+  }, [chorusDepth]);
+
+  useEffect(() => {
+    setChorusDelayTime(chorusDelayTime);
+  }, [chorusDelayTime]);
+
+  useEffect(() => {
+    setFeedbackDelayEnabled(feedbackDelayEnabled);
+  }, [feedbackDelayEnabled]);
+
+  useEffect(() => {
+    setFeedbackDelayWet(feedbackDelay);
+  }, [feedbackDelay]);
+
+  useEffect(() => {
+    setFeedbackDelayTime(feedbackDelayTime);
+  }, [feedbackDelayTime]);
+
+  useEffect(() => {
+    setFeedbackDelayFeedback(feedbackDelayFeedback);
+  }, [feedbackDelayFeedback]);
+
+  useEffect(() => {
+    setTremoloEnabled(tremoloEnabled);
+  }, [tremoloEnabled]);
+
+  useEffect(() => {
+    setTremoloWet(tremolo);
+  }, [tremolo]);
+
+  useEffect(() => {
+    setTremoloFrequency(tremoloFrequency);
+  }, [tremoloFrequency]);
+
+  useEffect(() => {
+    setTremoloDepth(tremoloDepth);
+  }, [tremoloDepth]);
+
+  useEffect(() => {
+    setVibratoEnabled(vibratoEnabled);
+  }, [vibratoEnabled]);
+
+  useEffect(() => {
+    setVibratoWet(vibrato);
+  }, [vibrato]);
+
+  useEffect(() => {
+    setVibratoFrequency(vibratoFrequency);
+  }, [vibratoFrequency]);
+
+  useEffect(() => {
+    setVibratoDepth(vibratoDepth);
+  }, [vibratoDepth]);
+
+  useEffect(() => {
+    setPhaserEnabled(phaserEnabled);
+  }, [phaserEnabled]);
+
+  useEffect(() => {
+    setPhaserWet(phaser);
+  }, [phaser]);
+
+  useEffect(() => {
+    setPhaserFrequency(phaserFrequency);
+  }, [phaserFrequency]);
+
+  useEffect(() => {
+    setPhaserOctaves(phaserOctaves);
+  }, [phaserOctaves]);
+
+  useEffect(() => {
+    setPhaserQ(phaserQ);
+  }, [phaserQ]);
+
+  useEffect(() => {
+    setReverbRoomSize(roomSize);
+  }, [roomSize]);
 
   const [isGeneratedChordGridOpen, setIsGeneratedChordGridOpen] = useState(false);
   const [successMessageOpen, setSuccessMessageOpen] = useState(false);
@@ -136,6 +308,78 @@ export default function HomePage() {
       reset,
       setData,
       setIsLoadedFromSavedProgression,
+      playbackStyle,
+      setPlaybackStyle,
+      attack,
+      setAttack,
+      decay,
+      setDecay,
+      padVelocity,
+      setPadVelocity,
+      padSwing,
+      setPadSwing,
+      padLatchMode,
+      setPadLatchMode,
+      humanize,
+      setHumanize,
+      gate,
+      setGate,
+      inversionRegister,
+      setInversionRegister,
+      instrument,
+      setInstrument,
+      octaveShift,
+      setOctaveShift,
+      reverbEnabled,
+      setReverbEnabled: setReverbEnabledState,
+      reverb,
+      setReverb,
+      chorusEnabled,
+      setChorusEnabled: setChorusEnabledState,
+      chorus,
+      setChorus,
+      chorusRate,
+      setChorusRate,
+      chorusDepth,
+      setChorusDepth: setChorusDepthState,
+      chorusDelayTime,
+      setChorusDelayTime: setChorusDelayTimeState,
+      feedbackDelayEnabled,
+      setFeedbackDelayEnabled: setFeedbackDelayEnabledState,
+      feedbackDelay,
+      setFeedbackDelay,
+      feedbackDelayTime,
+      setFeedbackDelayTime: setFeedbackDelayTimeState,
+      feedbackDelayFeedback,
+      setFeedbackDelayFeedback: setFeedbackDelayFeedbackState,
+      tremoloEnabled,
+      setTremoloEnabled: setTremoloEnabledState,
+      tremolo,
+      setTremolo,
+      tremoloFrequency,
+      setTremoloFrequency: setTremoloFrequencyState,
+      tremoloDepth,
+      setTremoloDepth: setTremoloDepthState,
+      vibratoEnabled,
+      setVibratoEnabled: setVibratoEnabledState,
+      vibrato,
+      setVibrato,
+      vibratoFrequency,
+      setVibratoFrequency: setVibratoFrequencyState,
+      vibratoDepth,
+      setVibratoDepth: setVibratoDepthState,
+      phaserEnabled,
+      setPhaserEnabled: setPhaserEnabledState,
+      phaser,
+      setPhaser,
+      phaserFrequency,
+      setPhaserFrequency: setPhaserFrequencyState,
+      phaserOctaves,
+      setPhaserOctaves: setPhaserOctavesState,
+      phaserQ,
+      setPhaserQ: setPhaserQState,
+      roomSize,
+      setRoomSize,
     });
 
   const generatedChordGridEntries = useMemo(() => {
@@ -418,6 +662,56 @@ export default function HomePage() {
                         onOctaveShiftChange={setOctaveShift}
                         reverb={reverb}
                         onReverbChange={handleReverbChange}
+                        reverbEnabled={reverbEnabled}
+                        onReverbEnabledChange={handleEffectToggle(setReverbEnabledState)}
+                        chorus={chorus}
+                        onChorusChange={handleChorusChange}
+                        chorusEnabled={chorusEnabled}
+                        onChorusEnabledChange={handleEffectToggle(setChorusEnabledState)}
+                        chorusRate={chorusRate}
+                        onChorusRateChange={setChorusRate}
+                        chorusDepth={chorusDepth}
+                        onChorusDepthChange={setChorusDepthState}
+                        chorusDelayTime={chorusDelayTime}
+                        onChorusDelayTimeChange={setChorusDelayTimeState}
+                        feedbackDelayEnabled={feedbackDelayEnabled}
+                        onFeedbackDelayEnabledChange={handleEffectToggle(
+                          setFeedbackDelayEnabledState,
+                        )}
+                        feedbackDelay={feedbackDelay}
+                        onFeedbackDelayChange={handleFeedbackDelayChange}
+                        feedbackDelayTime={feedbackDelayTime}
+                        onFeedbackDelayTimeChange={setFeedbackDelayTimeState}
+                        feedbackDelayFeedback={feedbackDelayFeedback}
+                        onFeedbackDelayFeedbackChange={setFeedbackDelayFeedbackState}
+                        tremoloEnabled={tremoloEnabled}
+                        onTremoloEnabledChange={handleEffectToggle(setTremoloEnabledState)}
+                        tremolo={tremolo}
+                        onTremoloChange={setTremolo}
+                        tremoloFrequency={tremoloFrequency}
+                        onTremoloFrequencyChange={setTremoloFrequencyState}
+                        tremoloDepth={tremoloDepth}
+                        onTremoloDepthChange={setTremoloDepthState}
+                        vibratoEnabled={vibratoEnabled}
+                        onVibratoEnabledChange={handleEffectToggle(setVibratoEnabledState)}
+                        vibrato={vibrato}
+                        onVibratoChange={setVibrato}
+                        vibratoFrequency={vibratoFrequency}
+                        onVibratoFrequencyChange={setVibratoFrequencyState}
+                        vibratoDepth={vibratoDepth}
+                        onVibratoDepthChange={setVibratoDepthState}
+                        phaserEnabled={phaserEnabled}
+                        onPhaserEnabledChange={handleEffectToggle(setPhaserEnabledState)}
+                        phaser={phaser}
+                        onPhaserChange={setPhaser}
+                        phaserFrequency={phaserFrequency}
+                        onPhaserFrequencyChange={setPhaserFrequencyState}
+                        phaserOctaves={phaserOctaves}
+                        onPhaserOctavesChange={setPhaserOctavesState}
+                        phaserQ={phaserQ}
+                        onPhaserQChange={setPhaserQState}
+                        roomSize={roomSize}
+                        onRoomSizeChange={handleRoomSizeChange}
                         tempoBpm={tempoBpm}
                         onTempoBpmChange={handleTempoBpmChange}
                         previewVoicing={previewVoicing}
@@ -624,6 +918,54 @@ export default function HomePage() {
                     onOctaveShiftChange={setOctaveShift}
                     reverb={reverb}
                     onReverbChange={handleReverbChange}
+                    reverbEnabled={reverbEnabled}
+                    onReverbEnabledChange={handleEffectToggle(setReverbEnabledState)}
+                    chorus={chorus}
+                    onChorusChange={handleChorusChange}
+                    chorusEnabled={chorusEnabled}
+                    onChorusEnabledChange={handleEffectToggle(setChorusEnabledState)}
+                    chorusRate={chorusRate}
+                    onChorusRateChange={setChorusRate}
+                    chorusDepth={chorusDepth}
+                    onChorusDepthChange={setChorusDepthState}
+                    chorusDelayTime={chorusDelayTime}
+                    onChorusDelayTimeChange={setChorusDelayTimeState}
+                    feedbackDelayEnabled={feedbackDelayEnabled}
+                    onFeedbackDelayEnabledChange={handleEffectToggle(setFeedbackDelayEnabledState)}
+                    feedbackDelay={feedbackDelay}
+                    onFeedbackDelayChange={handleFeedbackDelayChange}
+                    feedbackDelayTime={feedbackDelayTime}
+                    onFeedbackDelayTimeChange={setFeedbackDelayTimeState}
+                    feedbackDelayFeedback={feedbackDelayFeedback}
+                    onFeedbackDelayFeedbackChange={setFeedbackDelayFeedbackState}
+                    tremoloEnabled={tremoloEnabled}
+                    onTremoloEnabledChange={handleEffectToggle(setTremoloEnabledState)}
+                    tremolo={tremolo}
+                    onTremoloChange={setTremolo}
+                    tremoloFrequency={tremoloFrequency}
+                    onTremoloFrequencyChange={setTremoloFrequencyState}
+                    tremoloDepth={tremoloDepth}
+                    onTremoloDepthChange={setTremoloDepthState}
+                    vibratoEnabled={vibratoEnabled}
+                    onVibratoEnabledChange={handleEffectToggle(setVibratoEnabledState)}
+                    vibrato={vibrato}
+                    onVibratoChange={setVibrato}
+                    vibratoFrequency={vibratoFrequency}
+                    onVibratoFrequencyChange={setVibratoFrequencyState}
+                    vibratoDepth={vibratoDepth}
+                    onVibratoDepthChange={setVibratoDepthState}
+                    phaserEnabled={phaserEnabled}
+                    onPhaserEnabledChange={handleEffectToggle(setPhaserEnabledState)}
+                    phaser={phaser}
+                    onPhaserChange={setPhaser}
+                    phaserFrequency={phaserFrequency}
+                    onPhaserFrequencyChange={setPhaserFrequencyState}
+                    phaserOctaves={phaserOctaves}
+                    onPhaserOctavesChange={setPhaserOctavesState}
+                    phaserQ={phaserQ}
+                    onPhaserQChange={setPhaserQState}
+                    roomSize={roomSize}
+                    onRoomSizeChange={handleRoomSizeChange}
                     chords={generatedChordGridEntries}
                     onTempoBpmChange={handleTempoBpmChange}
                   />

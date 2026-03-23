@@ -23,6 +23,8 @@ import { useState } from 'react';
 import { playChordVoicing } from '../../lib/audio';
 import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
 import SelectField from '../ui/SelectField';
+import EffectParamSlider from './EffectParamSlider';
+import EffectSettingsCard from './EffectSettingsCard';
 import EnvelopeControls from './EnvelopeControls';
 
 type PreviewVoicing = {
@@ -55,6 +57,54 @@ type PlaybackSettingsButtonProps = {
   onOctaveShiftChange: (value: number) => void;
   reverb: number;
   onReverbChange: (value: number) => void;
+  reverbEnabled: boolean;
+  onReverbEnabledChange: (value: boolean) => void;
+  chorus: number;
+  onChorusChange: (value: number) => void;
+  chorusEnabled: boolean;
+  onChorusEnabledChange: (value: boolean) => void;
+  chorusRate: number;
+  onChorusRateChange: (value: number) => void;
+  chorusDepth: number;
+  onChorusDepthChange: (value: number) => void;
+  chorusDelayTime: number;
+  onChorusDelayTimeChange: (value: number) => void;
+  feedbackDelayEnabled: boolean;
+  onFeedbackDelayEnabledChange: (value: boolean) => void;
+  feedbackDelay: number;
+  onFeedbackDelayChange: (value: number) => void;
+  feedbackDelayTime: number;
+  onFeedbackDelayTimeChange: (value: number) => void;
+  feedbackDelayFeedback: number;
+  onFeedbackDelayFeedbackChange: (value: number) => void;
+  tremoloEnabled: boolean;
+  onTremoloEnabledChange: (value: boolean) => void;
+  tremolo: number;
+  onTremoloChange: (value: number) => void;
+  tremoloFrequency: number;
+  onTremoloFrequencyChange: (value: number) => void;
+  tremoloDepth: number;
+  onTremoloDepthChange: (value: number) => void;
+  vibratoEnabled: boolean;
+  onVibratoEnabledChange: (value: boolean) => void;
+  vibrato: number;
+  onVibratoChange: (value: number) => void;
+  vibratoFrequency: number;
+  onVibratoFrequencyChange: (value: number) => void;
+  vibratoDepth: number;
+  onVibratoDepthChange: (value: number) => void;
+  phaserEnabled: boolean;
+  onPhaserEnabledChange: (value: boolean) => void;
+  phaser: number;
+  onPhaserChange: (value: number) => void;
+  phaserFrequency: number;
+  onPhaserFrequencyChange: (value: number) => void;
+  phaserOctaves: number;
+  onPhaserOctavesChange: (value: number) => void;
+  phaserQ: number;
+  onPhaserQChange: (value: number) => void;
+  roomSize: number;
+  onRoomSizeChange: (value: number) => void;
   tempoBpm: number;
   onTempoBpmChange: (value: number) => void;
   previewVoicing?: PreviewVoicing;
@@ -86,12 +136,66 @@ export default function PlaybackSettingsButton({
   onOctaveShiftChange,
   reverb,
   onReverbChange,
+  reverbEnabled,
+  onReverbEnabledChange,
+  chorus,
+  onChorusChange,
+  chorusEnabled,
+  onChorusEnabledChange,
+  chorusRate,
+  onChorusRateChange,
+  chorusDepth,
+  onChorusDepthChange,
+  chorusDelayTime,
+  onChorusDelayTimeChange,
+  feedbackDelayEnabled,
+  onFeedbackDelayEnabledChange,
+  feedbackDelay,
+  onFeedbackDelayChange,
+  feedbackDelayTime,
+  onFeedbackDelayTimeChange,
+  feedbackDelayFeedback,
+  onFeedbackDelayFeedbackChange,
+  tremoloEnabled,
+  onTremoloEnabledChange,
+  tremolo,
+  onTremoloChange,
+  tremoloFrequency,
+  onTremoloFrequencyChange,
+  tremoloDepth,
+  onTremoloDepthChange,
+  vibratoEnabled,
+  onVibratoEnabledChange,
+  vibrato,
+  onVibratoChange,
+  vibratoFrequency,
+  onVibratoFrequencyChange,
+  vibratoDepth,
+  onVibratoDepthChange,
+  phaserEnabled,
+  onPhaserEnabledChange,
+  phaser,
+  onPhaserChange,
+  phaserFrequency,
+  onPhaserFrequencyChange,
+  phaserOctaves,
+  onPhaserOctavesChange,
+  phaserQ,
+  onPhaserQChange,
+  roomSize,
+  onRoomSizeChange,
   tempoBpm,
   onTempoBpmChange,
   previewVoicing,
   position = 'inline',
 }: PlaybackSettingsButtonProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [reverbAdvancedOpen, setReverbAdvancedOpen] = useState(false);
+  const [chorusAdvancedOpen, setChorusAdvancedOpen] = useState(false);
+  const [feedbackDelayAdvancedOpen, setFeedbackDelayAdvancedOpen] = useState(false);
+  const [tremoloAdvancedOpen, setTremoloAdvancedOpen] = useState(false);
+  const [vibratoAdvancedOpen, setVibratoAdvancedOpen] = useState(false);
+  const [phaserAdvancedOpen, setPhaserAdvancedOpen] = useState(false);
 
   const closeDialog = () => setIsSettingsOpen(false);
   const canPreview = Boolean(previewVoicing);
@@ -160,6 +264,77 @@ export default function PlaybackSettingsButton({
         <DialogTitle>Playback Settings</DialogTitle>
         <DialogContent>
           <Stack spacing={2.5}>
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Octave shift
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Slider
+                  value={octaveShift}
+                  onChange={(_, value) => onOctaveShiftChange(value as number)}
+                  min={-3}
+                  max={3}
+                  step={1}
+                  marks={[
+                    { value: -3, label: '-3' },
+                    { value: 0, label: '0' },
+                    { value: 3, label: '+3' },
+                  ]}
+                  valueLabelDisplay="auto"
+                  aria-label="Octave shift"
+                  sx={{ flex: 1 }}
+                />
+              </Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5, display: 'block' }}
+              >
+                Transposes all notes by octaves. Positive values shift higher, negative values shift
+                lower.
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Inversion lock
+              </Typography>
+              <ToggleButtonGroup
+                size="small"
+                color="primary"
+                exclusive
+                value={inversionRegister}
+                onChange={(_, nextValue: PlaybackRegister | null) => {
+                  if (nextValue) {
+                    onInversionRegisterChange(nextValue);
+                  }
+                }}
+                aria-label="Inversion register"
+                fullWidth
+              >
+                <ToggleButton value="off" aria-label="Off">
+                  Off
+                </ToggleButton>
+                <ToggleButton value="low" aria-label="Low register (C2–B3)">
+                  Low
+                </ToggleButton>
+                <ToggleButton value="mid" aria-label="Mid register (C3–B4)">
+                  Mid
+                </ToggleButton>
+                <ToggleButton value="high" aria-label="High register (C4–B5)">
+                  High
+                </ToggleButton>
+              </ToggleButtonGroup>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5, display: 'block' }}
+              >
+                Shifts chord notes to stay in the chosen register using nearest-octave voice
+                leading.
+              </Typography>
+            </Box>
+
             <Box>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
                 Playback style
@@ -268,20 +443,6 @@ export default function PlaybackSettingsButton({
                       aria-label="Gate (note length)"
                     />
                   </Box>
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                      Reverb: {Math.round(reverb * 100)}%
-                    </Typography>
-                    <Slider
-                      size="small"
-                      value={reverb}
-                      onChange={(_, value) => onReverbChange(value as number)}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      aria-label="Reverb amount"
-                    />
-                  </Box>
                 </CardContent>
               </Card>
 
@@ -351,73 +512,266 @@ export default function PlaybackSettingsButton({
 
             <Box>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Octave shift
+                Effects
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Slider
-                  value={octaveShift}
-                  onChange={(_, value) => onOctaveShiftChange(value as number)}
-                  min={-3}
-                  max={3}
-                  step={1}
-                  marks={[
-                    { value: -3, label: '-3' },
-                    { value: 0, label: '0' },
-                    { value: 3, label: '+3' },
-                  ]}
-                  valueLabelDisplay="auto"
-                  aria-label="Octave shift"
-                  sx={{ flex: 1 }}
-                />
-              </Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 0.5, display: 'block' }}
-              >
-                Transposes all notes by octaves. Positive values shift higher, negative values shift
-                lower.
-              </Typography>
-            </Box>
-
-            <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Inversion lock
-              </Typography>
-              <ToggleButtonGroup
-                size="small"
-                color="primary"
-                exclusive
-                value={inversionRegister}
-                onChange={(_, nextValue: PlaybackRegister | null) => {
-                  if (nextValue) {
-                    onInversionRegisterChange(nextValue);
-                  }
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                  gap: 1.5,
                 }}
-                aria-label="Inversion register"
-                fullWidth
               >
-                <ToggleButton value="off" aria-label="Off">
-                  Off
-                </ToggleButton>
-                <ToggleButton value="low" aria-label="Low register (C2–B3)">
-                  Low
-                </ToggleButton>
-                <ToggleButton value="mid" aria-label="Mid register (C3–B4)">
-                  Mid
-                </ToggleButton>
-                <ToggleButton value="high" aria-label="High register (C4–B5)">
-                  High
-                </ToggleButton>
-              </ToggleButtonGroup>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 0.5, display: 'block' }}
-              >
-                Shifts chord notes to stay in the chosen register using nearest-octave voice
-                leading.
-              </Typography>
+                <EffectSettingsCard
+                  title="Reverb"
+                  enabled={reverbEnabled}
+                  onEnabledChange={onReverbEnabledChange}
+                  level={reverb}
+                  onLevelChange={onReverbChange}
+                  levelAriaLabel="Reverb level"
+                  advancedOpen={reverbAdvancedOpen}
+                  onAdvancedToggle={() => setReverbAdvancedOpen((prev) => !prev)}
+                >
+                  <Box>
+                    <EffectParamSlider
+                      label="Room size"
+                      valueText={`${Math.round(roomSize * 100)}%`}
+                      value={roomSize}
+                      onChange={onRoomSizeChange}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      ariaLabel="Reverb room size"
+                      disabled={!reverbEnabled}
+                    />
+                  </Box>
+                </EffectSettingsCard>
+
+                <EffectSettingsCard
+                  title="Chorus"
+                  enabled={chorusEnabled}
+                  onEnabledChange={onChorusEnabledChange}
+                  level={chorus}
+                  onLevelChange={onChorusChange}
+                  levelAriaLabel="Chorus level"
+                  advancedOpen={chorusAdvancedOpen}
+                  onAdvancedToggle={() => setChorusAdvancedOpen((prev) => !prev)}
+                >
+                  <>
+                    <Box>
+                      <EffectParamSlider
+                        label="Rate"
+                        valueText={`${chorusRate.toFixed(1)} Hz`}
+                        value={chorusRate}
+                        onChange={onChorusRateChange}
+                        min={0.1}
+                        max={8}
+                        step={0.1}
+                        ariaLabel="Chorus rate"
+                        disabled={!chorusEnabled}
+                      />
+                    </Box>
+                    <Box>
+                      <EffectParamSlider
+                        label="Depth"
+                        valueText={`${Math.round(chorusDepth * 100)}%`}
+                        value={chorusDepth}
+                        onChange={onChorusDepthChange}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        ariaLabel="Chorus depth"
+                        disabled={!chorusEnabled}
+                      />
+                    </Box>
+                    <Box>
+                      <EffectParamSlider
+                        label="Delay time"
+                        valueText={`${chorusDelayTime.toFixed(1)} ms`}
+                        value={chorusDelayTime}
+                        onChange={onChorusDelayTimeChange}
+                        min={0.1}
+                        max={20}
+                        step={0.1}
+                        ariaLabel="Chorus delay time"
+                        disabled={!chorusEnabled}
+                      />
+                    </Box>
+                  </>
+                </EffectSettingsCard>
+
+                <EffectSettingsCard
+                  title="Tremolo"
+                  enabled={tremoloEnabled}
+                  onEnabledChange={onTremoloEnabledChange}
+                  level={tremolo}
+                  onLevelChange={onTremoloChange}
+                  levelAriaLabel="Tremolo level"
+                  advancedOpen={tremoloAdvancedOpen}
+                  onAdvancedToggle={() => setTremoloAdvancedOpen((prev) => !prev)}
+                >
+                  <>
+                    <Box>
+                      <EffectParamSlider
+                        label="Rate"
+                        valueText={`${tremoloFrequency.toFixed(1)} Hz`}
+                        value={tremoloFrequency}
+                        onChange={onTremoloFrequencyChange}
+                        min={0.1}
+                        max={20}
+                        step={0.1}
+                        ariaLabel="Tremolo rate"
+                        disabled={!tremoloEnabled}
+                      />
+                    </Box>
+                    <Box>
+                      <EffectParamSlider
+                        label="Depth"
+                        valueText={`${Math.round(tremoloDepth * 100)}%`}
+                        value={tremoloDepth}
+                        onChange={onTremoloDepthChange}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        ariaLabel="Tremolo depth"
+                        disabled={!tremoloEnabled}
+                      />
+                    </Box>
+                  </>
+                </EffectSettingsCard>
+
+                <EffectSettingsCard
+                  title="Feedback delay"
+                  enabled={feedbackDelayEnabled}
+                  onEnabledChange={onFeedbackDelayEnabledChange}
+                  level={feedbackDelay}
+                  onLevelChange={onFeedbackDelayChange}
+                  levelAriaLabel="Feedback delay level"
+                  advancedOpen={feedbackDelayAdvancedOpen}
+                  onAdvancedToggle={() => setFeedbackDelayAdvancedOpen((prev) => !prev)}
+                >
+                  <>
+                    <Box>
+                      <EffectParamSlider
+                        label="Delay time"
+                        valueText={`${feedbackDelayTime.toFixed(2)} s`}
+                        value={feedbackDelayTime}
+                        onChange={onFeedbackDelayTimeChange}
+                        min={0.01}
+                        max={1.5}
+                        step={0.01}
+                        ariaLabel="Feedback delay time"
+                        disabled={!feedbackDelayEnabled}
+                      />
+                    </Box>
+                    <Box>
+                      <EffectParamSlider
+                        label="Feedback"
+                        valueText={`${Math.round(feedbackDelayFeedback * 100)}%`}
+                        value={feedbackDelayFeedback}
+                        onChange={onFeedbackDelayFeedbackChange}
+                        min={0}
+                        max={0.95}
+                        step={0.01}
+                        ariaLabel="Feedback delay feedback"
+                        disabled={!feedbackDelayEnabled}
+                      />
+                    </Box>
+                  </>
+                </EffectSettingsCard>
+
+                <EffectSettingsCard
+                  title="Vibrato"
+                  enabled={vibratoEnabled}
+                  onEnabledChange={onVibratoEnabledChange}
+                  level={vibrato}
+                  onLevelChange={onVibratoChange}
+                  levelAriaLabel="Vibrato level"
+                  advancedOpen={vibratoAdvancedOpen}
+                  onAdvancedToggle={() => setVibratoAdvancedOpen((prev) => !prev)}
+                >
+                  <>
+                    <Box>
+                      <EffectParamSlider
+                        label="Frequency"
+                        valueText={`${vibratoFrequency.toFixed(1)} Hz`}
+                        value={vibratoFrequency}
+                        onChange={onVibratoFrequencyChange}
+                        min={0.1}
+                        max={12}
+                        step={0.1}
+                        ariaLabel="Vibrato frequency"
+                        disabled={!vibratoEnabled}
+                      />
+                    </Box>
+                    <Box>
+                      <EffectParamSlider
+                        label="Depth"
+                        valueText={`${Math.round(vibratoDepth * 100)}%`}
+                        value={vibratoDepth}
+                        onChange={onVibratoDepthChange}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        ariaLabel="Vibrato depth"
+                        disabled={!vibratoEnabled}
+                      />
+                    </Box>
+                  </>
+                </EffectSettingsCard>
+
+                <EffectSettingsCard
+                  title="Phaser"
+                  enabled={phaserEnabled}
+                  onEnabledChange={onPhaserEnabledChange}
+                  level={phaser}
+                  onLevelChange={onPhaserChange}
+                  levelAriaLabel="Phaser level"
+                  advancedOpen={phaserAdvancedOpen}
+                  onAdvancedToggle={() => setPhaserAdvancedOpen((prev) => !prev)}
+                >
+                  <>
+                    <Box>
+                      <EffectParamSlider
+                        label="Frequency"
+                        valueText={`${phaserFrequency.toFixed(1)} Hz`}
+                        value={phaserFrequency}
+                        onChange={onPhaserFrequencyChange}
+                        min={0.1}
+                        max={8}
+                        step={0.1}
+                        ariaLabel="Phaser frequency"
+                        disabled={!phaserEnabled}
+                      />
+                    </Box>
+                    <Box>
+                      <EffectParamSlider
+                        label="Octaves"
+                        valueText={phaserOctaves.toFixed(1)}
+                        value={phaserOctaves}
+                        onChange={onPhaserOctavesChange}
+                        min={0.1}
+                        max={6}
+                        step={0.1}
+                        ariaLabel="Phaser octaves"
+                        disabled={!phaserEnabled}
+                      />
+                    </Box>
+                    <Box>
+                      <EffectParamSlider
+                        label="Q"
+                        valueText={phaserQ.toFixed(1)}
+                        value={phaserQ}
+                        onChange={onPhaserQChange}
+                        min={0.1}
+                        max={20}
+                        step={0.1}
+                        ariaLabel="Phaser Q"
+                        disabled={!phaserEnabled}
+                      />
+                    </Box>
+                  </>
+                </EffectSettingsCard>
+              </Box>
             </Box>
           </Stack>
         </DialogContent>

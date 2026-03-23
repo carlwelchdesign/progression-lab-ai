@@ -4,6 +4,11 @@ let pianoSampler: Tone.Sampler | null = null;
 let pianoSamplerLoaded: Promise<void> | null = null;
 let rhodesSampler: Tone.Sampler | null = null;
 let rhodesSamplerLoaded: Promise<void> | null = null;
+let chorusNode: Tone.Chorus | null = null;
+let feedbackDelayNode: Tone.FeedbackDelay | null = null;
+let tremoloNode: Tone.Tremolo | null = null;
+let vibratoNode: Tone.Vibrato | null = null;
+let phaserNode: Tone.Phaser | null = null;
 let reverbNode: Tone.Reverb | null = null;
 let reverbNodeReady: Promise<void> | null = null;
 let scheduledPlaybackTimeouts: ReturnType<typeof setTimeout>[] = [];
@@ -12,6 +17,39 @@ const MIN_TEMPO_BPM = 40;
 const MAX_TEMPO_BPM = 240;
 const CHORD_BEATS = 2;
 const STRUM_STEP_SECONDS = 0.025;
+const REVERB_MIN_DECAY_SECONDS = 0.8;
+const REVERB_MAX_DECAY_SECONDS = 10;
+
+let reverbEnabled = false;
+let reverbWet = 0;
+let reverbRoomSize = 0.25;
+
+let chorusEnabled = false;
+let chorusWet = 0;
+let chorusFrequency = 1.5;
+let chorusDelayTime = 3.5;
+let chorusDepth = 0.7;
+
+let feedbackDelayEnabled = false;
+let feedbackDelayWet = 0;
+let feedbackDelayTime = 0.25;
+let feedbackDelayFeedback = 0.35;
+
+let tremoloEnabled = false;
+let tremoloWet = 0;
+let tremoloFrequency = 9;
+let tremoloDepth = 0.5;
+
+let vibratoEnabled = false;
+let vibratoWet = 0;
+let vibratoFrequency = 5;
+let vibratoDepth = 0.1;
+
+let phaserEnabled = false;
+let phaserWet = 0;
+let phaserFrequency = 0.5;
+let phaserOctaves = 3;
+let phaserQ = 10;
 
 export type PlaybackStyle = 'strum' | 'block';
 export type PlaybackRegister = 'off' | 'low' | 'mid' | 'high';
@@ -80,6 +118,8 @@ const normalizeVelocity = (velocity?: number): number | undefined => {
   return Math.min(1, Math.max(0.1, (velocity ?? 96) / 127));
 };
 
+const clampUnitValue = (value: number): number => Math.min(1, Math.max(0, value));
+
 const normalizeTempoBpm = (tempoBpm?: number): number => {
   if (!Number.isFinite(tempoBpm)) {
     return DEFAULT_TEMPO_BPM;
@@ -104,7 +144,188 @@ const getReverbNode = (): Tone.Reverb => {
   return reverbNode;
 };
 
+const getChorusNode = (): Tone.Chorus => {
+  if (!chorusNode) {
+    chorusNode = new Tone.Chorus({
+      frequency: chorusFrequency,
+      delayTime: chorusDelayTime,
+      depth: chorusDepth,
+      wet: chorusWet,
+    }).start();
+  }
+
+  return chorusNode;
+};
+
+const getTremoloNode = (): Tone.Tremolo => {
+  if (!tremoloNode) {
+    tremoloNode = new Tone.Tremolo({
+      frequency: tremoloFrequency,
+      depth: tremoloDepth,
+      wet: tremoloWet,
+      spread: 180,
+    }).start();
+  }
+
+  return tremoloNode;
+};
+
+const getFeedbackDelayNode = (): Tone.FeedbackDelay => {
+  if (!feedbackDelayNode) {
+    feedbackDelayNode = new Tone.FeedbackDelay({
+      delayTime: feedbackDelayTime,
+      feedback: feedbackDelayFeedback,
+      wet: feedbackDelayWet,
+    });
+  }
+
+  return feedbackDelayNode;
+};
+
+const getVibratoNode = (): Tone.Vibrato => {
+  if (!vibratoNode) {
+    vibratoNode = new Tone.Vibrato({
+      frequency: vibratoFrequency,
+      depth: vibratoDepth,
+      wet: vibratoWet,
+    });
+  }
+
+  return vibratoNode;
+};
+
+const getPhaserNode = (): Tone.Phaser => {
+  if (!phaserNode) {
+    phaserNode = new Tone.Phaser({
+      frequency: phaserFrequency,
+      octaves: phaserOctaves,
+      Q: phaserQ,
+      wet: phaserWet,
+    });
+  }
+
+  return phaserNode;
+};
+
+const disconnectSamplers = (): void => {
+  if (pianoSampler) {
+    pianoSampler.disconnect();
+  }
+
+  if (rhodesSampler) {
+    rhodesSampler.disconnect();
+  }
+};
+
+const connectSamplers = (target: Tone.ToneAudioNode | Tone.BaseContext['destination']): void => {
+  if (pianoSampler) {
+    pianoSampler.connect(target);
+  }
+
+  if (rhodesSampler) {
+    rhodesSampler.connect(target);
+  }
+};
+
+const getEnabledEffectsInOrder = (): Tone.ToneAudioNode[] => {
+  const effects: Tone.ToneAudioNode[] = [];
+
+  if (vibratoEnabled) {
+    effects.push(getVibratoNode());
+  }
+
+  if (chorusEnabled) {
+    effects.push(getChorusNode());
+  }
+
+  if (phaserEnabled) {
+    effects.push(getPhaserNode());
+  }
+
+  if (feedbackDelayEnabled) {
+    effects.push(getFeedbackDelayNode());
+  }
+
+  if (tremoloEnabled) {
+    effects.push(getTremoloNode());
+  }
+
+  if (reverbEnabled) {
+    effects.push(getReverbNode());
+  }
+
+  return effects;
+};
+
+const refreshEffectRouting = (): void => {
+  [vibratoNode, chorusNode, phaserNode, feedbackDelayNode, tremoloNode, reverbNode].forEach(
+    (node) => {
+      node?.disconnect();
+    },
+  );
+
+  const enabledEffects = getEnabledEffectsInOrder();
+
+  disconnectSamplers();
+
+  if (enabledEffects.length === 0) {
+    connectSamplers(Tone.getDestination());
+    return;
+  }
+
+  for (let i = 0; i < enabledEffects.length - 1; i += 1) {
+    enabledEffects[i].connect(enabledEffects[i + 1]);
+  }
+
+  enabledEffects[enabledEffects.length - 1].connect(Tone.getDestination());
+  connectSamplers(enabledEffects[0]);
+};
+
+const disposeEffectNode = (
+  effect: 'reverb' | 'chorus' | 'feedback-delay' | 'tremolo' | 'vibrato' | 'phaser',
+): void => {
+  if (effect === 'reverb' && reverbNode) {
+    reverbNode.dispose();
+    reverbNode = null;
+    reverbNodeReady = null;
+    return;
+  }
+
+  if (effect === 'chorus' && chorusNode) {
+    chorusNode.dispose();
+    chorusNode = null;
+    return;
+  }
+
+  if (effect === 'feedback-delay' && feedbackDelayNode) {
+    feedbackDelayNode.dispose();
+    feedbackDelayNode = null;
+    return;
+  }
+
+  if (effect === 'tremolo' && tremoloNode) {
+    tremoloNode.dispose();
+    tremoloNode = null;
+    return;
+  }
+
+  if (effect === 'vibrato' && vibratoNode) {
+    vibratoNode.dispose();
+    vibratoNode = null;
+    return;
+  }
+
+  if (effect === 'phaser' && phaserNode) {
+    phaserNode.dispose();
+    phaserNode = null;
+  }
+};
+
 const ensureReverbReady = async (): Promise<void> => {
+  if (!reverbEnabled) {
+    return;
+  }
+
   getReverbNode();
   if (reverbNodeReady) {
     await reverbNodeReady;
@@ -112,7 +333,236 @@ const ensureReverbReady = async (): Promise<void> => {
 };
 
 export const setReverbWet = (wet: number): void => {
-  getReverbNode().wet.value = Math.min(1, Math.max(0, wet));
+  reverbWet = clampUnitValue(wet);
+  if (reverbNode) {
+    reverbNode.set({ wet: reverbWet });
+  }
+};
+
+export const setChorusWet = (wet: number): void => {
+  chorusWet = clampUnitValue(wet);
+  if (chorusNode) {
+    chorusNode.set({ wet: chorusWet });
+  }
+};
+
+export const setReverbRoomSize = (roomSize: number): void => {
+  const normalizedRoomSize = clampUnitValue(roomSize);
+  reverbRoomSize = normalizedRoomSize;
+  const decayRange = REVERB_MAX_DECAY_SECONDS - REVERB_MIN_DECAY_SECONDS;
+  if (reverbNode) {
+    reverbNode.decay = REVERB_MIN_DECAY_SECONDS + normalizedRoomSize * decayRange;
+  }
+};
+
+export const setReverbEnabled = (enabled: boolean): void => {
+  reverbEnabled = enabled;
+
+  if (enabled) {
+    const node = getReverbNode();
+    node.set({ wet: reverbWet });
+    const decayRange = REVERB_MAX_DECAY_SECONDS - REVERB_MIN_DECAY_SECONDS;
+    node.decay = REVERB_MIN_DECAY_SECONDS + reverbRoomSize * decayRange;
+  } else {
+    disposeEffectNode('reverb');
+  }
+
+  refreshEffectRouting();
+};
+
+export const setChorusEnabled = (enabled: boolean): void => {
+  chorusEnabled = enabled;
+
+  if (enabled) {
+    getChorusNode().set({
+      wet: chorusWet,
+      frequency: chorusFrequency,
+      delayTime: chorusDelayTime,
+      depth: chorusDepth,
+    });
+  } else {
+    disposeEffectNode('chorus');
+  }
+
+  refreshEffectRouting();
+};
+
+export const setChorusFrequency = (value: number): void => {
+  chorusFrequency = Math.max(0.1, value);
+  if (chorusNode) {
+    chorusNode.set({ frequency: chorusFrequency });
+  }
+};
+
+export const setChorusDelayTime = (value: number): void => {
+  chorusDelayTime = Math.max(0.1, value);
+  if (chorusNode) {
+    chorusNode.set({ delayTime: chorusDelayTime });
+  }
+};
+
+export const setChorusDepth = (value: number): void => {
+  chorusDepth = clampUnitValue(value);
+  if (chorusNode) {
+    chorusNode.set({ depth: chorusDepth });
+  }
+};
+
+export const setFeedbackDelayEnabled = (enabled: boolean): void => {
+  feedbackDelayEnabled = enabled;
+
+  if (enabled) {
+    getFeedbackDelayNode().set({
+      wet: feedbackDelayWet,
+      delayTime: feedbackDelayTime,
+      feedback: feedbackDelayFeedback,
+    });
+  } else {
+    disposeEffectNode('feedback-delay');
+  }
+
+  refreshEffectRouting();
+};
+
+export const setFeedbackDelayWet = (wet: number): void => {
+  feedbackDelayWet = clampUnitValue(wet);
+  if (feedbackDelayNode) {
+    feedbackDelayNode.set({ wet: feedbackDelayWet });
+  }
+};
+
+export const setFeedbackDelayTime = (value: number): void => {
+  feedbackDelayTime = Math.max(0.01, value);
+  if (feedbackDelayNode) {
+    feedbackDelayNode.set({ delayTime: feedbackDelayTime });
+  }
+};
+
+export const setFeedbackDelayFeedback = (value: number): void => {
+  feedbackDelayFeedback = Math.min(0.95, Math.max(0, value));
+  if (feedbackDelayNode) {
+    feedbackDelayNode.set({ feedback: feedbackDelayFeedback });
+  }
+};
+
+export const setTremoloEnabled = (enabled: boolean): void => {
+  tremoloEnabled = enabled;
+
+  if (enabled) {
+    getTremoloNode().set({
+      wet: tremoloWet,
+      frequency: tremoloFrequency,
+      depth: tremoloDepth,
+      spread: 180,
+    });
+  } else {
+    disposeEffectNode('tremolo');
+  }
+
+  refreshEffectRouting();
+};
+
+export const setTremoloWet = (wet: number): void => {
+  tremoloWet = clampUnitValue(wet);
+  if (tremoloNode) {
+    tremoloNode.set({ wet: tremoloWet });
+  }
+};
+
+export const setTremoloFrequency = (value: number): void => {
+  tremoloFrequency = Math.max(0.1, value);
+  if (tremoloNode) {
+    tremoloNode.set({ frequency: tremoloFrequency });
+  }
+};
+
+export const setTremoloDepth = (value: number): void => {
+  tremoloDepth = clampUnitValue(value);
+  if (tremoloNode) {
+    tremoloNode.set({ depth: tremoloDepth });
+  }
+};
+
+export const setVibratoEnabled = (enabled: boolean): void => {
+  vibratoEnabled = enabled;
+
+  if (enabled) {
+    getVibratoNode().set({
+      wet: vibratoWet,
+      frequency: vibratoFrequency,
+      depth: vibratoDepth,
+    });
+  } else {
+    disposeEffectNode('vibrato');
+  }
+
+  refreshEffectRouting();
+};
+
+export const setVibratoWet = (wet: number): void => {
+  vibratoWet = clampUnitValue(wet);
+  if (vibratoNode) {
+    vibratoNode.set({ wet: vibratoWet });
+  }
+};
+
+export const setVibratoFrequency = (value: number): void => {
+  vibratoFrequency = Math.max(0.1, value);
+  if (vibratoNode) {
+    vibratoNode.set({ frequency: vibratoFrequency });
+  }
+};
+
+export const setVibratoDepth = (value: number): void => {
+  vibratoDepth = clampUnitValue(value);
+  if (vibratoNode) {
+    vibratoNode.set({ depth: vibratoDepth });
+  }
+};
+
+export const setPhaserEnabled = (enabled: boolean): void => {
+  phaserEnabled = enabled;
+
+  if (enabled) {
+    getPhaserNode().set({
+      wet: phaserWet,
+      frequency: phaserFrequency,
+      octaves: phaserOctaves,
+      Q: phaserQ,
+    });
+  } else {
+    disposeEffectNode('phaser');
+  }
+
+  refreshEffectRouting();
+};
+
+export const setPhaserWet = (wet: number): void => {
+  phaserWet = clampUnitValue(wet);
+  if (phaserNode) {
+    phaserNode.set({ wet: phaserWet });
+  }
+};
+
+export const setPhaserFrequency = (value: number): void => {
+  phaserFrequency = Math.max(0.1, value);
+  if (phaserNode) {
+    phaserNode.set({ frequency: phaserFrequency });
+  }
+};
+
+export const setPhaserOctaves = (value: number): void => {
+  phaserOctaves = Math.max(0.1, value);
+  if (phaserNode) {
+    phaserNode.set({ octaves: phaserOctaves });
+  }
+};
+
+export const setPhaserQ = (value: number): void => {
+  phaserQ = Math.max(0.1, value);
+  if (phaserNode) {
+    phaserNode.set({ Q: phaserQ });
+  }
 };
 
 const shiftNotesByOctaves = (notes: string[], octaveShift: number): string[] => {
@@ -162,7 +612,7 @@ const getPianoSampler = (): Tone.Sampler => {
       },
       release: 1,
       baseUrl: 'https://tonejs.github.io/audio/salamander/',
-    }).connect(getReverbNode());
+    }).connect(getChorusNode());
 
     pianoSamplerLoaded = Tone.loaded();
   }
@@ -274,7 +724,7 @@ const getRhodesSampler = (): Tone.Sampler => {
       },
       release: 0.8,
       baseUrl: '/audio/rhodes/',
-    }).connect(getReverbNode());
+    }).connect(getChorusNode());
 
     rhodesSamplerLoaded = Tone.loaded();
   }
