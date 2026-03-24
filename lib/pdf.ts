@@ -326,11 +326,6 @@ function drawPianoChart(
   height: number,
   voicing: PdfChordEntry['pianoVoicing'],
 ): void {
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(55, 65, 81);
-  doc.text('Piano', x, y - 1.5);
-
   doc.setDrawColor(209, 213, 219);
   doc.setLineWidth(0.2);
   doc.roundedRect(x, y, width, height, 1.5, 1.5, 'S');
