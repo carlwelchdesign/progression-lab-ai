@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { Box, Button, Stack, Typography } from '@mui/material';
 
-import { playProgression, stopAllAudio } from '../../lib/audio';
+import { playProgression } from '../../lib/audio';
 import type { AudioInstrument, PlaybackRegister, PlaybackStyle, PadPattern } from '../../lib/audio';
 import type { TimeSignature } from '../../lib/audio';
 import type { PdfChartOptions } from '../../lib/pdf';
@@ -11,6 +10,7 @@ import Card from '../ui/Card';
 import MidiDownloadButton from '../ui/MidiDownloadButton';
 import PdfDownloadButton from '../ui/PdfDownloadButton';
 import type { ChordSuggestionResponse } from '../../lib/types';
+import { usePlaybackToggle } from './usePlaybackToggle';
 
 /**
  * Props for displaying arrangement/structure suggestions.
@@ -149,8 +149,7 @@ export default function StructureSuggestionsSection({
   genre,
   showTitle = true,
 }: StructureSuggestionsSectionProps) {
-  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
-  const [isPlayingArrangement, setIsPlayingArrangement] = useState(false);
+  const { playingId, handlePlayToggle } = usePlaybackToggle();
 
   const arrangementVoicings = structureSuggestions.flatMap((section, index) => {
     const idea =
@@ -185,10 +184,7 @@ export default function StructureSuggestionsSection({
               size="small"
               disabled={arrangementVoicings.length === 0}
               onClick={() => {
-                if (isPlayingArrangement) {
-                  stopAllAudio();
-                  setIsPlayingArrangement(false);
-                } else {
+                handlePlayToggle('arrangement', () => {
                   playProgression(arrangementVoicings, tempoBpm, playbackStyle, attack, decay, {
                     humanize,
                     gate,
@@ -200,11 +196,10 @@ export default function StructureSuggestionsSection({
                     metronomeEnabled,
                     metronomeVolume,
                   });
-                  setIsPlayingArrangement(true);
-                }
+                });
               }}
             >
-              {isPlayingArrangement ? 'Stop' : 'Play arrangement'}
+              {playingId === 'arrangement' ? 'Stop' : 'Play arrangement'}
             </Button>
             <PdfDownloadButton
               variant="outlined"
@@ -265,10 +260,7 @@ export default function StructureSuggestionsSection({
                     size="small"
                     disabled={sectionVoicings.length === 0}
                     onClick={() => {
-                      if (playingIndex === index) {
-                        stopAllAudio();
-                        setPlayingIndex(null);
-                      } else {
+                      handlePlayToggle(`section-${index}`, () => {
                         playProgression(sectionVoicings, tempoBpm, playbackStyle, attack, decay, {
                           humanize,
                           gate,
@@ -280,11 +272,10 @@ export default function StructureSuggestionsSection({
                           metronomeEnabled,
                           metronomeVolume,
                         });
-                        setPlayingIndex(index);
-                      }
+                      });
                     }}
                   >
-                    {playingIndex === index ? 'Stop' : 'Play section'}
+                    {playingId === `section-${index}` ? 'Stop' : 'Play section'}
                   </Button>
                   <PdfDownloadButton
                     variant="outlined"

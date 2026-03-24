@@ -17,6 +17,7 @@ import {
 import { downloadChordMidi, downloadProgressionMidi } from '../../lib/midi';
 import type { ChordItem, ChordSuggestionResponse, GuitarVoicing } from '../../lib/types';
 import type { ProgressionDiagramInstrument } from './types';
+import { usePlaybackToggle } from './usePlaybackToggle';
 
 /**
  * Props for progression idea cards and interaction callbacks.
@@ -134,6 +135,8 @@ export default function ProgressionIdeasSection({
   guitarVoicingByChord,
   onRequestSaveProgression,
 }: ProgressionIdeasSectionProps) {
+  const { playingId, handlePlayToggle } = usePlaybackToggle();
+
   return (
     <Box component="section" id="progressions">
       {showTitle ? (
@@ -194,24 +197,26 @@ export default function ProgressionIdeasSection({
                       variant="contained"
                       size="small"
                       onClick={() =>
-                        playProgression(
-                          idea.pianoVoicings,
-                          tempoBpm,
-                          playbackStyle,
-                          attack,
-                          decay,
-                          {
-                            humanize,
-                            gate,
-                            inversionRegister,
-                            instrument,
-                            octaveShift,
-                            padPattern,
-                          },
-                        )
+                        handlePlayToggle(idea.label, () => {
+                          playProgression(
+                            idea.pianoVoicings,
+                            tempoBpm,
+                            playbackStyle,
+                            attack,
+                            decay,
+                            {
+                              humanize,
+                              gate,
+                              inversionRegister,
+                              instrument,
+                              octaveShift,
+                              padPattern,
+                            },
+                          );
+                        })
                       }
                     >
-                      Play progression
+                      {playingId === idea.label ? 'Stop' : 'Play arrangement'}
                     </Button>
                     <MidiDownloadButton
                       variant="outlined"
