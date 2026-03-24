@@ -10,3 +10,5 @@ package-lock.json
 .swc
 *.tsbuildinfo
 *.bak
+coverage/
+coverage-report.txt
