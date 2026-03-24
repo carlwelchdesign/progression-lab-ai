@@ -166,7 +166,8 @@ describe('HomePage', () => {
     expect(requestBody.mood.length).toBeGreaterThan(0);
     expect(requestBody.mode.length).toBeGreaterThan(0);
     expect(requestBody.genre.length).toBeGreaterThan(0);
-    expect(requestBody.styleReference).toBeNull();
+    expect(typeof requestBody.styleReference).toBe('string');
+    expect((requestBody.styleReference ?? '').length).toBeGreaterThan(0);
     expect(requestBody.instrument).toBe('both');
     expect(['safe', 'balanced', 'surprising']).toContain(requestBody.adventurousness);
   });

@@ -1,8 +1,13 @@
 'use client';
 
-import { Box, Typography } from '@mui/material';
+import { useState } from 'react';
+import { Box, Button, Stack, Typography } from '@mui/material';
 
+import { playProgression, stopAllAudio } from '../../lib/audio';
+import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
+import type { PdfChartOptions } from '../../lib/pdf';
 import Card from '../ui/Card';
+import PdfDownloadButton from '../ui/PdfDownloadButton';
 import type { ChordSuggestionResponse } from '../../lib/types';
 
 /**
@@ -10,7 +15,109 @@ import type { ChordSuggestionResponse } from '../../lib/types';
  */
 type StructureSuggestionsSectionProps = {
   structureSuggestions: ChordSuggestionResponse['structureSuggestions'];
+  progressionIdeas: ChordSuggestionResponse['progressionIdeas'];
+  tempoBpm: number;
+  playbackStyle: PlaybackStyle;
+  attack?: number;
+  decay?: number;
+  humanize?: number;
+  gate?: number;
+  inversionRegister?: PlaybackRegister;
+  instrument: AudioInstrument;
+  octaveShift?: number;
+  scale?: string;
+  genre?: string;
   showTitle?: boolean;
+};
+
+const CHORD_BEATS = 2;
+const BEATS_PER_BAR = 4;
+
+const toTitleCase = (value: string): string => {
+  if (!value) {
+    return value;
+  }
+
+  return `${value[0].toUpperCase()}${value.slice(1)}`;
+};
+
+const getSectionVoicings = (
+  section: ChordSuggestionResponse['structureSuggestions'][number],
+  idea: ChordSuggestionResponse['progressionIdeas'][number] | null,
+): ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings'] => {
+  if (!idea || idea.pianoVoicings.length === 0) {
+    return [];
+  }
+
+  const barsPerCycle = Math.max(1, Math.ceil((idea.chords.length * CHORD_BEATS) / BEATS_PER_BAR));
+  const repeatCount = Math.max(1, Math.round(section.bars / barsPerCycle));
+
+  return Array.from({ length: repeatCount }).flatMap(() => idea.pianoVoicings);
+};
+
+const buildSectionChartOptions = ({
+  section,
+  idea,
+  scale,
+  genre,
+  tempoBpm,
+}: {
+  section: ChordSuggestionResponse['structureSuggestions'][number];
+  idea: ChordSuggestionResponse['progressionIdeas'][number] | null;
+  scale?: string;
+  genre?: string;
+  tempoBpm: number;
+}): PdfChartOptions => ({
+  title: `${toTitleCase(section.section)} (${section.bars} bars)`,
+  scale,
+  genre,
+  tempoBpm,
+  feel: idea?.feel,
+  performanceTip: idea?.performanceTip,
+  extraNotes: section.harmonicIdea,
+  chords: (idea?.chords ?? []).map((chord, index) => ({
+    chord,
+    pianoVoicing: idea?.pianoVoicings[index] ?? null,
+  })),
+});
+
+const buildArrangementChartOptions = ({
+  structureSuggestions,
+  progressionIdeas,
+  scale,
+  genre,
+  tempoBpm,
+}: {
+  structureSuggestions: ChordSuggestionResponse['structureSuggestions'];
+  progressionIdeas: ChordSuggestionResponse['progressionIdeas'];
+  scale?: string;
+  genre?: string;
+  tempoBpm: number;
+}): PdfChartOptions => {
+  const chords = structureSuggestions.flatMap((section, index) => {
+    const idea =
+      progressionIdeas.length > 0 ? progressionIdeas[index % progressionIdeas.length] : null;
+
+    return (idea?.chords ?? []).map((chord, chordIndex) => ({
+      chord,
+      voicingHint: `${toTitleCase(section.section)}: ${section.harmonicIdea}`,
+      pianoVoicing: idea?.pianoVoicings[chordIndex] ?? null,
+    }));
+  });
+
+  return {
+    title: 'Structure Suggestions',
+    scale,
+    genre,
+    tempoBpm,
+    extraNotes: structureSuggestions
+      .map(
+        (section) =>
+          `${toTitleCase(section.section)} (${section.bars} bars): ${section.harmonicIdea}`,
+      )
+      .join('\n'),
+    chords,
+  };
 };
 
 /**
@@ -18,14 +125,81 @@ type StructureSuggestionsSectionProps = {
  */
 export default function StructureSuggestionsSection({
   structureSuggestions,
+  progressionIdeas,
+  tempoBpm,
+  playbackStyle,
+  attack,
+  decay,
+  humanize,
+  gate,
+  inversionRegister,
+  instrument,
+  octaveShift = 0,
+  scale,
+  genre,
   showTitle = true,
 }: StructureSuggestionsSectionProps) {
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [isPlayingArrangement, setIsPlayingArrangement] = useState(false);
+
+  const arrangementVoicings = structureSuggestions.flatMap((section, index) => {
+    const idea =
+      progressionIdeas.length > 0 ? progressionIdeas[index % progressionIdeas.length] : null;
+    return getSectionVoicings(section, idea);
+  });
+
+  const arrangementChartOptions = buildArrangementChartOptions({
+    structureSuggestions,
+    progressionIdeas,
+    scale,
+    genre,
+    tempoBpm,
+  });
+
   return (
     <Box component="section" id="structure">
       {showTitle ? (
-        <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-          Structure suggestions
-        </Typography>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={1.5}
+          justifyContent="space-between"
+          alignItems={{ xs: 'flex-start', md: 'center' }}
+          sx={{ mb: 2 }}
+        >
+          <Typography variant="h5" component="h2">
+            Structure suggestions
+          </Typography>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            <Button
+              variant="contained"
+              size="small"
+              disabled={arrangementVoicings.length === 0}
+              onClick={() => {
+                if (isPlayingArrangement) {
+                  stopAllAudio();
+                  setIsPlayingArrangement(false);
+                } else {
+                  playProgression(arrangementVoicings, tempoBpm, playbackStyle, attack, decay, {
+                    humanize,
+                    gate,
+                    inversionRegister,
+                    instrument,
+                    octaveShift,
+                  });
+                  setIsPlayingArrangement(true);
+                }
+              }}
+            >
+              {isPlayingArrangement ? 'Stop' : 'Play arrangement'}
+            </Button>
+            <PdfDownloadButton
+              variant="outlined"
+              size="small"
+              label="Export PDF"
+              chartOptions={arrangementChartOptions}
+            />
+          </Stack>
+        </Stack>
       ) : null}
       <Box
         sx={{
@@ -37,14 +211,66 @@ export default function StructureSuggestionsSection({
           gap: 2,
         }}
       >
-        {structureSuggestions.map((section) => (
-          <Card key={`${section.section}-${section.bars}`}>
-            <Typography variant="h6" component="h3" gutterBottom>
-              {section.section} · {section.bars} bars
-            </Typography>
-            <Typography variant="body2">{section.harmonicIdea}</Typography>
-          </Card>
-        ))}
+        {structureSuggestions.map((section, index) => {
+          const idea =
+            progressionIdeas.length > 0 ? progressionIdeas[index % progressionIdeas.length] : null;
+          const sectionVoicings = getSectionVoicings(section, idea);
+          const sectionChartOptions = buildSectionChartOptions({
+            section,
+            idea,
+            scale,
+            genre,
+            tempoBpm,
+          });
+
+          return (
+            <Card key={`${section.section}-${section.bars}-${index}`}>
+              <Stack spacing={1.25}>
+                <Typography variant="h6" component="h3">
+                  {section.section} · {section.bars} bars
+                </Typography>
+
+                <Typography variant="body2">{section.harmonicIdea}</Typography>
+
+                {idea ? (
+                  <Typography variant="body2" color="text.secondary">
+                    Harmonic source: {idea.label}
+                  </Typography>
+                ) : null}
+
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    disabled={sectionVoicings.length === 0}
+                    onClick={() => {
+                      if (playingIndex === index) {
+                        stopAllAudio();
+                        setPlayingIndex(null);
+                      } else {
+                        playProgression(sectionVoicings, tempoBpm, playbackStyle, attack, decay, {
+                          humanize,
+                          gate,
+                          inversionRegister,
+                          instrument,
+                          octaveShift,
+                        });
+                        setPlayingIndex(index);
+                      }
+                    }}
+                  >
+                    {playingIndex === index ? 'Stop' : 'Play section'}
+                  </Button>
+                  <PdfDownloadButton
+                    variant="outlined"
+                    size="small"
+                    chartOptions={sectionChartOptions}
+                  />
+                </Stack>
+              </Stack>
+            </Card>
+          );
+        })}
       </Box>
     </Box>
   );

@@ -543,7 +543,21 @@ export default function HomePage() {
       shouldRender: !isLoadedFromSavedProgression,
       fallbackLabel: 'Loading structure suggestions...',
       render: () => (
-        <StructureSuggestionsSection structureSuggestions={visibleStructureSuggestions} />
+        <StructureSuggestionsSection
+          structureSuggestions={visibleStructureSuggestions}
+          progressionIdeas={visibleProgressionIdeas}
+          tempoBpm={tempoBpm}
+          playbackStyle={playbackStyle}
+          attack={attack}
+          decay={decay}
+          humanize={humanize}
+          gate={gate}
+          inversionRegister={inversionRegister}
+          instrument={instrument}
+          octaveShift={octaveShift}
+          scale={resolvedScale}
+          genre={resolvedGenre}
+        />
       ),
     },
   ];
