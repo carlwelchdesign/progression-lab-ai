@@ -5,6 +5,7 @@ import { Box, Button, Stack, Typography } from '@mui/material';
 
 import { playProgression, stopAllAudio } from '../../lib/audio';
 import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
+import type { TimeSignature } from '../../lib/audio';
 import type { PdfChartOptions } from '../../lib/pdf';
 import Card from '../ui/Card';
 import MidiDownloadButton from '../ui/MidiDownloadButton';
@@ -26,6 +27,9 @@ type StructureSuggestionsSectionProps = {
   inversionRegister?: PlaybackRegister;
   instrument: AudioInstrument;
   octaveShift?: number;
+  timeSignature?: TimeSignature;
+  metronomeEnabled?: boolean;
+  metronomeVolume?: number;
   scale?: string;
   genre?: string;
   showTitle?: boolean;
@@ -136,6 +140,9 @@ export default function StructureSuggestionsSection({
   inversionRegister,
   instrument,
   octaveShift = 0,
+  timeSignature,
+  metronomeEnabled,
+  metronomeVolume,
   scale,
   genre,
   showTitle = true,
@@ -186,6 +193,9 @@ export default function StructureSuggestionsSection({
                     inversionRegister,
                     instrument,
                     octaveShift,
+                    timeSignature,
+                    metronomeEnabled,
+                    metronomeVolume,
                   });
                   setIsPlayingArrangement(true);
                 }
@@ -262,6 +272,9 @@ export default function StructureSuggestionsSection({
                           inversionRegister,
                           instrument,
                           octaveShift,
+                          timeSignature,
+                          metronomeEnabled,
+                          metronomeVolume,
                         });
                         setPlayingIndex(index);
                       }

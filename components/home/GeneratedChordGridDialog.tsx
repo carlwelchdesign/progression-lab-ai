@@ -13,7 +13,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { playChordVoicing, stopAllAudio } from '../../lib/audio';
+import { playChordPattern, stopAllAudio } from '../../lib/audio';
 import { createPianoVoicingFromChordSymbol } from '../../lib/chordVoicing';
 import { CHORD_OPTIONS } from '../../lib/formOptions';
 import PlaybackSettingsButton from './PlaybackSettingsButton';
@@ -100,6 +100,9 @@ export default function GeneratedChordGridDialog({
     inversionRegister,
     instrument,
     octaveShift,
+    padPattern,
+    timeSignature,
+    padLatchMode,
   } = settings;
 
   const [activePadKey, setActivePadKey] = useState<string | null>(null);
@@ -142,9 +145,12 @@ export default function GeneratedChordGridDialog({
       activePadTimeout.current = null;
     }, 180);
 
-    void playChordVoicing({
+    void playChordPattern({
       leftHand: entry.leftHand,
       rightHand: entry.rightHand,
+      padPattern,
+      timeSignature,
+      loop: padLatchMode,
       tempoBpm,
       playbackStyle,
       attack,

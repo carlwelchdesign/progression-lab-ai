@@ -45,6 +45,7 @@ const createMockAudioEngine = (): jest.Mocked<AudioEngine> => ({
   stopAllAudio: jest.fn(),
   playChordVoicing: jest.fn().mockResolvedValue(undefined),
   playProgression: jest.fn().mockResolvedValue(undefined),
+  playChordPattern: jest.fn().mockResolvedValue(undefined),
 });
 
 describe('audio engine abstraction', () => {

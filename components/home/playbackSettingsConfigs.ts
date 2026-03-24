@@ -1,4 +1,6 @@
 import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
+import type { PadPattern, TimeSignature } from '../../lib/audio';
+import { PAD_PATTERN_LABELS, TIME_SIGNATURE_LABELS } from '../../lib/audio';
 import type { SxProps, Theme } from '@mui/material/styles';
 import type { PlaybackSettings, PlaybackSettingsChangeHandlers } from './playbackSettingsModel';
 
@@ -88,6 +90,12 @@ export const PLAYBACK_SETTINGS_COPY = {
   gateLabel: 'Gate',
   gateAriaLabel: 'Gate (note length)',
   latchModeLabel: 'Latch mode',
+  padPatternLabel: 'Pad pattern',
+  timeSignatureLabel: 'Time signature',
+  metronomeLabel: 'Metronome',
+  metronomeAriaLabel: 'Enable metronome click',
+  metronomeVolumeLabel: 'Click volume',
+  metronomeVolumeAriaLabel: 'Metronome click volume',
   effectsLabel: 'Effects',
   closeButtonLabel: 'Close',
   testSoundButtonLabel: 'Test sound',
@@ -144,6 +152,14 @@ export const PLAYBACK_STYLE_OPTIONS: ToggleOption<PlaybackStyle>[] = [
   { value: 'strum', label: 'Strum', ariaLabel: 'Strum playback' },
   { value: 'block', label: 'Block', ariaLabel: 'Block playback' },
 ];
+
+export const PAD_PATTERN_OPTIONS: ReadonlyArray<{ value: PadPattern; label: string }> = (
+  Object.entries(PAD_PATTERN_LABELS) as Array<[PadPattern, string]>
+).map(([value, label]) => ({ value, label }));
+
+export const TIME_SIGNATURE_OPTIONS: ToggleOption<TimeSignature>[] = (
+  Object.entries(TIME_SIGNATURE_LABELS) as Array<[TimeSignature, string]>
+).map(([value, label]) => ({ value, label, ariaLabel: `${label} time signature` }));
 
 /**
  * Builds the card/advanced slider configuration for all effect controls.

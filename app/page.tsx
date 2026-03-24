@@ -153,6 +153,9 @@ export default function HomePage() {
     inversionRegister,
     instrument,
     octaveShift,
+    timeSignature,
+    metronomeEnabled,
+    metronomeVolume,
   } = playbackSettings;
 
   const [isGeneratedChordGridOpen, setIsGeneratedChordGridOpen] = useState(false);
@@ -557,6 +560,9 @@ export default function HomePage() {
           octaveShift={octaveShift}
           scale={resolvedScale}
           genre={resolvedGenre}
+          timeSignature={timeSignature}
+          metronomeEnabled={metronomeEnabled}
+          metronomeVolume={metronomeVolume}
         />
       ),
     },

@@ -1,4 +1,5 @@
 import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
+import type { PadPattern, TimeSignature } from '../../lib/audio';
 
 export const DEFAULT_OCTAVE_SHIFT_BY_INSTRUMENT: Record<AudioInstrument, number> = {
   piano: 0,
@@ -15,6 +16,8 @@ export type PlaybackSettings = {
   padVelocity: number;
   padSwing: number;
   padLatchMode: boolean;
+  padPattern: PadPattern;
+  timeSignature: TimeSignature;
   humanize: number;
   gate: number;
   inversionRegister: PlaybackRegister;
@@ -45,6 +48,8 @@ export type PlaybackSettings = {
   phaserOctaves: number;
   phaserQ: number;
   roomSize: number;
+  metronomeEnabled: boolean;
+  metronomeVolume: number;
 };
 
 type PlaybackSettingsKey = keyof PlaybackSettings & string;
@@ -76,6 +81,8 @@ export const PLAYBACK_SETTINGS_DEFAULTS: PlaybackSettings = {
   padVelocity: 96,
   padSwing: 0,
   padLatchMode: false,
+  padPattern: 'single',
+  timeSignature: '4/4',
   humanize: 0,
   gate: 1,
   inversionRegister: 'off',
@@ -106,11 +113,21 @@ export const PLAYBACK_SETTINGS_DEFAULTS: PlaybackSettings = {
   phaserOctaves: 3,
   phaserQ: 10,
   roomSize: 0.25,
+  metronomeEnabled: false,
+  metronomeVolume: 0.7,
 };
 
 const PLAYBACK_STYLE_OPTIONS: PlaybackStyle[] = ['strum', 'block'];
 const INVERSION_REGISTER_OPTIONS: PlaybackRegister[] = ['off', 'low', 'mid', 'high'];
 const INSTRUMENT_OPTIONS: AudioInstrument[] = ['piano', 'rhodes'];
+const PAD_PATTERN_OPTIONS: PadPattern[] = [
+  'single',
+  'quarter-pulse',
+  'eighth-pulse',
+  'offbeat-stab',
+  'syncopated-stab',
+];
+const TIME_SIGNATURE_OPTIONS: TimeSignature[] = ['4/4', '3/4', '6/8'];
 
 /**
  * Clamps a numeric value to an inclusive [min, max] range.
@@ -140,6 +157,8 @@ export const sanitizePlaybackSettings = (input?: Partial<PlaybackSettings>): Pla
     padVelocity: Math.round(clamp(raw.padVelocity, 20, 127)),
     padSwing: Math.round(clamp(raw.padSwing, 0, 100)),
     padLatchMode: Boolean(raw.padLatchMode),
+    padPattern: PAD_PATTERN_OPTIONS.includes(raw.padPattern) ? raw.padPattern : 'single',
+    timeSignature: TIME_SIGNATURE_OPTIONS.includes(raw.timeSignature) ? raw.timeSignature : '4/4',
     humanize: clamp(raw.humanize, 0, 1),
     gate: clamp(raw.gate, 0, 1),
     inversionRegister: INVERSION_REGISTER_OPTIONS.includes(raw.inversionRegister)
@@ -172,6 +191,8 @@ export const sanitizePlaybackSettings = (input?: Partial<PlaybackSettings>): Pla
     phaserOctaves: clamp(raw.phaserOctaves, 0.1, 6),
     phaserQ: clamp(raw.phaserQ, 0.1, 20),
     roomSize: clamp(raw.roomSize, 0, 1),
+    metronomeEnabled: Boolean(raw.metronomeEnabled),
+    metronomeVolume: clamp(raw.metronomeVolume, 0, 1),
   };
 };
 
@@ -188,6 +209,8 @@ export const applyPlaybackSettings = (
   setters.setPadVelocity(settings.padVelocity);
   setters.setPadSwing(settings.padSwing);
   setters.setPadLatchMode(settings.padLatchMode);
+  setters.setPadPattern(settings.padPattern);
+  setters.setTimeSignature(settings.timeSignature);
   setters.setHumanize(settings.humanize);
   setters.setGate(settings.gate);
   setters.setInversionRegister(settings.inversionRegister);
@@ -218,4 +241,6 @@ export const applyPlaybackSettings = (
   setters.setPhaserOctaves(settings.phaserOctaves);
   setters.setPhaserQ(settings.phaserQ);
   setters.setRoomSize(settings.roomSize);
+  setters.setMetronomeEnabled(settings.metronomeEnabled);
+  setters.setMetronomeVolume(settings.metronomeVolume);
 };

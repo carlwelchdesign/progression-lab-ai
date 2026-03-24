@@ -1,4 +1,5 @@
 import type * as Tone from 'tone';
+import type { PadPattern, TimeSignature } from './padPattern';
 
 export type PlaybackStyle = 'strum' | 'block';
 export type PlaybackRegister = 'off' | 'low' | 'mid' | 'high';
@@ -26,6 +27,28 @@ export type PlayChordVoicingParams = {
 };
 
 export type PlayProgressionOptions = {
+  velocity?: number;
+  humanize?: number;
+  gate?: number;
+  inversionRegister?: PlaybackRegister;
+  instrument?: AudioInstrument;
+  octaveShift?: number;
+  timeSignature?: TimeSignature;
+  metronomeEnabled?: boolean;
+  metronomeVolume?: number;
+};
+
+export type PlayChordPatternParams = {
+  leftHand: string[];
+  rightHand: string[];
+  padPattern?: PadPattern;
+  timeSignature?: TimeSignature;
+  /** When true the pattern loops indefinitely; when false it plays one bar. */
+  loop?: boolean;
+  tempoBpm?: number;
+  playbackStyle?: PlaybackStyle;
+  attack?: number;
+  decay?: number;
   velocity?: number;
   humanize?: number;
   gate?: number;
@@ -71,4 +94,5 @@ export interface AudioEngine {
     decay?: number,
     opts?: PlayProgressionOptions,
   ) => Promise<void>;
+  playChordPattern: (params: PlayChordPatternParams) => Promise<void>;
 }
