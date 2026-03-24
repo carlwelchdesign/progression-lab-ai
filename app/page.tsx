@@ -153,6 +153,10 @@ export default function HomePage() {
     inversionRegister,
     instrument,
     octaveShift,
+    padPattern,
+    timeSignature,
+    metronomeEnabled,
+    metronomeVolume,
   } = playbackSettings;
 
   const [isGeneratedChordGridOpen, setIsGeneratedChordGridOpen] = useState(false);
@@ -531,6 +535,10 @@ export default function HomePage() {
           inversionRegister={inversionRegister}
           instrument={instrument}
           octaveShift={octaveShift}
+          padPattern={padPattern}
+          timeSignature={timeSignature}
+          metronomeEnabled={metronomeEnabled}
+          metronomeVolume={metronomeVolume}
           scale={resolvedScale}
           resolvedGenreForSave={resolvedGenre}
           guitarVoicingByChord={guitarVoicingByChord}
@@ -555,8 +563,12 @@ export default function HomePage() {
           inversionRegister={inversionRegister}
           instrument={instrument}
           octaveShift={octaveShift}
+          padPattern={padPattern}
           scale={resolvedScale}
           genre={resolvedGenre}
+          timeSignature={timeSignature}
+          metronomeEnabled={metronomeEnabled}
+          metronomeVolume={metronomeVolume}
         />
       ),
     },

@@ -241,9 +241,13 @@ describe('playbackSettingsModel', () => {
         setPadVelocity: jest.fn(),
         setPadSwing: jest.fn(),
         setPadLatchMode: jest.fn(),
+        setPadPattern: jest.fn(),
+        setTimeSignature: jest.fn(),
         setHumanize: jest.fn(),
         setGate: jest.fn(),
         setInversionRegister: jest.fn(),
+        setMetronomeEnabled: jest.fn(),
+        setMetronomeVolume: jest.fn(),
       };
 
       const settings = PLAYBACK_SETTINGS_DEFAULTS;
@@ -276,9 +280,13 @@ describe('playbackSettingsModel', () => {
         setPadVelocity: jest.fn(),
         setPadSwing: jest.fn(),
         setPadLatchMode: jest.fn(),
+        setPadPattern: jest.fn(),
+        setTimeSignature: jest.fn(),
         setHumanize: jest.fn(),
         setGate: jest.fn(),
         setInversionRegister: jest.fn(),
+        setMetronomeEnabled: jest.fn(),
+        setMetronomeVolume: jest.fn(),
         setReverbEnabled: jest.fn(),
         setChorusEnabled: jest.fn(),
         setChorus: jest.fn(),
@@ -324,6 +332,8 @@ describe('playbackSettingsModel', () => {
         onPadVelocityChange: jest.fn(),
         onPadSwingChange: jest.fn(),
         onPadLatchModeChange: jest.fn(),
+        onPadPatternChange: jest.fn(),
+        onTimeSignatureChange: jest.fn(),
         onHumanizeChange: jest.fn(),
         onGateChange: jest.fn(),
         onInversionRegisterChange: jest.fn(),
@@ -354,6 +364,8 @@ describe('playbackSettingsModel', () => {
         onPhaserOctavesChange: jest.fn(),
         onPhaserQChange: jest.fn(),
         onRoomSizeChange: jest.fn(),
+        onMetronomeEnabledChange: jest.fn(),
+        onMetronomeVolumeChange: jest.fn(),
       };
 
       expect(handlers).toBeDefined();
@@ -367,6 +379,8 @@ describe('playbackSettingsModel', () => {
         setPadVelocity: jest.fn(),
         setPadSwing: jest.fn(),
         setPadLatchMode: jest.fn(),
+        setPadPattern: jest.fn(),
+        setTimeSignature: jest.fn(),
         setHumanize: jest.fn(),
         setGate: jest.fn(),
         setInversionRegister: jest.fn(),
@@ -397,6 +411,8 @@ describe('playbackSettingsModel', () => {
         setPhaserOctaves: jest.fn(),
         setPhaserQ: jest.fn(),
         setRoomSize: jest.fn(),
+        setMetronomeEnabled: jest.fn(),
+        setMetronomeVolume: jest.fn(),
       };
 
       expect(setters).toBeDefined();

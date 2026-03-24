@@ -9,6 +9,8 @@ import {
   OCTAVE_SHIFT_RANGE,
   PLAYBACK_SETTINGS_COPY,
   PLAYBACK_STYLE_OPTIONS,
+  PAD_PATTERN_OPTIONS,
+  TIME_SIGNATURE_OPTIONS,
   TEMPO_RANGE,
   createEffectConfigs,
   createPadSliderConfigs,
@@ -40,6 +42,7 @@ import { useCallback, useState } from 'react';
 
 import { playChordVoicing } from '../../lib/audio';
 import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
+import type { PadPattern, TimeSignature } from '../../lib/audio';
 import SelectField from '../ui/SelectField';
 import EffectParamSlider from './EffectParamSlider';
 import EffectSettingsCard from './EffectSettingsCard';
@@ -83,6 +86,10 @@ export default function PlaybackSettingsButton({
     decay,
     padVelocity,
     padLatchMode,
+    padPattern,
+    timeSignature,
+    metronomeEnabled,
+    metronomeVolume,
     humanize,
     gate,
     inversionRegister,
@@ -95,6 +102,10 @@ export default function PlaybackSettingsButton({
     onAttackChange,
     onDecayChange,
     onPadLatchModeChange,
+    onPadPatternChange,
+    onTimeSignatureChange,
+    onMetronomeEnabledChange,
+    onMetronomeVolumeChange,
     onGateChange,
     onInversionRegisterChange,
     onInstrumentChange,
@@ -377,6 +388,81 @@ export default function PlaybackSettingsButton({
                       }
                       label={PLAYBACK_SETTINGS_COPY.latchModeLabel}
                     />
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+                        {PLAYBACK_SETTINGS_COPY.padPatternLabel}
+                      </Typography>
+                      <SelectField
+                        value={padPattern}
+                        onChange={(e) => onPadPatternChange(e.target.value as PadPattern)}
+                        options={PAD_PATTERN_OPTIONS as Array<{ value: PadPattern; label: string }>}
+                        size="small"
+                        fullWidth
+                      />
+                    </Box>
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+                        {PLAYBACK_SETTINGS_COPY.timeSignatureLabel}
+                      </Typography>
+                      <ToggleButtonGroup
+                        size="small"
+                        color="primary"
+                        exclusive
+                        value={timeSignature}
+                        onChange={(_, next: TimeSignature | null) => {
+                          if (next) onTimeSignatureChange(next);
+                        }}
+                        aria-label="Time signature"
+                        fullWidth
+                      >
+                        {TIME_SIGNATURE_OPTIONS.map((option) => (
+                          <ToggleButton
+                            key={option.value}
+                            value={option.value}
+                            aria-label={option.ariaLabel}
+                          >
+                            {option.label}
+                          </ToggleButton>
+                        ))}
+                      </ToggleButtonGroup>
+                    </Box>
+
+                    <Box>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={metronomeEnabled}
+                            onChange={(event) => onMetronomeEnabledChange(event.target.checked)}
+                            inputProps={{ 'aria-label': PLAYBACK_SETTINGS_COPY.metronomeAriaLabel }}
+                          />
+                        }
+                        label={PLAYBACK_SETTINGS_COPY.metronomeLabel}
+                      />
+                      {metronomeEnabled ? (
+                        <Box sx={{ mt: 0.5 }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            display="block"
+                            mb={0.5}
+                          >
+                            {PLAYBACK_SETTINGS_COPY.metronomeVolumeLabel}:{' '}
+                            {Math.round(metronomeVolume * 100)}%
+                          </Typography>
+                          <Slider
+                            size="small"
+                            value={metronomeVolume}
+                            onChange={(_, value) => onMetronomeVolumeChange(value as number)}
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            aria-label={PLAYBACK_SETTINGS_COPY.metronomeVolumeAriaLabel}
+                          />
+                        </Box>
+                      ) : null}
+                    </Box>
                   </Stack>
                 </CardContent>
               </Card>

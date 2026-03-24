@@ -11,9 +11,10 @@ import {
   Typography,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import { alpha } from '@mui/material/styles';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { playChordVoicing, stopAllAudio } from '../../lib/audio';
+import { playChordPattern, stopAllAudio } from '../../lib/audio';
 import { createPianoVoicingFromChordSymbol } from '../../lib/chordVoicing';
 import { CHORD_OPTIONS } from '../../lib/formOptions';
 import PlaybackSettingsButton from './PlaybackSettingsButton';
@@ -100,6 +101,9 @@ export default function GeneratedChordGridDialog({
     inversionRegister,
     instrument,
     octaveShift,
+    padPattern,
+    timeSignature,
+    padLatchMode,
   } = settings;
 
   const [activePadKey, setActivePadKey] = useState<string | null>(null);
@@ -142,9 +146,12 @@ export default function GeneratedChordGridDialog({
       activePadTimeout.current = null;
     }, 180);
 
-    void playChordVoicing({
+    void playChordPattern({
       leftHand: entry.leftHand,
       rightHand: entry.rightHand,
+      padPattern,
+      timeSignature,
+      loop: padLatchMode,
       tempoBpm,
       playbackStyle,
       attack,
@@ -413,23 +420,23 @@ export default function GeneratedChordGridDialog({
             variant="outlined"
             onClick={handleStartEditing}
             disabled={isEditMode}
-            sx={{
+            sx={(theme) => ({
               borderWidth: 1.5,
-              color: '#60a5fa',
-              borderColor: 'rgba(96, 165, 250, 0.9)',
+              color: theme.palette.primary.main,
+              borderColor: alpha(theme.palette.primary.main, 0.9),
               backgroundColor: 'transparent',
               textTransform: 'none',
               fontWeight: 600,
               '&:hover': {
-                borderColor: 'rgba(147, 197, 253, 1)',
-                backgroundColor: 'rgba(96, 165, 250, 0.08)',
+                borderColor: theme.palette.primary.main,
+                backgroundColor: alpha(theme.palette.primary.main, 0.08),
                 borderWidth: 1.5,
               },
               '&.Mui-disabled': {
-                borderColor: 'rgba(96, 165, 250, 0.35)',
-                color: 'rgba(96, 165, 250, 0.45)',
+                borderColor: alpha(theme.palette.primary.main, 0.35),
+                color: alpha(theme.palette.primary.main, 0.45),
               },
-            }}
+            })}
           >
             Edit
           </Button>
@@ -440,19 +447,19 @@ export default function GeneratedChordGridDialog({
             size="small"
             variant="outlined"
             onClick={stopAllAudio}
-            sx={{
+            sx={(theme) => ({
               borderWidth: 1.5,
-              color: '#60a5fa',
-              borderColor: 'rgba(96, 165, 250, 0.9)',
+              color: theme.palette.primary.main,
+              borderColor: alpha(theme.palette.primary.main, 0.9),
               backgroundColor: 'transparent',
               textTransform: 'none',
               fontWeight: 600,
               '&:hover': {
-                borderColor: 'rgba(147, 197, 253, 1)',
-                backgroundColor: 'rgba(96, 165, 250, 0.08)',
+                borderColor: theme.palette.primary.main,
+                backgroundColor: alpha(theme.palette.primary.main, 0.08),
                 borderWidth: 1.5,
               },
-            }}
+            })}
           >
             Stop audio
           </Button>

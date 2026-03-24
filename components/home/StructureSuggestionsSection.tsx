@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 
-import { playProgression, stopAllAudio } from '../../lib/audio';
-import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
+import { playProgression } from '../../lib/audio';
+import type { AudioInstrument, PlaybackRegister, PlaybackStyle, PadPattern } from '../../lib/audio';
+import type { TimeSignature } from '../../lib/audio';
 import type { PdfChartOptions } from '../../lib/pdf';
 import Card from '../ui/Card';
 import MidiDownloadButton from '../ui/MidiDownloadButton';
 import PdfDownloadButton from '../ui/PdfDownloadButton';
 import type { ChordSuggestionResponse } from '../../lib/types';
+import PlaybackToggleButton from './PlaybackToggleButton';
+import { getProgressionAutoResetMs, usePlaybackToggle } from './usePlaybackToggle';
 
 /**
  * Props for displaying arrangement/structure suggestions.
@@ -26,6 +28,10 @@ type StructureSuggestionsSectionProps = {
   inversionRegister?: PlaybackRegister;
   instrument: AudioInstrument;
   octaveShift?: number;
+  padPattern?: PadPattern;
+  timeSignature?: TimeSignature;
+  metronomeEnabled?: boolean;
+  metronomeVolume?: number;
   scale?: string;
   genre?: string;
   showTitle?: boolean;
@@ -136,12 +142,15 @@ export default function StructureSuggestionsSection({
   inversionRegister,
   instrument,
   octaveShift = 0,
+  padPattern = 'single',
+  timeSignature,
+  metronomeEnabled,
+  metronomeVolume,
   scale,
   genre,
   showTitle = true,
 }: StructureSuggestionsSectionProps) {
-  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
-  const [isPlayingArrangement, setIsPlayingArrangement] = useState(false);
+  const { playingId, handlePlayToggle } = usePlaybackToggle();
 
   const arrangementVoicings = structureSuggestions.flatMap((section, index) => {
     const idea =
@@ -171,28 +180,31 @@ export default function StructureSuggestionsSection({
             Structure suggestions
           </Typography>
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-            <Button
-              variant="contained"
-              size="small"
+            <PlaybackToggleButton
+              playTitle="Play arrangement"
+              stopTitle="Stop arrangement"
+              isPlaying={playingId === 'arrangement'}
               disabled={arrangementVoicings.length === 0}
               onClick={() => {
-                if (isPlayingArrangement) {
-                  stopAllAudio();
-                  setIsPlayingArrangement(false);
-                } else {
-                  playProgression(arrangementVoicings, tempoBpm, playbackStyle, attack, decay, {
-                    humanize,
-                    gate,
-                    inversionRegister,
-                    instrument,
-                    octaveShift,
-                  });
-                  setIsPlayingArrangement(true);
-                }
+                handlePlayToggle(
+                  'arrangement',
+                  () => {
+                    playProgression(arrangementVoicings, tempoBpm, playbackStyle, attack, decay, {
+                      humanize,
+                      gate,
+                      inversionRegister,
+                      instrument,
+                      octaveShift,
+                      padPattern,
+                      timeSignature,
+                      metronomeEnabled,
+                      metronomeVolume,
+                    });
+                  },
+                  getProgressionAutoResetMs(arrangementVoicings.length, tempoBpm),
+                );
               }}
-            >
-              {isPlayingArrangement ? 'Stop' : 'Play arrangement'}
-            </Button>
+            />
             <PdfDownloadButton
               variant="outlined"
               size="small"
@@ -247,28 +259,31 @@ export default function StructureSuggestionsSection({
                 ) : null}
 
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  <Button
-                    variant="outlined"
-                    size="small"
+                  <PlaybackToggleButton
+                    playTitle="Play section"
+                    stopTitle="Stop"
+                    isPlaying={playingId === `section-${index}`}
                     disabled={sectionVoicings.length === 0}
                     onClick={() => {
-                      if (playingIndex === index) {
-                        stopAllAudio();
-                        setPlayingIndex(null);
-                      } else {
-                        playProgression(sectionVoicings, tempoBpm, playbackStyle, attack, decay, {
-                          humanize,
-                          gate,
-                          inversionRegister,
-                          instrument,
-                          octaveShift,
-                        });
-                        setPlayingIndex(index);
-                      }
+                      handlePlayToggle(
+                        `section-${index}`,
+                        () => {
+                          playProgression(sectionVoicings, tempoBpm, playbackStyle, attack, decay, {
+                            humanize,
+                            gate,
+                            inversionRegister,
+                            instrument,
+                            octaveShift,
+                            padPattern,
+                            timeSignature,
+                            metronomeEnabled,
+                            metronomeVolume,
+                          });
+                        },
+                        getProgressionAutoResetMs(sectionVoicings.length, tempoBpm),
+                      );
                     }}
-                  >
-                    {playingIndex === index ? 'Stop' : 'Play section'}
-                  </Button>
+                  />
                   <PdfDownloadButton
                     variant="outlined"
                     size="small"

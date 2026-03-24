@@ -8,7 +8,8 @@ import Card from '../ui/Card';
 import MidiDownloadButton from '../ui/MidiDownloadButton';
 import PdfDownloadButton from '../ui/PdfDownloadButton';
 import { playChordVoicing, playProgression } from '../../lib/audio';
-import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
+import type { AudioInstrument, PlaybackRegister, PlaybackStyle, PadPattern } from '../../lib/audio';
+import type { TimeSignature } from '../../lib/audio';
 import {
   getGuitarDiagramFromChord,
   getGuitarShapeTextFromDiagram,
@@ -16,7 +17,9 @@ import {
 } from '../../lib/guitarDiagramUtils';
 import { downloadChordMidi, downloadProgressionMidi } from '../../lib/midi';
 import type { ChordItem, ChordSuggestionResponse, GuitarVoicing } from '../../lib/types';
+import PlaybackToggleButton from './PlaybackToggleButton';
 import type { ProgressionDiagramInstrument } from './types';
+import { getProgressionAutoResetMs, usePlaybackToggle } from './usePlaybackToggle';
 
 /**
  * Props for progression idea cards and interaction callbacks.
@@ -34,6 +37,10 @@ type ProgressionIdeasSectionProps = {
   inversionRegister?: PlaybackRegister;
   instrument: AudioInstrument;
   octaveShift?: number;
+  padPattern?: PadPattern;
+  timeSignature?: TimeSignature;
+  metronomeEnabled?: boolean;
+  metronomeVolume?: number;
   showTitle?: boolean;
   resolvedGenreForSave: string;
   scale?: string;
@@ -126,12 +133,18 @@ export default function ProgressionIdeasSection({
   inversionRegister,
   instrument,
   octaveShift = 0,
+  padPattern = 'single',
+  timeSignature,
+  metronomeEnabled,
+  metronomeVolume,
   showTitle = true,
   resolvedGenreForSave,
   scale,
   guitarVoicingByChord,
   onRequestSaveProgression,
 }: ProgressionIdeasSectionProps) {
+  const { playingId, handlePlayToggle } = usePlaybackToggle();
+
   return (
     <Box component="section" id="progressions">
       {showTitle ? (
@@ -188,28 +201,35 @@ export default function ProgressionIdeasSection({
               {idea.pianoVoicings.length > 0 ? (
                 <Stack spacing={1}>
                   <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                    <Button
-                      variant="contained"
-                      size="small"
+                    <PlaybackToggleButton
+                      isPlaying={playingId === idea.label}
                       onClick={() =>
-                        playProgression(
-                          idea.pianoVoicings,
-                          tempoBpm,
-                          playbackStyle,
-                          attack,
-                          decay,
-                          {
-                            humanize,
-                            gate,
-                            inversionRegister,
-                            instrument,
-                            octaveShift,
+                        handlePlayToggle(
+                          idea.label,
+                          () => {
+                            playProgression(
+                              idea.pianoVoicings,
+                              tempoBpm,
+                              playbackStyle,
+                              attack,
+                              decay,
+                              {
+                                humanize,
+                                gate,
+                                inversionRegister,
+                                instrument,
+                                octaveShift,
+                                padPattern,
+                                timeSignature,
+                                metronomeEnabled,
+                                metronomeVolume,
+                              },
+                            );
                           },
+                          getProgressionAutoResetMs(idea.pianoVoicings.length, tempoBpm),
                         )
                       }
-                    >
-                      Play progression
-                    </Button>
+                    />
                     <MidiDownloadButton
                       variant="outlined"
                       size="small"

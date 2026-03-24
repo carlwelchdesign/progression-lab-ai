@@ -34,7 +34,7 @@ export default function InstrumentToggle({ value, onChange }: InstrumentTogglePr
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
           backgroundColor: 'transparent',
-          border: '1.5px solid rgba(96, 165, 250, 0.9)',
+          border: `1.5px solid ${alpha(theme.palette.primary.main, 0.9)}`,
           height: 32,
           borderRadius: 1,
           '& .MuiToggleButton-root': {
@@ -43,7 +43,7 @@ export default function InstrumentToggle({ value, onChange }: InstrumentTogglePr
             px: 1.5,
             textTransform: 'none',
             fontWeight: 600,
-            color: '#60a5fa',
+            color: theme.palette.primary.main,
             '&.Mui-selected': {
               backgroundColor: alpha(theme.palette.primary.main, isLight ? 0.28 : 0.34),
               color: theme.palette.common.white,
@@ -51,7 +51,7 @@ export default function InstrumentToggle({ value, onChange }: InstrumentTogglePr
             },
             '&:hover': {
               backgroundColor: alpha(theme.palette.primary.main, isLight ? 0.12 : 0.2),
-              color: '#93c5fd',
+              color: alpha(theme.palette.primary.main, 0.78),
             },
           },
         };

@@ -54,6 +54,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
   const [padVelocity, setPadVelocity] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.padVelocity);
   const [padSwing, setPadSwing] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.padSwing);
   const [padLatchMode, setPadLatchMode] = useState(PLAYBACK_SETTINGS_DEFAULTS.padLatchMode);
+  const [padPattern, setPadPattern] = useState(PLAYBACK_SETTINGS_DEFAULTS.padPattern);
+  const [timeSignature, setTimeSignature] = useState(PLAYBACK_SETTINGS_DEFAULTS.timeSignature);
   const [humanize, setHumanize] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.humanize);
   const [gate, setGate] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.gate);
   const [inversionRegister, setInversionRegister] = useState(
@@ -113,6 +115,12 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
   );
   const [phaserQ, setPhaserQState] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.phaserQ);
   const [roomSize, setRoomSize] = useState<number>(PLAYBACK_SETTINGS_DEFAULTS.roomSize);
+  const [metronomeEnabled, setMetronomeEnabled] = useState(
+    PLAYBACK_SETTINGS_DEFAULTS.metronomeEnabled,
+  );
+  const [metronomeVolume, setMetronomeVolume] = useState<number>(
+    PLAYBACK_SETTINGS_DEFAULTS.metronomeVolume,
+  );
 
   const handleReverbChange = useCallback((value: number) => {
     setReverb(value);
@@ -157,6 +165,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
       padVelocity,
       padSwing,
       padLatchMode,
+      padPattern,
+      timeSignature,
       humanize,
       gate,
       inversionRegister,
@@ -187,6 +197,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
       phaserOctaves,
       phaserQ,
       roomSize,
+      metronomeEnabled,
+      metronomeVolume,
     }),
     [
       playbackStyle,
@@ -195,6 +207,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
       padVelocity,
       padSwing,
       padLatchMode,
+      padPattern,
+      timeSignature,
       humanize,
       gate,
       inversionRegister,
@@ -225,6 +239,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
       phaserOctaves,
       phaserQ,
       roomSize,
+      metronomeEnabled,
+      metronomeVolume,
     ],
   );
 
@@ -236,6 +252,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
       onPadVelocityChange: setPadVelocity,
       onPadSwingChange: setPadSwing,
       onPadLatchModeChange: setPadLatchMode,
+      onPadPatternChange: setPadPattern,
+      onTimeSignatureChange: setTimeSignature,
       onHumanizeChange: setHumanize,
       onGateChange: setGate,
       onInversionRegisterChange: setInversionRegister,
@@ -266,6 +284,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
       onPhaserOctavesChange: setPhaserOctavesState,
       onPhaserQChange: setPhaserQState,
       onRoomSizeChange: handleRoomSizeChange,
+      onMetronomeEnabledChange: setMetronomeEnabled,
+      onMetronomeVolumeChange: setMetronomeVolume,
     }),
     [
       handleChorusChange,
@@ -285,6 +305,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
       setPadVelocity,
       setPadSwing,
       setPadLatchMode,
+      setPadPattern,
+      setTimeSignature,
       setHumanize,
       setGate,
       setInversionRegister,
@@ -315,6 +337,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
       setPhaserOctaves: setPhaserOctavesState,
       setPhaserQ: setPhaserQState,
       setRoomSize,
+      setMetronomeEnabled,
+      setMetronomeVolume,
     }),
     [],
   );
