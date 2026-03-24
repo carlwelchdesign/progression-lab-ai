@@ -12,3 +12,5 @@ package-lock.json
 *.bak
 coverage/
 coverage-report.txt
+playwright-report/
+test-results/

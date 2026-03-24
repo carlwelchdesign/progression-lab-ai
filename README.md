@@ -262,6 +262,34 @@ Install dependencies:
 yarn install
 ```
 
+Run the app locally:
+
+```bash
+yarn dev
+```
+
+## Testing
+
+Unit and component tests:
+
+```bash
+yarn test
+```
+
+End-to-end tests with Playwright:
+
+```bash
+yarn playwright install chromium
+yarn test:e2e
+```
+
+Playwright reports and failure artifacts are written to dedicated generated folders:
+
+- `playwright-report/`
+- `test-results/`
+
+These folders are ignored by git and should not be committed.
+
 Start local Postgres via Docker:
 
 ```bash
