@@ -22,6 +22,7 @@ const mockSuggestionData: ChordSuggestionResponse = {
     mood: 'warm',
     mode: 'ionian',
     genre: 'neo soul',
+    styleReference: null,
     instrument: 'both',
     adventurousness: 'balanced',
   },
@@ -58,6 +59,7 @@ describe('useGeneratorSessionCache', () => {
         customMode: '',
         genre: 'jazz',
         customGenre: '',
+        styleReference: 'Barry Harris',
         adventurousness: 'balanced',
         data: mockSuggestionData,
         playbackSettings: { reverb: 0.45 },
@@ -86,6 +88,7 @@ describe('useGeneratorSessionCache', () => {
       customMode: '',
       genre: 'jazz',
       customGenre: '',
+      styleReference: 'Barry Harris',
       adventurousness: 'balanced',
       tempoBpm: 100,
     });
@@ -133,6 +136,7 @@ describe('useGeneratorSessionCache', () => {
       customMode: '',
       genre: 'custom',
       customGenre: 'my custom style',
+      styleReference: '',
       adventurousness: 'balanced',
       tempoBpm: 100,
     });

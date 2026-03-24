@@ -27,22 +27,20 @@ import RestoringState from '../components/home/RestoringState';
 import usePlaybackSettings from '../components/home/usePlaybackSettings';
 import useGeneratorSessionCache from '../components/home/useGeneratorSessionCache';
 import type { GeneratorFormData, ProgressionDiagramInstrument } from '../components/home/types';
-import { CHORD_OPTIONS, GENRE_OPTIONS, MODE_OPTIONS, MOOD_OPTIONS } from '../lib/formOptions';
-import type {
-  Adventurousness,
-  ChordItem,
-  ChordSuggestionResponse,
-  GuitarVoicing,
-} from '../lib/types';
+import {
+  ADVENTUROUSNESS_OPTIONS,
+  CHORD_OPTIONS,
+  GENRE_INPUT_OPTIONS,
+  MODE_INPUT_OPTIONS,
+  MOOD_OPTIONS,
+  STYLE_REFERENCE_OPTIONS,
+} from '../lib/formOptions';
+import type { ChordItem, ChordSuggestionResponse, GuitarVoicing } from '../lib/types';
 
 const MAX_RANDOM_SELECTIONS = 7;
-const ADVENTUROUSNESS_OPTIONS: Adventurousness[] = ['safe', 'balanced', 'surprising'];
-const RANDOM_MODE_OPTIONS = MODE_OPTIONS.filter((option) => option.value !== 'custom').map(
-  (option) => option.value,
-);
-const RANDOM_GENRE_OPTIONS = GENRE_OPTIONS.filter((option) => option.value !== 'custom').map(
-  (option) => option.value,
-);
+const ADVENTUROUSNESS_INPUT_OPTIONS = [...ADVENTUROUSNESS_OPTIONS];
+const RANDOM_MODE_OPTIONS = MODE_INPUT_OPTIONS;
+const RANDOM_GENRE_OPTIONS = GENRE_INPUT_OPTIONS;
 const NextChordSuggestionsSection = lazy(
   () => import('../components/home/NextChordSuggestionsSection'),
 );
@@ -105,6 +103,7 @@ export default function HomePage() {
       customMode: '',
       genre: '',
       customGenre: '',
+      styleReference: '',
       adventurousness: 'balanced',
       tempoBpm: 100,
     },
@@ -113,8 +112,6 @@ export default function HomePage() {
 
   const mode = watch('mode');
   const genre = watch('genre');
-  const customMode = watch('customMode');
-  const customGenre = watch('customGenre');
   const tempoBpm = watch('tempoBpm');
 
   const handleTempoBpmChange = useCallback(
@@ -367,17 +364,16 @@ export default function HomePage() {
     setIsLoadedFromSavedProgression(false);
     setIsGeneratedChordGridOpen(false);
 
-    const resolvedMode = formData.mode === 'custom' ? formData.customMode.trim() : formData.mode;
-    const resolvedGenre =
-      formData.genre === 'custom' ? formData.customGenre.trim() : formData.genre;
+    const resolvedMode = formData.mode.trim();
+    const resolvedGenre = formData.genre.trim();
 
     if (!resolvedMode) {
-      setError('Please enter a custom mode or scale.');
+      setError('Please select or enter a mode / scale.');
       return;
     }
 
     if (!resolvedGenre) {
-      setError('Please enter a custom genre.');
+      setError('Please select or enter a genre.');
       return;
     }
 
@@ -395,6 +391,7 @@ export default function HomePage() {
           mood: formData.mood,
           mode: resolvedMode,
           genre: resolvedGenre,
+          styleReference: formData.styleReference.trim() || null,
           instrument: 'both',
           adventurousness: formData.adventurousness,
         }),
@@ -437,7 +434,8 @@ export default function HomePage() {
       customMode: '',
       genre: pickRandomUnique(RANDOM_GENRE_OPTIONS, 1)[0] ?? '',
       customGenre: '',
-      adventurousness: pickRandomUnique(ADVENTUROUSNESS_OPTIONS, 1)[0] ?? 'balanced',
+      styleReference: pickRandomUnique(STYLE_REFERENCE_OPTIONS, 1)[0] ?? '',
+      adventurousness: pickRandomUnique(ADVENTUROUSNESS_INPUT_OPTIONS, 1)[0] ?? 'balanced',
       tempoBpm,
     });
     setError('');
@@ -474,8 +472,8 @@ export default function HomePage() {
     });
   };
 
-  const resolvedScale = mode === 'custom' ? customMode.trim() : mode;
-  const resolvedGenre = genre === 'custom' ? customGenre.trim() : genre;
+  const resolvedScale = mode;
+  const resolvedGenre = genre;
   const guitarVoicingByChord = useMemo(() => {
     const byChord: Partial<Record<string, GuitarVoicing>> = {};
 
@@ -567,8 +565,6 @@ export default function HomePage() {
           control={control}
           handleSubmit={handleSubmit}
           onSubmit={onSubmit}
-          mode={mode}
-          genre={genre}
           isSubmitting={isSubmitting}
           loading={loading}
           errors={errors}
@@ -746,7 +742,7 @@ export default function HomePage() {
                     chords={selectedProgressionChords}
                     pianoVoicings={selectedProgressionVoicings}
                     feel={selectedProgressionFeel}
-                    scale={mode === 'custom' ? customMode : mode}
+                    scale={mode}
                     genre={selectedProgressionGenre}
                     onSuccess={() => {
                       setSaveDialogOpen(false);

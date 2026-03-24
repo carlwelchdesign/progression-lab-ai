@@ -6,6 +6,7 @@ export const generatorResponse: ChordSuggestionResponse = {
     mood: 'dreamy, uplifting',
     mode: 'lydian',
     genre: 'piano house',
+    styleReference: null,
     instrument: 'both',
     adventurousness: 'balanced',
   },

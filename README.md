@@ -6,6 +6,7 @@ ProgressionLab is an AI-assisted harmony and songwriting workspace built with Ne
 
 - Generator form with react-hook-form validation
 - Multi-chip autocomplete inputs for seed chords and mood
+- Optional style reference autocomplete to steer harmonic language
 - Randomize Inputs action for quick idea generation
 	- Random seed chord count: 1 to 7
 	- Random mood tag count: 1 to 7
@@ -124,6 +125,7 @@ Example request payload:
 	"mood": "dreamy, uplifting",
 	"mode": "dorian",
 	"genre": "piano house",
+	"styleReference": "Barry Harris",
 	"instrument": "both",
 	"adventurousness": "balanced"
 }
@@ -138,6 +140,7 @@ Example response shape (abbreviated):
 		"mood": "dreamy, uplifting",
 		"mode": "dorian",
 		"genre": "piano house",
+		"styleReference": "Barry Harris",
 		"instrument": "both",
 		"adventurousness": "balanced"
 	},

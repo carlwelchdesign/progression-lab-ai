@@ -26,6 +26,7 @@ type GeneratorCache = {
   customMode: string;
   genre: string;
   customGenre: string;
+  styleReference?: string;
   adventurousness: Adventurousness;
   tempoBpm?: number;
   playbackSettings?: Partial<PlaybackSettings>;
@@ -134,6 +135,7 @@ const parseLoadedProgressionPayload = (
       customMode: '',
       genre,
       customGenre,
+      styleReference: '',
       adventurousness: 'balanced',
       tempoBpm: 100,
     },
@@ -143,6 +145,7 @@ const parseLoadedProgressionPayload = (
         mood: parsed.feel ?? prev?.inputSummary.mood ?? null,
         mode: parsed.scale ?? prev?.inputSummary.mode ?? null,
         genre: parsed.genre ?? prev?.inputSummary.genre ?? null,
+        styleReference: prev?.inputSummary.styleReference ?? null,
         instrument: 'both',
         adventurousness: prev?.inputSummary.adventurousness ?? null,
       },
@@ -178,6 +181,7 @@ const parseGeneratorCachePayload = (rawGeneratorCache: string): ParsedGeneratorC
       customMode: parsedCache.customMode,
       genre: parsedCache.genre,
       customGenre: parsedCache.customGenre,
+      styleReference: parsedCache.styleReference ?? '',
       adventurousness: parsedCache.adventurousness,
       tempoBpm: parsedCache.tempoBpm ?? 100,
     },
@@ -200,6 +204,7 @@ const buildGeneratorCachePayload = (
   customMode: formData.customMode,
   genre: formData.genre,
   customGenre: formData.customGenre,
+  styleReference: formData.styleReference,
   adventurousness: formData.adventurousness,
   tempoBpm: formData.tempoBpm,
   playbackSettings,

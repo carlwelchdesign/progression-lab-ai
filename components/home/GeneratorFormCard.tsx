@@ -17,9 +17,19 @@ import {
 } from '@mui/material';
 
 import Card from '../ui/Card';
-import SelectField from '../ui/SelectField';
-import TextField from '../ui/TextField';
-import { CHORD_OPTIONS, GENRE_OPTIONS, MODE_OPTIONS, MOOD_OPTIONS } from '../../lib/formOptions';
+import GroupedAutocompleteField from '../ui/GroupedAutocompleteField';
+import {
+  ADVENTUROUSNESS_CATEGORY_BY_NAME,
+  ADVENTUROUSNESS_OPTIONS,
+  CHORD_OPTIONS,
+  GENRE_CATEGORY_BY_NAME,
+  GENRE_INPUT_OPTIONS,
+  MODE_CATEGORY_BY_NAME,
+  MODE_INPUT_OPTIONS,
+  MOOD_OPTIONS,
+  STYLE_REFERENCE_CATEGORY_BY_NAME,
+  STYLE_REFERENCE_OPTIONS,
+} from '../../lib/formOptions';
 import { getChordChipSx, getMoodChipSx } from '../../lib/tagMetadata';
 import type { GeneratorFormData } from './types';
 
@@ -30,8 +40,6 @@ type GeneratorFormCardProps = {
   control: Control<GeneratorFormData>;
   handleSubmit: UseFormHandleSubmit<GeneratorFormData>;
   onSubmit: (formData: GeneratorFormData) => Promise<void> | void;
-  mode: string;
-  genre: string;
   isSubmitting: boolean;
   loading: boolean;
   errors: FieldErrors<GeneratorFormData>;
@@ -46,8 +54,6 @@ export default function GeneratorFormCard({
   control,
   handleSubmit,
   onSubmit,
-  mode,
-  genre,
   isSubmitting,
   loading,
   errors,
@@ -179,85 +185,79 @@ export default function GeneratorFormCard({
         <Controller
           name="mode"
           control={control}
-          render={({ field }) => (
-            <SelectField
+          rules={{
+            required: 'Mode / scale is required',
+            validate: (value) => value.trim().length > 0 || 'Mode / scale is required',
+          }}
+          render={({ field: { value, onChange }, fieldState: { error } }) => (
+            <GroupedAutocompleteField
               label="Mode / scale"
-              {...field}
-              options={[
-                { value: '', label: 'Select a mode or scale', disabled: true },
-                ...MODE_OPTIONS,
-              ]}
+              value={value}
+              onChange={onChange}
+              options={MODE_INPUT_OPTIONS}
+              groupByName={MODE_CATEGORY_BY_NAME}
+              freeSolo
               disabled={isSubmitting || loading}
+              placeholder="ionian, dorian, harmonic minor"
+              helperText={error?.message}
+              error={!!error}
             />
           )}
         />
-
-        {mode === 'custom' ? (
-          <Controller
-            name="customMode"
-            control={control}
-            rules={{
-              required: 'Please enter a custom mode or scale',
-            }}
-            render={({ field, fieldState: { error } }) => (
-              <TextField
-                label="Custom mode / scale"
-                {...field}
-                placeholder="Hungarian minor, altered scale, etc."
-                disabled={isSubmitting || loading}
-                error={!!error}
-                helperText={error?.message}
-              />
-            )}
-          />
-        ) : null}
 
         <Controller
           name="genre"
           control={control}
-          render={({ field }) => (
-            <SelectField
+          rules={{
+            required: 'Genre is required',
+            validate: (value) => value.trim().length > 0 || 'Genre is required',
+          }}
+          render={({ field: { value, onChange }, fieldState: { error } }) => (
+            <GroupedAutocompleteField
               label="Genre"
-              {...field}
-              options={[{ value: '', label: 'Select a genre', disabled: true }, ...GENRE_OPTIONS]}
+              value={value}
+              onChange={onChange}
+              options={GENRE_INPUT_OPTIONS}
+              groupByName={GENRE_CATEGORY_BY_NAME}
+              freeSolo
               disabled={isSubmitting || loading}
+              placeholder="piano house, jazz, indie pop"
+              helperText={error?.message}
+              error={!!error}
             />
           )}
         />
 
-        {genre === 'custom' ? (
-          <Controller
-            name="customGenre"
-            control={control}
-            rules={{
-              required: 'Please enter a custom genre',
-            }}
-            render={({ field, fieldState: { error } }) => (
-              <TextField
-                label="Custom genre"
-                {...field}
-                placeholder="UK garage, synthwave, bossa nova, etc."
-                disabled={isSubmitting || loading}
-                error={!!error}
-                helperText={error?.message}
-              />
-            )}
-          />
-        ) : null}
+        <Controller
+          name="styleReference"
+          control={control}
+          render={({ field: { value, onChange } }) => (
+            <GroupedAutocompleteField
+              label="Style reference (optional)"
+              value={value}
+              onChange={onChange}
+              freeSolo
+              options={STYLE_REFERENCE_OPTIONS}
+              groupByName={STYLE_REFERENCE_CATEGORY_BY_NAME}
+              disabled={isSubmitting || loading}
+              placeholder="Barry Harris, Bill Evans, etc."
+              helperText="Use a player, teacher, or harmony school as a stylistic guide."
+            />
+          )}
+        />
 
         <Controller
           name="adventurousness"
           control={control}
-          render={({ field }) => (
-            <SelectField
+          render={({ field: { value, onChange } }) => (
+            <GroupedAutocompleteField
               label="Adventurousness"
-              {...field}
-              options={[
-                { value: 'safe', label: 'Safe' },
-                { value: 'balanced', label: 'Balanced' },
-                { value: 'surprising', label: 'Surprising' },
-              ]}
+              value={value}
+              onChange={onChange}
+              options={ADVENTUROUSNESS_OPTIONS.map((option) => option)}
+              groupByName={ADVENTUROUSNESS_CATEGORY_BY_NAME}
               disabled={isSubmitting || loading}
+              placeholder="safe, balanced, surprising"
             />
           )}
         />

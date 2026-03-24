@@ -20,6 +20,29 @@ export const MODE_OPTIONS = [
   { value: 'custom', label: 'Custom' },
 ];
 
+export const MODE_INPUT_OPTIONS = MODE_OPTIONS.filter((option) => option.value !== 'custom').map(
+  (option) => option.value,
+);
+
+export const MODE_CATEGORY_BY_NAME: Record<string, string> = {
+  ionian: 'Major / Diatonic',
+  lydian: 'Major / Diatonic',
+  mixolydian: 'Major / Diatonic',
+  major: 'Major / Diatonic',
+  'major pentatonic': 'Pentatonic / Blues',
+  dorian: 'Minor / Modal',
+  phrygian: 'Minor / Modal',
+  aeolian: 'Minor / Modal',
+  locrian: 'Minor / Modal',
+  'minor pentatonic': 'Pentatonic / Blues',
+  blues: 'Pentatonic / Blues',
+  'harmonic minor': 'Extended Colors',
+  'melodic minor': 'Extended Colors',
+  diminished: 'Symmetric / Advanced',
+  'whole tone': 'Symmetric / Advanced',
+  chromatic: 'Symmetric / Advanced',
+};
+
 /**
  * Genre presets for generator form.
  */
@@ -45,6 +68,40 @@ export const GENRE_OPTIONS = [
   { value: 'folk', label: 'Folk' },
   { value: 'custom', label: 'Custom' },
 ];
+
+export const GENRE_INPUT_OPTIONS = GENRE_OPTIONS.filter((option) => option.value !== 'custom').map(
+  (option) => option.value,
+);
+
+export const GENRE_CATEGORY_BY_NAME: Record<string, string> = {
+  house: 'Dance / Club',
+  'piano house': 'Dance / Club',
+  'deep house': 'Dance / Club',
+  'disco house': 'Dance / Club',
+  'tech house': 'Dance / Club',
+  edm: 'Dance / Club',
+  'afro house': 'Dance / Club',
+  'progressive house': 'Dance / Club',
+  pop: 'Pop / Songwriter',
+  'indie pop': 'Pop / Songwriter',
+  'hip-hop': 'Urban / Groove',
+  'r&b / neo soul': 'Urban / Groove',
+  jazz: 'Jazz / Harmony',
+  'funk / disco': 'Jazz / Harmony',
+  ambient: 'Atmospheric / Cinematic',
+  cinematic: 'Atmospheric / Cinematic',
+  'lo-fi': 'Atmospheric / Cinematic',
+  rock: 'Band / Acoustic',
+  folk: 'Band / Acoustic',
+};
+
+export const ADVENTUROUSNESS_OPTIONS = ['safe', 'balanced', 'surprising'] as const;
+
+export const ADVENTUROUSNESS_CATEGORY_BY_NAME: Record<string, string> = {
+  safe: 'Risk Profile',
+  balanced: 'Risk Profile',
+  surprising: 'Risk Profile',
+};
 
 /**
  * Seed chord presets used by randomizer and suggestions.
@@ -209,3 +266,69 @@ export const MOOD_OPTIONS = [
   'Dark ambient',
   'Cinematic',
 ];
+
+/**
+ * Optional style references used to shape harmonic language.
+ */
+type StyleReferenceCategory =
+  | 'Jazz Piano Icons'
+  | 'Modern Harmony Voices'
+  | 'Educators and Methods';
+
+const STYLE_REFERENCE_SUGGESTIONS: Array<{
+  name: string;
+  category: StyleReferenceCategory;
+}> = [
+  { name: 'Barry Harris', category: 'Jazz Piano Icons' },
+  { name: 'Bill Evans', category: 'Jazz Piano Icons' },
+  { name: 'Herbie Hancock', category: 'Jazz Piano Icons' },
+  { name: 'McCoy Tyner', category: 'Jazz Piano Icons' },
+  { name: 'Chick Corea', category: 'Jazz Piano Icons' },
+  { name: 'Red Garland', category: 'Jazz Piano Icons' },
+  { name: 'Thelonious Monk', category: 'Jazz Piano Icons' },
+  { name: 'Oscar Peterson', category: 'Jazz Piano Icons' },
+  { name: 'Bud Powell', category: 'Jazz Piano Icons' },
+  { name: 'Kenny Barron', category: 'Jazz Piano Icons' },
+  { name: 'Mulgrew Miller', category: 'Jazz Piano Icons' },
+  { name: 'Wynton Kelly', category: 'Jazz Piano Icons' },
+  { name: 'Cory Henry', category: 'Modern Harmony Voices' },
+  { name: 'Robert Glasper', category: 'Modern Harmony Voices' },
+  { name: 'Jacob Collier', category: 'Modern Harmony Voices' },
+  { name: 'Bernie Worrell', category: 'Modern Harmony Voices' },
+  { name: 'Junie Morrison', category: 'Modern Harmony Voices' },
+  { name: 'Pharrell Williams', category: 'Modern Harmony Voices' },
+  { name: 'Stevie Wonder', category: 'Modern Harmony Voices' },
+  { name: 'Elton John', category: 'Modern Harmony Voices' },
+  { name: 'Billy Joel', category: 'Modern Harmony Voices' },
+  { name: 'Paul McCartney', category: 'Modern Harmony Voices' },
+  { name: 'Quincy Jones', category: 'Modern Harmony Voices' },
+  { name: 'Nadia Boulanger', category: 'Educators and Methods' },
+  { name: 'Berklee Harmony Method', category: 'Educators and Methods' },
+  { name: 'Gospel Harmony Language', category: 'Educators and Methods' },
+];
+
+const STYLE_REFERENCE_CATEGORY_ORDER: Record<StyleReferenceCategory, number> = {
+  'Jazz Piano Icons': 0,
+  'Modern Harmony Voices': 1,
+  'Educators and Methods': 2,
+};
+
+export const STYLE_REFERENCE_OPTIONS = [...STYLE_REFERENCE_SUGGESTIONS]
+  .sort((left, right) => {
+    const categoryOrderDiff =
+      STYLE_REFERENCE_CATEGORY_ORDER[left.category] -
+      STYLE_REFERENCE_CATEGORY_ORDER[right.category];
+
+    if (categoryOrderDiff !== 0) {
+      return categoryOrderDiff;
+    }
+
+    return left.name.localeCompare(right.name);
+  })
+  .map((option) => option.name);
+
+export const STYLE_REFERENCE_CATEGORY_BY_NAME: Record<string, StyleReferenceCategory> =
+  STYLE_REFERENCE_SUGGESTIONS.reduce<Record<string, StyleReferenceCategory>>((acc, option) => {
+    acc[option.name] = option.category;
+    return acc;
+  }, {});

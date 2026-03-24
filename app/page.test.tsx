@@ -57,6 +57,7 @@ const mockResponse = {
     mood: 'dreamy, emotional, uplifting',
     mode: 'lydian',
     genre: 'piano house',
+    styleReference: null,
     instrument: 'both',
     adventurousness: 'balanced',
   },
@@ -109,35 +110,18 @@ describe('HomePage', () => {
     global.fetch = fetchMock as unknown as typeof fetch;
   });
 
-  it('shows an error when custom mode is selected without input', async () => {
+  it('shows validation when mode / scale is cleared', async () => {
     const user = userEvent.setup();
     render(<HomePage />);
 
-    await user.selectOptions(screen.getByLabelText(/Mode \/ scale/i), 'custom');
-    await waitFor(() => {
-      expect(screen.getByLabelText('Custom mode / scale')).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Generate Ideas' }));
+    await user.clear(screen.getByRole('combobox', { name: 'Mode / scale' }));
+    await user.tab();
 
     await waitFor(() => {
-      expect(screen.getByText('Please enter a custom mode or scale')).toBeInTheDocument();
+      expect(screen.getByText('Mode / scale is required')).toBeInTheDocument();
     });
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
 
-  it('shows an error when custom genre is selected without input', async () => {
-    const user = userEvent.setup();
-    render(<HomePage />);
-
-    await user.selectOptions(screen.getByLabelText('Genre'), 'custom');
-    await waitFor(() => {
-      expect(screen.getByLabelText('Custom genre')).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Generate Ideas' }));
-
-    await waitFor(() => {
-      expect(screen.getByText('Please enter a custom genre')).toBeInTheDocument();
-    });
+    expect(screen.getByRole('button', { name: 'Generate Ideas' })).toBeDisabled();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -173,6 +157,7 @@ describe('HomePage', () => {
       mood: string;
       mode: string;
       genre: string;
+      styleReference: string | null;
       instrument: string;
       adventurousness: string;
     };
@@ -181,6 +166,7 @@ describe('HomePage', () => {
     expect(requestBody.mood.length).toBeGreaterThan(0);
     expect(requestBody.mode.length).toBeGreaterThan(0);
     expect(requestBody.genre.length).toBeGreaterThan(0);
+    expect(requestBody.styleReference).toBeNull();
     expect(requestBody.instrument).toBe('both');
     expect(['safe', 'balanced', 'surprising']).toContain(requestBody.adventurousness);
   });

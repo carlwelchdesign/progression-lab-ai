@@ -9,6 +9,7 @@ export type GeneratorFormData = {
   customMode: string;
   genre: string;
   customGenre: string;
+  styleReference: string;
   adventurousness: Adventurousness;
   tempoBpm: number;
 };

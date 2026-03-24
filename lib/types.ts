@@ -47,6 +47,7 @@ export type ChordSuggestionResponse = {
     mood: string | null;
     mode: string | null;
     genre: string | null;
+    styleReference: string | null;
     instrument: InstrumentPreference | null;
     adventurousness: Adventurousness | null;
   };

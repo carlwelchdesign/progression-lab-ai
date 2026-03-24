@@ -208,7 +208,15 @@ const chordSuggestionSchema = {
     inputSummary: {
       type: 'object',
       additionalProperties: false,
-      required: ['seedChords', 'mood', 'mode', 'genre', 'instrument', 'adventurousness'],
+      required: [
+        'seedChords',
+        'mood',
+        'mode',
+        'genre',
+        'styleReference',
+        'instrument',
+        'adventurousness',
+      ],
       properties: {
         seedChords: {
           type: 'array',
@@ -217,6 +225,7 @@ const chordSuggestionSchema = {
         mood: { type: ['string', 'null'] },
         mode: { type: ['string', 'null'] },
         genre: { type: ['string', 'null'] },
+        styleReference: { type: ['string', 'null'] },
         instrument: {
           type: ['string', 'null'],
           enum: ['guitar', 'piano', 'both', null],
@@ -391,6 +400,7 @@ Rules:
 - Be musically plausible.
 - Favor practical ideas for real musicians.
 - Respect the requested mode and mood.
+- If a styleReference is provided, reflect its harmonic language and teaching approach without copying exact songs.
 - You may use tasteful modal borrowing.
 - Prefer readable chord names like Fmaj7, Am7, Cmaj7, G7sus4.
 - Return only JSON matching the schema.
@@ -444,6 +454,10 @@ When returning progressionIdeas, ensure pianoVoicings.length exactly matches cho
       mood: body.mood ?? '',
       mode: body.mode ?? '',
       genre: body.genre ?? '',
+      styleReference:
+        typeof body.styleReference === 'string' && body.styleReference.trim().length > 0
+          ? body.styleReference.trim()
+          : null,
       instrument: body.instrument ?? 'both',
       adventurousness: body.adventurousness ?? 'balanced',
     });
