@@ -196,7 +196,7 @@ export default function ProgressionIdeasSection({
                 <Stack spacing={1}>
                   <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                     <IconButton
-                      title={playingId === idea.label ? 'Stop' : 'Play arrangement'}
+                      title={playingId === idea.label ? 'Stop' : 'Play'}
                       onClick={() =>
                         handlePlayToggle(idea.label, () => {
                           playProgression(
@@ -216,8 +216,12 @@ export default function ProgressionIdeasSection({
                           );
                         })
                       }
-                      color="primary"
-                      sx={{ bgcolor: playingId === idea.label ? 'action.selected' : 'transparent' }}
+                      size="small"
+                      sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        color: 'inherit',
+                      }}
                     >
                       {playingId === idea.label ? <StopIcon /> : <PlayArrowIcon />}
                     </IconButton>

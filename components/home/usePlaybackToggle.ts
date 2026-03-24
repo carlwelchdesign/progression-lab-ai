@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Tone from 'tone';
 import { stopAllAudio } from '../../lib/audio';
 
@@ -9,21 +9,24 @@ import { stopAllAudio } from '../../lib/audio';
  * Usage:
  *   const { isPlaying, playingId, handlePlayToggle } = usePlaybackToggle();
  *
- *   <Button onClick={() => handlePlayToggle(id, () => playProgression(...))}>
- *     {playingId === id ? 'Stop' : 'Play'}
- *   </Button>
+ *   <IconButton onClick={() => handlePlayToggle(id, () => playProgression(...))}>
+ *     {playingId === id ? <StopIcon /> : <PlayIcon />}
+ *   </IconButton>
  */
 export function usePlaybackToggle() {
   const [playingId, setPlayingId] = useState<string | number | null>(null);
+  const userInitiatedStopRef = useRef(false);
 
   const handlePlayToggle = useCallback(
     (id: string | number, playCallback: () => void) => {
       if (playingId === id) {
-        // Currently playing this ID - stop it
+        // Currently playing this ID - user wants to stop it
+        userInitiatedStopRef.current = true;
         stopAllAudio();
         setPlayingId(null);
       } else {
         // Not playing or playing different ID - play this one
+        userInitiatedStopRef.current = false;
         playCallback();
         setPlayingId(id);
       }
@@ -31,10 +34,16 @@ export function usePlaybackToggle() {
     [playingId],
   );
 
-  // Listen for when Tone.js Transport stops (audio finishes playing)
+  // Listen for when Tone.js Transport stops (audio naturally finishes playing)
   useEffect(() => {
+    if (!playingId) return;
+
     const handleTransportStop = () => {
-      setPlayingId(null);
+      // Only reset state if this wasn't a user-initiated stop
+      if (!userInitiatedStopRef.current) {
+        setPlayingId(null);
+      }
+      userInitiatedStopRef.current = false;
     };
 
     Tone.Transport.on('stop', handleTransportStop);
@@ -42,7 +51,7 @@ export function usePlaybackToggle() {
     return () => {
       Tone.Transport.off('stop', handleTransportStop);
     };
-  }, []);
+  }, [playingId]);
 
   return {
     isPlaying: playingId !== null,

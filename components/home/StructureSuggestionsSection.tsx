@@ -199,8 +199,12 @@ export default function StructureSuggestionsSection({
                   });
                 });
               }}
-              color="primary"
-              sx={{ bgcolor: playingId === 'arrangement' ? 'action.selected' : 'transparent' }}
+              size="small"
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                color: 'inherit',
+              }}
             >
               {playingId === 'arrangement' ? <StopIcon /> : <PlayArrowIcon />}
             </IconButton>
@@ -276,9 +280,11 @@ export default function StructureSuggestionsSection({
                         });
                       });
                     }}
-                    color="primary"
+                    size="small"
                     sx={{
-                      bgcolor: playingId === `section-${index}` ? 'action.selected' : 'transparent',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      color: 'inherit',
                     }}
                   >
                     {playingId === `section-${index}` ? <StopIcon /> : <PlayArrowIcon />}
