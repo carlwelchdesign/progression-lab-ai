@@ -14,7 +14,7 @@ type EffectParamSliderProps = {
   max: number;
   step: number;
   ariaLabel: string;
-  disabled: boolean;
+  disabled?: boolean;
 };
 
 /**
@@ -29,7 +29,7 @@ export default function EffectParamSlider({
   max,
   step,
   ariaLabel,
-  disabled,
+  disabled = false,
 }: EffectParamSliderProps) {
   return (
     <>

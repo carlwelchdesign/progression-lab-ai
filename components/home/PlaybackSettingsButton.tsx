@@ -324,7 +324,7 @@ export default function PlaybackSettingsButton({
               }}
             >
               <Card variant="outlined">
-                <CardContent>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>
                     {PLAYBACK_SETTINGS_COPY.envelopeLabel}
                   </Typography>
@@ -336,50 +336,41 @@ export default function PlaybackSettingsButton({
                     direction="column"
                   />
                   <Box sx={{ mt: 2 }}>
-                    <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                      {PLAYBACK_SETTINGS_COPY.gateLabel}: {formatGateLabel(gate)}
-                    </Typography>
-                    <Slider
-                      size="small"
+                    <EffectParamSlider
+                      label={PLAYBACK_SETTINGS_COPY.gateLabel}
+                      valueText={formatGateLabel(gate)}
                       value={gate}
-                      onChange={(_, value) => onGateChange(value as number)}
+                      onChange={onGateChange}
                       min={GATE_RANGE.min}
                       max={GATE_RANGE.max}
                       step={GATE_RANGE.step}
-                      aria-label={PLAYBACK_SETTINGS_COPY.gateAriaLabel}
+                      ariaLabel={PLAYBACK_SETTINGS_COPY.gateAriaLabel}
                     />
                   </Box>
                 </CardContent>
               </Card>
 
               <Card variant="outlined">
-                <CardContent>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                   <Stack spacing={2}>
                     <Typography variant="subtitle2">{PLAYBACK_SETTINGS_COPY.padsLabel}</Typography>
 
                     {padSliderConfigs.map((slider) => (
-                      <Box key={slider.key}>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          display="block"
-                          mb={0.5}
-                        >
-                          {slider.label}: {slider.valueText}
-                        </Typography>
-                        <Slider
-                          size="small"
-                          value={slider.value}
-                          onChange={(_, value) => slider.onChange(value as number)}
-                          min={slider.min}
-                          max={slider.max}
-                          step={slider.step}
-                          aria-label={slider.ariaLabel}
-                        />
-                      </Box>
+                      <EffectParamSlider
+                        key={slider.key}
+                        label={slider.label}
+                        valueText={slider.valueText}
+                        value={slider.value}
+                        onChange={slider.onChange}
+                        min={slider.min}
+                        max={slider.max}
+                        step={slider.step}
+                        ariaLabel={slider.ariaLabel}
+                      />
                     ))}
 
                     <FormControlLabel
+                      sx={{ ml: 0 }}
                       control={
                         <Switch
                           checked={padLatchMode}
@@ -431,6 +422,7 @@ export default function PlaybackSettingsButton({
 
                     <Box>
                       <FormControlLabel
+                        sx={{ ml: 0 }}
                         control={
                           <Switch
                             checked={metronomeEnabled}
@@ -442,23 +434,15 @@ export default function PlaybackSettingsButton({
                       />
                       {metronomeEnabled ? (
                         <Box sx={{ mt: 0.5 }}>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            display="block"
-                            mb={0.5}
-                          >
-                            {PLAYBACK_SETTINGS_COPY.metronomeVolumeLabel}:{' '}
-                            {Math.round(metronomeVolume * 100)}%
-                          </Typography>
-                          <Slider
-                            size="small"
+                          <EffectParamSlider
+                            label={PLAYBACK_SETTINGS_COPY.metronomeVolumeLabel}
+                            valueText={`${Math.round(metronomeVolume * 100)}%`}
                             value={metronomeVolume}
-                            onChange={(_, value) => onMetronomeVolumeChange(value as number)}
+                            onChange={onMetronomeVolumeChange}
                             min={0}
                             max={1}
                             step={0.01}
-                            aria-label={PLAYBACK_SETTINGS_COPY.metronomeVolumeAriaLabel}
+                            ariaLabel={PLAYBACK_SETTINGS_COPY.metronomeVolumeAriaLabel}
                           />
                         </Box>
                       ) : null}

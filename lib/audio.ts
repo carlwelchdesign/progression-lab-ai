@@ -1027,6 +1027,7 @@ export const createToneAudioEngine = (): AudioEngine => {
       inversionRegister = 'off',
       instrument = 'piano',
       octaveShift = 0,
+      padPattern = 'single',
       timeSignature = '4/4',
       metronomeEnabled = false,
       metronomeVolume = 0.7,
@@ -1043,17 +1044,30 @@ export const createToneAudioEngine = (): AudioEngine => {
     Tone.Transport.bpm.value = normalizedTempo;
     Tone.Transport.timeSignature = TIME_SIGNATURE_NUMERATOR[timeSignature];
 
+    const singleBeatSeconds = 60 / normalizedTempo;
     const chordDurationSeconds = getChordDurationSeconds(normalizedTempo);
     const noteDuration = applyGate(chordDurationSeconds, gate);
     const totalDurationSeconds = voicings.length * chordDurationSeconds;
 
-    const events = voicings.map((voicing, index) => ({
-      time: index * chordDurationSeconds,
-      voicing,
-    }));
+    // Only use pattern beats that fall within each chord's time slot (CHORD_BEATS wide)
+    const patternBeats = getPadPatternBeats(padPattern, timeSignature).filter(
+      (beat) => beat.offsetBeats < CHORD_BEATS,
+    );
 
-    const part = new Tone.Part<{ time: number; voicing: ProgressionVoicing }>((time, event) => {
-      const { voicing } = event;
+    const events = voicings.flatMap((voicing, index) =>
+      patternBeats.map((beat) => ({
+        time: index * chordDurationSeconds + beat.offsetBeats * singleBeatSeconds,
+        voicing,
+        velocityScale: beat.velocityScale,
+      })),
+    );
+
+    const part = new Tone.Part<{
+      time: number;
+      voicing: ProgressionVoicing;
+      velocityScale: number;
+    }>((time, event) => {
+      const { voicing, velocityScale } = event;
       const shiftedLeftHand = shiftNotesByOctaves(voicing.leftHand, octaveShift);
       const shiftedRightHand = shiftNotesByOctaves(voicing.rightHand, octaveShift);
       const lockedNotes = applyInversionLock(
@@ -1068,7 +1082,7 @@ export const createToneAudioEngine = (): AudioEngine => {
           humanize > 0 ? (Math.random() * 2 - 1) * humanize * MAX_HUMANIZE_VELOCITY : 0;
         const effectiveVelocity =
           velocity !== undefined
-            ? Math.round(Math.max(20, Math.min(127, velocity + velJitter)))
+            ? Math.round(Math.max(20, Math.min(127, velocity * velocityScale + velJitter)))
             : undefined;
 
         triggerChordByStyle({

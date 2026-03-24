@@ -511,6 +511,9 @@ export default function HomePage() {
           gate={gate}
           inversionRegister={inversionRegister}
           instrument={instrument}
+          octaveShift={octaveShift}
+          padPattern={padPattern}
+          timeSignature={timeSignature}
           scale={resolvedScale}
           genre={resolvedGenre}
           showTitle={isCollapsibleLayout ? false : undefined}

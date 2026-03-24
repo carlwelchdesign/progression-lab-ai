@@ -7,8 +7,9 @@ import PianoChordDiagram from '../PianoChordDiagram';
 import Card from '../ui/Card';
 import MidiDownloadButton from '../ui/MidiDownloadButton';
 import PdfDownloadButton from '../ui/PdfDownloadButton';
-import { playChordVoicing } from '../../lib/audio';
-import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
+import { playChordPattern } from '../../lib/audio';
+import type { AudioInstrument, PadPattern, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
+import type { TimeSignature } from '../../lib/audio';
 import { getGuitarShapeTextFromVoicing } from '../../lib/guitarDiagramUtils';
 import { downloadChordMidi } from '../../lib/midi';
 import type { ChordSuggestionResponse } from '../../lib/types';
@@ -28,6 +29,9 @@ type NextChordSuggestionsSectionProps = {
   gate?: number;
   inversionRegister?: PlaybackRegister;
   instrument: AudioInstrument;
+  octaveShift?: number;
+  padPattern?: PadPattern;
+  timeSignature?: TimeSignature;
   showTitle?: boolean;
   scale?: string;
   genre?: string;
@@ -47,6 +51,9 @@ export default function NextChordSuggestionsSection({
   gate,
   inversionRegister,
   instrument,
+  octaveShift = 0,
+  padPattern = 'single',
+  timeSignature,
   showTitle = true,
   scale,
   genre,
@@ -134,9 +141,12 @@ export default function NextChordSuggestionsSection({
                         variant="contained"
                         size="small"
                         onClick={() =>
-                          playChordVoicing({
+                          void playChordPattern({
                             leftHand: pianoVoicing.leftHand,
                             rightHand: pianoVoicing.rightHand,
+                            padPattern,
+                            timeSignature,
+                            loop: false,
                             tempoBpm,
                             playbackStyle,
                             attack,
@@ -145,6 +155,7 @@ export default function NextChordSuggestionsSection({
                             gate,
                             inversionRegister,
                             instrument,
+                            octaveShift,
                           })
                         }
                       >
