@@ -31,6 +31,8 @@
     "@mui/icons-material": "^7.3.9",
     "@mui/material": "^7.3.9",
     "@prisma/client": "^5.10.0",
+    "@sentry/nextjs": "^10.46.0",
+    "@sentry/replay": "^7.116.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "next": "^15.2.0",
