@@ -1,13 +1,6 @@
-import * as Sentry from '@sentry/nextjs';
+// Next.js reserved filename: this hook must be named instrumentation.ts.
+import { registerSentryRuntime } from './sentry';
 
 export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    // Server-side initialization
-    await import('./sentry.server.config');
-  }
-
-  if (process.env.NEXT_RUNTIME === 'edge') {
-    // Edge runtime (Vercel Edge Functions, etc.)
-    await import('./sentry.server.config');
-  }
+  await registerSentryRuntime();
 }
