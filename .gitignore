@@ -14,3 +14,6 @@ coverage/
 coverage-report.txt
 playwright-report/
 test-results/
+
+*storybook.log
+storybook-static

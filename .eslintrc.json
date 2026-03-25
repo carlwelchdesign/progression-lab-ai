@@ -2,21 +2,31 @@
   "extends": [
     "next/core-web-vitals",
     "next/typescript",
-    "plugin:prettier/recommended"
+    "plugin:prettier/recommended",
+    "plugin:storybook/recommended"
   ],
-  "ignorePatterns": ["node_modules/", ".next/", "next-env.d.ts"],
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "next-env.d.ts"
+  ],
   "rules": {
     "no-tabs": "error"
   },
   "overrides": [
     {
-      "files": ["*.test.ts", "*.test.tsx"],
+      "files": [
+        "*.test.ts",
+        "*.test.tsx"
+      ],
       "rules": {
         "no-var": "off"
       }
     },
     {
-      "files": ["jest.config.js"],
+      "files": [
+        "jest.config.js"
+      ],
       "rules": {
         "@typescript-eslint/no-require-imports": "off"
       }
