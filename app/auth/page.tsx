@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Card, CardContent, CircularProgress, Container, Stack, Typography } from '@mui/material';
-import AuthPageContent from './AuthPageContent';
+import AuthPageContent from '../../features/auth/components/AuthPageContent';
 
 function AuthPageFallback() {
   return (

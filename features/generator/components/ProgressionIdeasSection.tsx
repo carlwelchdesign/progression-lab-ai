@@ -2,24 +2,29 @@
 
 import { Box, Button, Divider, Stack, Typography } from '@mui/material';
 
-import GuitarChordDiagram from '../GuitarChordDiagram';
-import PianoChordDiagram from '../PianoChordDiagram';
-import Card from '../ui/Card';
-import MidiDownloadButton from '../ui/MidiDownloadButton';
-import PdfDownloadButton from '../ui/PdfDownloadButton';
-import { playChordVoicing, playProgression } from '../../lib/audio';
-import type { AudioInstrument, PlaybackRegister, PlaybackStyle, PadPattern } from '../../lib/audio';
-import type { TimeSignature } from '../../lib/audio';
+import GuitarChordDiagram from '../../../components/GuitarChordDiagram';
+import PianoChordDiagram from '../../../components/PianoChordDiagram';
+import Card from '../../../components/ui/Card';
+import MidiDownloadButton from '../../../components/ui/MidiDownloadButton';
+import PdfDownloadButton from '../../../components/ui/PdfDownloadButton';
+import { playChordVoicing, playProgression } from '../../../domain/audio/audio';
+import type {
+  AudioInstrument,
+  PlaybackRegister,
+  PlaybackStyle,
+  PadPattern,
+} from '../../../domain/audio/audio';
+import type { TimeSignature } from '../../../domain/audio/audio';
 import {
   getGuitarDiagramFromChord,
   getGuitarShapeTextFromDiagram,
   getGuitarShapeTextFromVoicing,
-} from '../../lib/guitarDiagramUtils';
-import { downloadChordMidi, downloadProgressionMidi } from '../../lib/midi';
-import type { ChordItem, ChordSuggestionResponse, GuitarVoicing } from '../../lib/types';
+} from '../../../domain/music/guitarDiagramUtils';
+import { downloadChordMidi, downloadProgressionMidi } from '../../../lib/midi';
+import type { ChordItem, ChordSuggestionResponse, GuitarVoicing } from '../../../lib/types';
 import PlaybackToggleButton from './PlaybackToggleButton';
-import type { ProgressionDiagramInstrument } from './types';
-import { getProgressionAutoResetMs, usePlaybackToggle } from './usePlaybackToggle';
+import type { ProgressionDiagramInstrument } from '../types';
+import { getProgressionAutoResetMs, usePlaybackToggle } from '../hooks/usePlaybackToggle';
 
 /**
  * Props for progression idea cards and interaction callbacks.

@@ -1,6 +1,6 @@
-import { getGuitarDiagramFromChord } from '../../lib/guitarDiagramUtils';
+import { getGuitarDiagramFromChord } from '../../../domain/music/guitarDiagramUtils';
 
-jest.mock('../../lib/audio', () => ({
+jest.mock('../../../domain/audio/audio', () => ({
   playChordVoicing: jest.fn(),
   playProgression: jest.fn(),
 }));

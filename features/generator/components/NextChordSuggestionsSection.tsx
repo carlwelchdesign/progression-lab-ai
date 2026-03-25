@@ -2,18 +2,23 @@
 
 import { Box, Button, Stack, Typography } from '@mui/material';
 
-import GuitarChordDiagram from '../GuitarChordDiagram';
-import PianoChordDiagram from '../PianoChordDiagram';
-import Card from '../ui/Card';
-import MidiDownloadButton from '../ui/MidiDownloadButton';
-import PdfDownloadButton from '../ui/PdfDownloadButton';
-import { playChordPattern } from '../../lib/audio';
-import type { AudioInstrument, PadPattern, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
-import type { TimeSignature } from '../../lib/audio';
-import { getGuitarShapeTextFromVoicing } from '../../lib/guitarDiagramUtils';
-import { downloadChordMidi } from '../../lib/midi';
-import type { ChordSuggestionResponse } from '../../lib/types';
-import type { ProgressionDiagramInstrument } from './types';
+import GuitarChordDiagram from '../../../components/GuitarChordDiagram';
+import PianoChordDiagram from '../../../components/PianoChordDiagram';
+import Card from '../../../components/ui/Card';
+import MidiDownloadButton from '../../../components/ui/MidiDownloadButton';
+import PdfDownloadButton from '../../../components/ui/PdfDownloadButton';
+import { playChordPattern } from '../../../domain/audio/audio';
+import type {
+  AudioInstrument,
+  PadPattern,
+  PlaybackRegister,
+  PlaybackStyle,
+} from '../../../domain/audio/audio';
+import type { TimeSignature } from '../../../domain/audio/audio';
+import { getGuitarShapeTextFromVoicing } from '../../../domain/music/guitarDiagramUtils';
+import { downloadChordMidi } from '../../../lib/midi';
+import type { ChordSuggestionResponse } from '../../../lib/types';
+import type { ProgressionDiagramInstrument } from '../types';
 
 /**
  * Props for rendering next-chord recommendation cards.

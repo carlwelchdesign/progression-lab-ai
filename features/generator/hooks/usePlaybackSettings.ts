@@ -28,14 +28,14 @@ import {
   setVibratoEnabled,
   setVibratoFrequency,
   setVibratoWet,
-} from '../../lib/audio';
+} from '../../../domain/audio/audio';
 import {
   DEFAULT_OCTAVE_SHIFT_BY_INSTRUMENT,
   PLAYBACK_SETTINGS_DEFAULTS,
   type PlaybackSettings,
   type PlaybackSettingsChangeHandlers,
   type PlaybackSettingsSetters,
-} from './playbackSettingsModel';
+} from '../lib/playbackSettingsModel';
 
 type UsePlaybackSettingsResult = {
   settings: PlaybackSettings;

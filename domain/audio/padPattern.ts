@@ -14,6 +14,20 @@ export type PadPattern =
  */
 export type TimeSignature = '4/4' | '3/4' | '6/8';
 
+export const PAD_PATTERN_LABELS: Record<PadPattern, string> = {
+  single: 'Single',
+  'quarter-pulse': 'Quarter pulse',
+  'eighth-pulse': 'Eighth pulse',
+  'offbeat-stab': 'Offbeat stab',
+  'syncopated-stab': 'Syncopated stab',
+};
+
+export const TIME_SIGNATURE_LABELS: Record<TimeSignature, string> = {
+  '4/4': '4/4',
+  '3/4': '3/4',
+  '6/8': '6/8',
+};
+
 /**
  * A single rhythmic event inside a bar.
  * offsetBeats is measured in quarter-note beats from the bar start.
@@ -78,21 +92,20 @@ export const getPadPatternBeats = (
     }
     case '6/8': {
       // 6 eighth-note subdivisions; quarter-note beat = 0.5 of an eighth-note "slot"
-      // Strong pulses every 3 eighth notes → offsetBeats 0 and 1.5
       switch (pattern) {
         case 'quarter-pulse':
-          return [0, 1.5].map((b) => ({ offsetBeats: b, velocityScale: 1 }));
+          return [0, 1.5, 3].map((b) => ({ offsetBeats: b, velocityScale: 1 }));
         case 'eighth-pulse':
-          return [0, 0.5, 1, 1.5, 2, 2.5].map((b) => ({
+          return [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5].map((b) => ({
             offsetBeats: b,
-            velocityScale: b === 0 || b === 1.5 ? 1 : 0.72,
+            velocityScale: b % 1 === 0 || b % 1 === 0.5 ? 1 : 0.72,
           }));
         case 'offbeat-stab':
-          return [0.5, 1, 2, 2.5].map((b) => ({ offsetBeats: b, velocityScale: 0.9 }));
+          return [1.5, 4.5].map((b) => ({ offsetBeats: b, velocityScale: 1 }));
         case 'syncopated-stab':
-          return [0, 1, 1.5, 2.5].map((b) => ({
+          return [0, 2.25, 3, 5.25].map((b) => ({
             offsetBeats: b,
-            velocityScale: b === 0 || b === 1.5 ? 1 : 0.82,
+            velocityScale: b % 1.5 === 0 ? 1 : 0.82,
           }));
         default:
           return [{ offsetBeats: 0, velocityScale: 1 }];
@@ -103,30 +116,14 @@ export const getPadPatternBeats = (
   }
 };
 
-/** Quarter-note beats per bar for each time signature. */
-export const TIME_SIGNATURE_BEATS_PER_BAR: Record<TimeSignature, number> = {
-  '4/4': 4,
-  '3/4': 3,
-  '6/8': 3,
-};
-
-/** Numerator value passed to Tone.Transport.timeSignature. */
 export const TIME_SIGNATURE_NUMERATOR: Record<TimeSignature, number> = {
   '4/4': 4,
   '3/4': 3,
   '6/8': 6,
 };
 
-export const PAD_PATTERN_LABELS: Record<PadPattern, string> = {
-  single: 'Single',
-  'quarter-pulse': '1/4 Pulse',
-  'eighth-pulse': '1/8 Pulse',
-  'offbeat-stab': 'Offbeat',
-  'syncopated-stab': 'Syncopated',
-};
-
-export const TIME_SIGNATURE_LABELS: Record<TimeSignature, string> = {
-  '4/4': '4/4',
-  '3/4': '3/4',
-  '6/8': '6/8',
+export const TIME_SIGNATURE_BEATS_PER_BAR: Record<TimeSignature, number> = {
+  '4/4': 4,
+  '3/4': 3,
+  '6/8': 3,
 };

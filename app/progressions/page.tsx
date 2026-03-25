@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Card, CardContent, CircularProgress, Container, Stack, Typography } from '@mui/material';
-import ProgressionsPageContent from './ProgressionsPageContent';
+import ProgressionsPageContent from '../../features/progressions/components/ProgressionsPageContent';
 
 function ProgressionsPageFallback() {
   return (

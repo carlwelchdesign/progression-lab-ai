@@ -1,5 +1,5 @@
 import { GUITAR_SHAPES } from './chordShapes';
-import type { ChordSuggestionResponse } from './types';
+import type { ChordSuggestionResponse } from '../../lib/types';
 
 const NOTE_TO_FRET_ON_LOW_E: Record<string, number> = {
   E: 0,

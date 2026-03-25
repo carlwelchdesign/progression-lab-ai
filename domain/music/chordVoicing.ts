@@ -1,4 +1,4 @@
-import type { PianoVoicing } from './types';
+import type { PianoVoicing } from '../../lib/types';
 import { NOTE_NAME_TO_SEMITONE, SHARP_NOTE_NAMES } from './musicNoteConstants';
 
 const CHORD_PATTERN = /^([A-G](?:#|b)?)(.*)$/;

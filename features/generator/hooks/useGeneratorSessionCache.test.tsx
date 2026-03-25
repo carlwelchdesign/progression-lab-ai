@@ -1,13 +1,13 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import type { UseFormReset } from 'react-hook-form';
 
-import type { ChordSuggestionResponse } from '../../lib/types';
-import type { GeneratorFormData } from './types';
+import type { ChordSuggestionResponse } from '../../../lib/types';
+import type { GeneratorFormData } from '../types';
 import useGeneratorSessionCache from './useGeneratorSessionCache';
-import { applyPlaybackSettings, sanitizePlaybackSettings } from './playbackSettingsModel';
+import { applyPlaybackSettings, sanitizePlaybackSettings } from '../lib/playbackSettingsModel';
 
-jest.mock('./playbackSettingsModel', () => {
-  const actual = jest.requireActual('./playbackSettingsModel');
+jest.mock('../lib/playbackSettingsModel', () => {
+  const actual = jest.requireActual('../lib/playbackSettingsModel');
 
   return {
     ...actual,

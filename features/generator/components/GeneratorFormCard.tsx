@@ -16,8 +16,8 @@ import {
   TextField as MuiTextField,
 } from '@mui/material';
 
-import Card from '../ui/Card';
-import GroupedAutocompleteField from '../ui/GroupedAutocompleteField';
+import Card from '../../../components/ui/Card';
+import GroupedAutocompleteField from '../../../components/ui/GroupedAutocompleteField';
 import {
   ADVENTUROUSNESS_CATEGORY_BY_NAME,
   ADVENTUROUSNESS_OPTIONS,
@@ -29,9 +29,9 @@ import {
   MOOD_OPTIONS,
   STYLE_REFERENCE_CATEGORY_BY_NAME,
   STYLE_REFERENCE_OPTIONS,
-} from '../../lib/formOptions';
-import { getChordChipSx, getMoodChipSx } from '../../lib/tagMetadata';
-import type { GeneratorFormData } from './types';
+} from '../../../lib/formOptions';
+import { getChordChipSx, getMoodChipSx } from '../../../lib/tagMetadata';
+import type { GeneratorFormData } from '../types';
 
 /**
  * Props for the main generator form card.

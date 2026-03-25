@@ -19,7 +19,7 @@ import {
   type EffectId,
   type EffectConfig,
   type SliderRowConfig,
-} from './playbackSettingsConfigs';
+} from '../lib/playbackSettingsConfigs';
 
 import {
   Box,
@@ -40,14 +40,17 @@ import {
 } from '@mui/material';
 import { useCallback, useState } from 'react';
 
-import { playChordVoicing } from '../../lib/audio';
-import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
-import type { PadPattern, TimeSignature } from '../../lib/audio';
-import SelectField from '../ui/SelectField';
+import { playChordVoicing } from '../../../domain/audio/audio';
+import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../../domain/audio/audio';
+import type { PadPattern, TimeSignature } from '../../../domain/audio/audio';
+import SelectField from '../../../components/ui/SelectField';
 import EffectParamSlider from './EffectParamSlider';
 import EffectSettingsCard from './EffectSettingsCard';
 import EnvelopeControls from './EnvelopeControls';
-import type { PlaybackSettings, PlaybackSettingsChangeHandlers } from './playbackSettingsModel';
+import type {
+  PlaybackSettings,
+  PlaybackSettingsChangeHandlers,
+} from '../lib/playbackSettingsModel';
 
 /**
  * Lightweight voicing payload used for preview playback.
