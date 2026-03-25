@@ -2,15 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { UseFormReset } from 'react-hook-form';
 
-import { GENRE_OPTIONS } from '../../lib/formOptions';
-import type { Adventurousness, ChordSuggestionResponse } from '../../lib/types';
-import type { GeneratorFormData } from './types';
+import { GENRE_OPTIONS } from '../../../lib/formOptions';
+import type { Adventurousness, ChordSuggestionResponse } from '../../../lib/types';
+import type { GeneratorFormData } from '../types';
 import {
   applyPlaybackSettings,
   type PlaybackSettings,
   type PlaybackSettingsSetters,
   sanitizePlaybackSettings,
-} from './playbackSettingsModel';
+} from '../lib/playbackSettingsModel';
 
 const GENERATOR_CACHE_KEY = 'generatorCache';
 

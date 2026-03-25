@@ -1,5 +1,5 @@
-import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
-import type { PadPattern, TimeSignature } from '../../lib/audio';
+import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../../domain/audio/audio';
+import type { PadPattern, TimeSignature } from '../../../domain/audio/audio';
 
 export const DEFAULT_OCTAVE_SHIFT_BY_INSTRUMENT: Record<AudioInstrument, number> = {
   piano: 0,

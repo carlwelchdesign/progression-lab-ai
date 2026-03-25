@@ -14,12 +14,15 @@ import CloseIcon from '@mui/icons-material/Close';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { playChordPattern, stopAllAudio } from '../../lib/audio';
-import { createPianoVoicingFromChordSymbol } from '../../lib/chordVoicing';
-import { CHORD_OPTIONS } from '../../lib/formOptions';
+import { playChordPattern, stopAllAudio } from '../../../domain/audio/audio';
+import { createPianoVoicingFromChordSymbol } from '../../../domain/music/chordVoicing';
+import { CHORD_OPTIONS } from '../../../lib/formOptions';
 import PlaybackSettingsButton from './PlaybackSettingsButton';
-import SelectField from '../ui/SelectField';
-import type { PlaybackSettings, PlaybackSettingsChangeHandlers } from './playbackSettingsModel';
+import SelectField from '../../../components/ui/SelectField';
+import type {
+  PlaybackSettings,
+  PlaybackSettingsChangeHandlers,
+} from '../lib/playbackSettingsModel';
 
 /**
  * Render-ready chord data for each playable grid pad.

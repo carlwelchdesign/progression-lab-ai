@@ -2,16 +2,21 @@
 
 import { Box, Stack, Typography } from '@mui/material';
 
-import { playProgression } from '../../lib/audio';
-import type { AudioInstrument, PlaybackRegister, PlaybackStyle, PadPattern } from '../../lib/audio';
-import type { TimeSignature } from '../../lib/audio';
-import type { PdfChartOptions } from '../../lib/pdf';
-import Card from '../ui/Card';
-import MidiDownloadButton from '../ui/MidiDownloadButton';
-import PdfDownloadButton from '../ui/PdfDownloadButton';
-import type { ChordSuggestionResponse } from '../../lib/types';
+import { playProgression } from '../../../domain/audio/audio';
+import type {
+  AudioInstrument,
+  PlaybackRegister,
+  PlaybackStyle,
+  PadPattern,
+} from '../../../domain/audio/audio';
+import type { TimeSignature } from '../../../domain/audio/audio';
+import type { PdfChartOptions } from '../../../lib/pdf';
+import Card from '../../../components/ui/Card';
+import MidiDownloadButton from '../../../components/ui/MidiDownloadButton';
+import PdfDownloadButton from '../../../components/ui/PdfDownloadButton';
+import type { ChordSuggestionResponse } from '../../../lib/types';
 import PlaybackToggleButton from './PlaybackToggleButton';
-import { getProgressionAutoResetMs, usePlaybackToggle } from './usePlaybackToggle';
+import { getProgressionAutoResetMs, usePlaybackToggle } from '../hooks/usePlaybackToggle';
 
 /**
  * Props for displaying arrangement/structure suggestions.

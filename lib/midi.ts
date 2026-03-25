@@ -1,5 +1,5 @@
 import type { PianoVoicing } from './types';
-import { NOTE_NAME_TO_SEMITONE } from './musicNoteConstants';
+import { NOTE_NAME_TO_SEMITONE } from '../domain/music/musicNoteConstants';
 
 /**
  * MIDI encoding constants used for exported chord/progression files.

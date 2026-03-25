@@ -156,6 +156,33 @@ jest.mock('tone', () => {
     }
   }
 
+  class MockPart<TEvent extends { time: number }> {
+    public disposed = false;
+
+    constructor(
+      private readonly callback: (time: number, event: TEvent) => void,
+      private readonly events: TEvent[],
+    ) {
+      toneMockState.parts.push(this as unknown as MockPart<{ time: number }>);
+    }
+
+    start(offset = 0): this {
+      this.events.forEach((event) => {
+        setTimeout(
+          () => {
+            this.callback(event.time, event);
+          },
+          (offset + event.time) * 1000,
+        );
+      });
+      return this;
+    }
+
+    dispose(): void {
+      this.disposed = true;
+    }
+  }
+
   const Frequency = (value: number | string, unit?: string) => ({
     toMidi: () => {
       if (typeof value === 'number') {
@@ -200,7 +227,11 @@ jest.mock('tone', () => {
     tremolos: [] as MockTremolo[],
     vibratos: [] as MockVibrato[],
     phasers: [] as MockPhaser[],
+    parts: [] as MockPart<{ time: number }>[],
     Transport: {
+      bpm: { value: 120 },
+      timeSignature: 4,
+      start: jest.fn(),
       stop: jest.fn(),
       cancel: jest.fn(),
     },
@@ -219,6 +250,10 @@ jest.mock('tone', () => {
       toneMockState.tremolos.length = 0;
       toneMockState.vibratos.length = 0;
       toneMockState.phasers.length = 0;
+      toneMockState.parts.length = 0;
+      toneMockState.Transport.bpm.value = 120;
+      toneMockState.Transport.timeSignature = 4;
+      toneMockState.Transport.start.mockClear();
       toneMockState.Transport.stop.mockClear();
       toneMockState.Transport.cancel.mockClear();
       toneMockState.start.mockClear();
@@ -235,6 +270,7 @@ jest.mock('tone', () => {
     Vibrato: MockVibrato,
     Phaser: MockPhaser,
     Reverb: MockReverb,
+    Part: MockPart,
     Frequency,
     Time,
     getDestination: () => destination,

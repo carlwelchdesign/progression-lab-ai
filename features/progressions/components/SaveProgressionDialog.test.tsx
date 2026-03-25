@@ -1,10 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SaveProgressionDialog from './SaveProgressionDialog';
-import * as progressionsApi from '../lib/api/progressions';
+import * as progressionsApi from '../api/progressionsApi';
 
-jest.mock('../lib/api/progressions');
-jest.mock('../lib/tagMetadata', () => ({
+jest.mock('../api/progressionsApi');
+jest.mock('../../../lib/tagMetadata', () => ({
   getTagChipSx: () => ({}),
   PRESET_TAG_OPTIONS: ['jazz', 'blues', 'funk', 'rock'],
   sanitizeTags: (tags: string[]) => tags.filter((t) => t.trim().length > 0),

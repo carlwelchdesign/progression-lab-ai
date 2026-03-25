@@ -1,6 +1,6 @@
-import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../lib/audio';
-import type { PadPattern, TimeSignature } from '../../lib/audio';
-import { PAD_PATTERN_LABELS, TIME_SIGNATURE_LABELS } from '../../lib/audio';
+import type { AudioInstrument, PlaybackRegister, PlaybackStyle } from '../../../domain/audio/audio';
+import type { PadPattern, TimeSignature } from '../../../domain/audio/audio';
+import { PAD_PATTERN_LABELS, TIME_SIGNATURE_LABELS } from '../../../domain/audio/audio';
 import { alpha, type SxProps, type Theme } from '@mui/material/styles';
 import type { PlaybackSettings, PlaybackSettingsChangeHandlers } from './playbackSettingsModel';
 

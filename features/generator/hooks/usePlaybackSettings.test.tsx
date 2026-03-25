@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 
 import usePlaybackSettings from './usePlaybackSettings';
 
-jest.mock('../../lib/audio', () => ({
+jest.mock('../../../domain/audio/audio', () => ({
   setChorusDelayTime: jest.fn(),
   setChorusDepth: jest.fn(),
   setChorusEnabled: jest.fn(),

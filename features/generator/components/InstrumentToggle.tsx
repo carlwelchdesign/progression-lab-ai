@@ -2,7 +2,7 @@
 
 import { alpha, ToggleButton, ToggleButtonGroup } from '@mui/material';
 
-import type { ProgressionDiagramInstrument } from './types';
+import type { ProgressionDiagramInstrument } from '../types';
 
 /**
  * Props for toggling displayed diagram instrument.

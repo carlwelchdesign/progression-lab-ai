@@ -18,11 +18,11 @@ import {
   TextField,
 } from '@mui/material';
 
-import AppTextField from './ui/TextField';
+import AppTextField from '../../../components/ui/TextField';
 
-import { createProgression } from '../lib/api/progressions';
-import { getTagChipSx, PRESET_TAG_OPTIONS, sanitizeTags } from '../lib/tagMetadata';
-import type { ChordItem, PianoVoicing } from '../lib/types';
+import { createProgression } from '../api/progressionsApi';
+import { getTagChipSx, PRESET_TAG_OPTIONS, sanitizeTags } from '../../../lib/tagMetadata';
+import type { ChordItem, PianoVoicing } from '../../../lib/types';
 
 type SaveProgressionDialogProps = {
   open: boolean;

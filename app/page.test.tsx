@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import AppThemeProvider from '../components/AppThemeProvider';
 import HomePage from './page';
 
 jest.mock('../components/GuitarChordDiagram', () => {
@@ -21,8 +22,21 @@ jest.mock('../components/ui/ThemeModeToggle', () => {
   };
 });
 
-jest.mock('../lib/audio', () => ({
+jest.mock('../domain/audio/audio', () => ({
+  PAD_PATTERN_LABELS: {
+    single: 'Single',
+    'quarter-pulse': 'Quarter pulse',
+    'eighth-pulse': 'Eighth pulse',
+    'offbeat-stab': 'Offbeat stab',
+    'syncopated-stab': 'Syncopated stab',
+  },
+  TIME_SIGNATURE_LABELS: {
+    '4/4': '4/4',
+    '3/4': '3/4',
+    '6/8': '6/8',
+  },
   playChordVoicing: jest.fn(),
+  playChordPattern: jest.fn(),
   playProgression: jest.fn(),
   setChorusDelayTime: jest.fn(),
   setChorusDepth: jest.fn(),
@@ -49,6 +63,7 @@ jest.mock('../lib/audio', () => ({
   setVibratoEnabled: jest.fn(),
   setVibratoFrequency: jest.fn(),
   setVibratoWet: jest.fn(),
+  stopAllAudio: jest.fn(),
 }));
 
 const mockResponse = {
@@ -102,6 +117,13 @@ const mockResponse = {
   ],
 };
 
+const renderHomePage = () =>
+  render(
+    <AppThemeProvider>
+      <HomePage />
+    </AppThemeProvider>,
+  );
+
 describe('HomePage', () => {
   const fetchMock = jest.fn();
 
@@ -112,7 +134,7 @@ describe('HomePage', () => {
 
   it('shows validation when mode / scale is cleared', async () => {
     const user = userEvent.setup();
-    render(<HomePage />);
+    renderHomePage();
 
     await user.clear(screen.getByRole('combobox', { name: 'Mode / scale' }));
     await user.tab();
@@ -132,7 +154,7 @@ describe('HomePage', () => {
       json: async () => mockResponse,
     });
 
-    render(<HomePage />);
+    renderHomePage();
 
     await user.click(screen.getByRole('button', { name: 'Generate Ideas' }));
 

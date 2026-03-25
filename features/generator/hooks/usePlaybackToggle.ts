@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import { stopAllAudio } from '../../lib/audio';
+import { stopAllAudio } from '../../../domain/audio/audio';
 
 /**
  * Hook that provides play/stop toggle functionality with a single active playback state.

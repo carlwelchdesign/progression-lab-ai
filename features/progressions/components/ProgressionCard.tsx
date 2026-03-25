@@ -17,10 +17,10 @@ import EditIcon from '@mui/icons-material/Edit';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
-import type { Progression } from '../lib/types';
-import { playProgression } from '../lib/audio';
-import type { AudioInstrument } from '../lib/audio';
-import { getTagChipSx } from '../lib/tagMetadata';
+import type { Progression } from '../../../lib/types';
+import { playProgression } from '../../../domain/audio/audio';
+import type { AudioInstrument } from '../../../domain/audio/audio';
+import { getTagChipSx } from '../../../lib/tagMetadata';
 
 type ProgressionCardProps = {
   progression: Progression;
