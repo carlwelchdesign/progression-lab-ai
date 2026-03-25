@@ -1,5 +1,5 @@
 import type * as Tone from 'tone';
-import type { PadPattern, TimeSignature } from './padPattern';
+import type { PadPattern, TimeSignature } from '../music/padPattern';
 
 export type PlaybackStyle = 'strum' | 'block';
 export type PlaybackRegister = 'off' | 'low' | 'mid' | 'high';

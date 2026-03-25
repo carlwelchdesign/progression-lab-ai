@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import AppWrapper from '../components/AppWrapper';
 import AppThemeProvider from '../components/AppThemeProvider';
-import { AuthProvider } from '../lib/authContext';
+import { AuthProvider } from '../components/providers/AuthProvider';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {

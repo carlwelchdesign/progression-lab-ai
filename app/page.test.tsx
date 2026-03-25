@@ -4,13 +4,13 @@ import userEvent from '@testing-library/user-event';
 import AppThemeProvider from '../components/AppThemeProvider';
 import HomePage from './page';
 
-jest.mock('../components/GuitarChordDiagram', () => {
+jest.mock('../features/generator/components/GuitarChordDiagram', () => {
   return function MockGuitarChordDiagram() {
     return <div data-testid="guitar-diagram" />;
   };
 });
 
-jest.mock('../components/PianoChordDiagram', () => {
+jest.mock('../features/generator/components/PianoChordDiagram', () => {
   return function MockPianoChordDiagram() {
     return <div data-testid="piano-diagram" />;
   };

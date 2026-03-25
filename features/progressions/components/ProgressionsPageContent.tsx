@@ -33,7 +33,7 @@ import {
 } from '../../../lib/tagMetadata';
 import { CHORD_OPTIONS } from '../../../lib/formOptions';
 import type { Progression } from '../../../lib/types';
-import { useAuth } from '../../../lib/authContext';
+import { useAuth } from '../../../components/providers/AuthProvider';
 
 type ViewMode = 'mine' | 'public';
 

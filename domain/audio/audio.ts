@@ -12,8 +12,8 @@ import {
   getPadPatternBeats,
   TIME_SIGNATURE_BEATS_PER_BAR,
   TIME_SIGNATURE_NUMERATOR,
-} from './padPattern';
-import type { TimeSignature } from './padPattern';
+} from '../music/padPattern';
+import type { TimeSignature } from '../music/padPattern';
 
 export type {
   AudioEngine,
@@ -25,8 +25,8 @@ export type {
   PlayProgressionOptions,
   ProgressionVoicing,
 } from './audioEngine';
-export type { PadPattern, TimeSignature } from './padPattern';
-export { PAD_PATTERN_LABELS, TIME_SIGNATURE_LABELS } from './padPattern';
+export type { PadPattern, TimeSignature } from '../music/padPattern';
+export { PAD_PATTERN_LABELS, TIME_SIGNATURE_LABELS } from '../music/padPattern';
 
 const DEFAULT_TEMPO_BPM = 100;
 const MIN_TEMPO_BPM = 40;

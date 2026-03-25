@@ -2,8 +2,8 @@
 
 import { Box, Button, Divider, Stack, Typography } from '@mui/material';
 
-import GuitarChordDiagram from '../../../components/GuitarChordDiagram';
-import PianoChordDiagram from '../../../components/PianoChordDiagram';
+import GuitarChordDiagram from './GuitarChordDiagram';
+import PianoChordDiagram from './PianoChordDiagram';
 import Card from '../../../components/ui/Card';
 import MidiDownloadButton from '../../../components/ui/MidiDownloadButton';
 import PdfDownloadButton from '../../../components/ui/PdfDownloadButton';

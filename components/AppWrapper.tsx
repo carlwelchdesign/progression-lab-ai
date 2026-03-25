@@ -22,7 +22,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 
 import ThemeModeToggle from './ui/ThemeModeToggle';
-import { useAuth } from '../lib/authContext';
+import { useAuth } from './providers/AuthProvider';
 
 type Props = {
   children: React.ReactNode;

@@ -15,7 +15,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import { useAuth } from '../../../lib/authContext';
+import { useAuth } from '../../../components/providers/AuthProvider';
 import TextField from '../../../components/ui/TextField';
 
 type AuthMode = 'login' | 'register';
