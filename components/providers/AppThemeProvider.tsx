@@ -3,8 +3,8 @@
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import { useMemo, useState, useEffect, type ReactNode } from 'react';
 
-import { createAppTheme } from '../lib/theme';
-import { ThemeModeContext, type ThemeMode, type ThemePreset } from '../lib/themeMode';
+import { createAppTheme } from '../../lib/theme';
+import { ThemeModeContext, type ThemeMode, type ThemePreset } from '../../lib/themeMode';
 
 type Props = {
   children: ReactNode;

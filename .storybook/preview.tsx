@@ -3,7 +3,8 @@ import React from 'react';
 import { initialize, mswLoader } from 'msw-storybook-addon';
 import { themes } from 'storybook/theming';
 
-import AppThemeProvider from '../components/AppThemeProvider';
+import AppThemeProvider from '../components/providers/AppThemeProvider';
+import { AppSnackbarProvider } from '../components/providers/AppSnackbarProvider';
 
 initialize({ onUnhandledRequest: 'bypass' });
 
@@ -12,7 +13,9 @@ const preview: Preview = {
   decorators: [
     (Story) => (
       <AppThemeProvider>
-        <Story />
+        <AppSnackbarProvider>
+          <Story />
+        </AppSnackbarProvider>
       </AppThemeProvider>
     ),
   ],

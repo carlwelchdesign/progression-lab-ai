@@ -18,13 +18,13 @@ import {
 } from '@mui/material';
 
 import SaveProgressionDialog from '../../progressions/components/SaveProgressionDialog';
-import SuccessSnackbar from '../../../components/ui/SuccessSnackbar';
 import GeneratorFormCard from './GeneratorFormCard';
 import GeneratedChordGridDialog from './GeneratedChordGridDialog';
 import GeneratorHeader from './GeneratorHeader';
 import InstrumentToggle from './InstrumentToggle';
 import PlaybackSettingsButton from './PlaybackSettingsButton';
 import RestoringState from './RestoringState';
+import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import usePlaybackSettings from '../hooks/usePlaybackSettings';
 import useGeneratorSessionCache from '../hooks/useGeneratorSessionCache';
 import type { GeneratorFormData, ProgressionDiagramInstrument } from '../types';
@@ -148,13 +148,13 @@ export default function GeneratorPageContent() {
   } = playbackSettings;
 
   const [isGeneratedChordGridOpen, setIsGeneratedChordGridOpen] = useState(false);
-  const [successMessageOpen, setSuccessMessageOpen] = useState(false);
   const [isNextSectionExpanded, setIsNextSectionExpanded] = useState(true);
   const [visibleNextSuggestionsCount, setVisibleNextSuggestionsCount] = useState(0);
   const [visibleProgressionIdeasCount, setVisibleProgressionIdeasCount] = useState(0);
   const [visibleStructureSuggestionsCount, setVisibleStructureSuggestionsCount] = useState(0);
   const autoRandomizedOnFirstLoad = useRef(false);
   const progressiveRevealTimerRef = useRef<number | null>(null);
+  const { showError } = useAppSnackbar();
 
   const { isRestoringState, hasRestoredSessionData, cacheGeneratorResult } =
     useGeneratorSessionCache({
@@ -399,6 +399,7 @@ export default function GeneratorPageContent() {
     } catch (err) {
       console.error(err);
       setError('Could not generate suggestions.');
+      showError('Could not generate suggestions.');
     } finally {
       setLoading(false);
     }
@@ -761,15 +762,6 @@ export default function GeneratorPageContent() {
                     feel={selectedProgressionFeel}
                     scale={mode}
                     genre={selectedProgressionGenre}
-                    onSuccess={() => {
-                      setSaveDialogOpen(false);
-                      setSuccessMessageOpen(true);
-                    }}
-                  />
-                  <SuccessSnackbar
-                    open={successMessageOpen}
-                    message="Progression saved!"
-                    onClose={() => setSuccessMessageOpen(false)}
                   />
                   <GeneratedChordGridDialog
                     open={isGeneratedChordGridOpen}

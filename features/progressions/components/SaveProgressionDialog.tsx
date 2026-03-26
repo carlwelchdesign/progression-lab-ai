@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 
 import AppTextField from '../../../components/ui/TextField';
+import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 
 import { createProgression } from '../api/progressionsApi';
 import { getTagChipSx, PRESET_TAG_OPTIONS, sanitizeTags } from '../../../lib/tagMetadata';
@@ -52,6 +53,8 @@ export default function SaveProgressionDialog({
   scale: defaultScale,
   genre: defaultGenre,
 }: SaveProgressionDialogProps) {
+  const { showError, showSuccess } = useAppSnackbar();
+
   const {
     control,
     handleSubmit,
@@ -92,11 +95,11 @@ export default function SaveProgressionDialog({
         isPublic: data.isPublic,
       });
 
+      showSuccess('Progression saved!');
       onSuccess?.();
       onClose();
     } catch (err) {
-      // Error is handled by the form submission
-      console.error('Failed to save progression:', err);
+      showError((err as Error).message || 'Failed to save progression');
     }
   };
 

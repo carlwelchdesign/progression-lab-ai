@@ -16,6 +16,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useAuth } from '../../../components/providers/AuthProvider';
+import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import TextField from '../../../components/ui/TextField';
 
 type AuthMode = 'login' | 'register';
@@ -32,6 +33,7 @@ export default function AuthPageContent() {
   const initialMode = searchParams.get('mode') === 'register' ? 'register' : 'login';
   const reason = searchParams.get('reason');
   const { refresh } = useAuth();
+  const { showError, showSuccess } = useAppSnackbar();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [apiError, setApiError] = useState('');
   const {
@@ -69,9 +71,12 @@ export default function AuthPageContent() {
 
       // Refresh auth context with new user data
       await refresh();
+      showSuccess(mode === 'login' ? 'Signed in successfully.' : 'Account created successfully.');
       router.push('/progressions');
     } catch (err) {
-      setApiError((err as Error).message || 'Authentication failed');
+      const message = (err as Error).message || 'Authentication failed';
+      setApiError(message);
+      showError(message);
     }
   };
 

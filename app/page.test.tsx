@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import AppThemeProvider from '../components/AppThemeProvider';
+import AppThemeProvider from '../components/providers/AppThemeProvider';
 import HomePage from './page';
 
 jest.mock('../features/generator/components/GuitarChordDiagram', () => {

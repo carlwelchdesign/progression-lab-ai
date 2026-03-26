@@ -34,6 +34,7 @@ import {
 import { CHORD_OPTIONS } from '../../../lib/formOptions';
 import type { Progression } from '../../../lib/types';
 import { useAuth } from '../../../components/providers/AuthProvider';
+import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 
 type ViewMode = 'mine' | 'public';
 
@@ -69,6 +70,7 @@ export default function ProgressionsPageContent() {
   const [deletingProgressionId, setDeletingProgressionId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [instrument] = useState<AudioInstrument>('piano');
+  const { showError, showSuccess } = useAppSnackbar();
 
   const { control, setValue, watch } = useForm<FilterFormData>({
     defaultValues: {
@@ -118,7 +120,9 @@ export default function ProgressionsPageContent() {
         const data = await getMyProgressions();
         setMyProgressions(data);
       } catch (err) {
-        setError((err as Error).message || 'Failed to load progressions');
+        const message = (err as Error).message || 'Failed to load progressions';
+        setError(message);
+        showError(message);
       } finally {
         setLoading(false);
       }
@@ -139,7 +143,9 @@ export default function ProgressionsPageContent() {
         const data = await getPublicProgressions({ tags: tagQuery, keys: keyQuery });
         setPublicProgressions(data);
       } catch (err) {
-        setError((err as Error).message || 'Failed to load public progressions');
+        const message = (err as Error).message || 'Failed to load public progressions';
+        setError(message);
+        showError(message);
       } finally {
         setLoading(false);
       }
@@ -187,8 +193,11 @@ export default function ProgressionsPageContent() {
       setDeletingProgressionId(id);
       await deleteProgression(id);
       setMyProgressions((prev) => prev.filter((p) => p.id !== id));
+      showSuccess('Progression deleted.');
     } catch (err) {
-      setError((err as Error).message || 'Failed to delete progression');
+      const message = (err as Error).message || 'Failed to delete progression';
+      setError(message);
+      showError(message);
     } finally {
       setDeletingProgressionId(null);
     }

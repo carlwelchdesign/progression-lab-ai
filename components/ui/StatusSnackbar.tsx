@@ -1,24 +1,27 @@
 import { Alert, Snackbar } from '@mui/material';
+import type { AlertColor } from '@mui/material';
 
 /**
- * Props for the reusable success snackbar component.
+ * Props for the reusable status snackbar component.
  */
-type SuccessSnackbarProps = {
+type StatusSnackbarProps = {
   open: boolean;
   message: string;
+  severity?: AlertColor;
   onClose: () => void;
   autoHideDuration?: number;
 };
 
 /**
- * Bottom-right success toast used after save/update actions.
+ * Bottom-right status toast for success, error, warning, and info feedback.
  */
-export default function SuccessSnackbar({
+export default function StatusSnackbar({
   open,
   message,
+  severity = 'success',
   onClose,
   autoHideDuration = 6000,
-}: SuccessSnackbarProps) {
+}: StatusSnackbarProps) {
   return (
     <Snackbar
       open={open}
@@ -27,7 +30,7 @@ export default function SuccessSnackbar({
       onClose={onClose}
     >
       <Alert
-        severity="success"
+        severity={severity}
         variant="filled"
         onClose={onClose}
         sx={{ color: (theme) => theme.palette.common.white }}
