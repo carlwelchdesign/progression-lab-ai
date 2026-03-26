@@ -17,3 +17,5 @@ test-results/
 
 *storybook.log
 storybook-static
+SECURITY_AUDIT.md
+SECURITY_IMPLEMENTATION_COMPLETE.md
