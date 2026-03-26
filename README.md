@@ -2,6 +2,11 @@
 
 > An AI-assisted harmony and songwriting workspace — generate chord progressions, hear them instantly, and share them with the world.
 
+Production: [https://progression-lab-ai.vercel.app/](https://progression-lab-ai.vercel.app/)
+Storybook DOcs: [https://storybook-progression-lab-ai.vercel.app](https://storybook-progression-lab-ai.vercel.app/)
+
+<img width="1221" height="1310" alt="image" src="https://github.com/user-attachments/assets/3bfbfba4-b2d5-4e60-9a86-8bdb4765ed48" />
+
 [![Storybook](https://img.shields.io/badge/Storybook-FF4785?style=flat&logo=storybook&logoColor=white)](https://storybook-progression-lab-ai.vercel.app)
 [![Next.js](https://img.shields.io/badge/Next.js_15-black?style=flat&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
