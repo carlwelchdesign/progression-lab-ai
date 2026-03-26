@@ -47,13 +47,19 @@ export const metadata: Metadata = {
     images: ['/twitter-image'],
   },
 
+  icons: {
+    icon: '/brand-icon.png',
+    shortcut: '/brand-icon.png',
+    apple: '/brand-icon.png',
+  },
+
   metadataBase: new URL('https://progression-lab-ai.vercel.app'),
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body suppressHydrationWarning>
         <App>{children}</App>
       </body>
     </html>

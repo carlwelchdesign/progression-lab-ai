@@ -160,7 +160,7 @@ export default function AppWrapper({ children }: Props) {
               sx={{ textDecoration: 'none', color: 'text.primary' }}
             >
               <Image
-                src="/icon.png"
+                src="/brand-icon.png"
                 alt="ProgressionLab.AI logo"
                 width={24}
                 height={24}

@@ -1,12 +1,29 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
 /**
  * Security headers middleware for Next.js
  * Applies essential security headers to all responses
  */
-export function middleware(request: NextRequest) {
+export function middleware() {
   const response = NextResponse.next();
+
+  const sentryConnectSources = [
+    'https://*.sentry.io',
+    'https://*.ingest.sentry.io',
+    'https://*.ingest.us.sentry.io',
+  ];
+
+  const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+  if (sentryDsn) {
+    try {
+      const sentryOrigin = new URL(sentryDsn).origin;
+      if (!sentryConnectSources.includes(sentryOrigin)) {
+        sentryConnectSources.push(sentryOrigin);
+      }
+    } catch {
+      // Ignore malformed DSN and keep default allowlist.
+    }
+  }
 
   // Prevent clickjacking attacks
   response.headers.set('X-Frame-Options', 'SAMEORIGIN');
@@ -31,10 +48,11 @@ export function middleware(request: NextRequest) {
   const csp = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Adjust for your needs
-    "style-src 'self' 'unsafe-inline'",
+    "worker-src 'self' blob:",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: https:",
-    "font-src 'self' data:",
-    "connect-src 'self'",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    `connect-src 'self' ${sentryConnectSources.join(' ')}`,
     "frame-ancestors 'self'",
     "base-uri 'self'",
     "form-action 'self'",
