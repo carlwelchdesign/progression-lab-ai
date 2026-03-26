@@ -1,10 +1,7 @@
 import './globals.css';
 import type { ReactNode } from 'react';
 
-import AppWrapper from '../components/AppWrapper';
-import AppThemeProvider from '../components/AppThemeProvider';
-import { AppSnackbarProvider } from '../components/providers/AppSnackbarProvider';
-import { AuthProvider } from '../components/providers/AuthProvider';
+import App from '../components/App';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -57,13 +54,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <AppThemeProvider>
-          <AppSnackbarProvider>
-            <AuthProvider>
-              <AppWrapper>{children}</AppWrapper>
-            </AuthProvider>
-          </AppSnackbarProvider>
-        </AppThemeProvider>
+        <App>{children}</App>
       </body>
     </html>
   );
