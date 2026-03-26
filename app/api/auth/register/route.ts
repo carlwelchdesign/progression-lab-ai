@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
         email,
         name,
         passwordHash: hashPassword(password),
+        role: 'AUDITOR',
       },
     });
 
@@ -45,12 +46,13 @@ export async function POST(request: NextRequest) {
           id: user.id,
           email: user.email,
           name: user.name,
+          role: user.role,
         },
       },
       { status: 201 },
     );
 
-    setSessionCookie(response, createSessionToken(user.id, user.email));
+    setSessionCookie(response, createSessionToken(user.id, user.email, user.role));
     return response;
   } catch (error) {
     console.error('Registration failed:', error);

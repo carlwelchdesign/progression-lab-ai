@@ -1,12 +1,11 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'crypto';
+import { createHmac, scryptSync, timingSafeEqual } from 'crypto';
 import type { NextRequest, NextResponse } from 'next/server';
 
-const AUTH_COOKIE_NAME = 'progressionlab_session';
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+const AUTH_COOKIE_NAME = 'progressionlab_admin_session';
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
 
-/**
- * Signed session payload stored in the auth cookie.
- */
+export type UserRole = 'ADMIN' | 'AUDITOR';
+
 type SessionPayload = {
   userId: string;
   email: string;
@@ -14,18 +13,9 @@ type SessionPayload = {
   exp: number;
 };
 
-export type UserRole = 'ADMIN' | 'AUDITOR';
-
 export type AuthRequestPayload = {
   email?: string;
   password?: string;
-  name?: string;
-};
-
-export type NormalizedAuthCredentials = {
-  email: string;
-  password: string;
-  name: string | null;
 };
 
 function base64UrlEncode(value: string | Buffer): string {
@@ -44,70 +34,32 @@ function base64UrlDecode(value: string): string {
 }
 
 function getAuthSecret(): string {
+  if (process.env.ADMIN_AUTH_SECRET) {
+    return process.env.ADMIN_AUTH_SECRET;
+  }
+
   if (process.env.AUTH_SECRET) {
     return process.env.AUTH_SECRET;
   }
 
   if (process.env.NODE_ENV === 'production') {
-    // This will be caught by the API route try/catch and returned as a 500,
-    // which makes it obvious in Vercel logs that AUTH_SECRET is missing.
-    throw new Error(
-      'Server misconfiguration: AUTH_SECRET environment variable is not set. ' +
-        'Add AUTH_SECRET to your Vercel environment variables and redeploy.',
-    );
+    throw new Error('Missing ADMIN_AUTH_SECRET in production');
   }
 
-  return 'dev-only-auth-secret-change-me';
+  return 'dev-only-admin-auth-secret-change-me';
 }
 
 function sign(value: string): string {
   return base64UrlEncode(createHmac('sha256', getAuthSecret()).update(value).digest());
 }
 
-/**
- * Normalizes auth request payload values into a consistent internal shape.
- */
-export function normalizeAuthCredentials(payload: AuthRequestPayload): NormalizedAuthCredentials {
+export function normalizeAuthPayload(payload: AuthRequestPayload) {
   return {
     email: payload.email?.trim().toLowerCase() ?? '',
     password: payload.password?.trim() ?? '',
-    name: payload.name?.trim() || null,
   };
 }
 
-/**
- * Validates shared login/register credential requirements.
- */
-export function validateAuthCredentials(
-  credentials: Pick<NormalizedAuthCredentials, 'email' | 'password'>,
-  options?: { minPasswordLength?: number },
-): string | null {
-  if (!credentials.email || !credentials.password) {
-    return 'Email and password are required';
-  }
-
-  if (
-    options?.minPasswordLength !== undefined &&
-    credentials.password.length < options.minPasswordLength
-  ) {
-    return `Password must be at least ${options.minPasswordLength} characters`;
-  }
-
-  return null;
-}
-
-/**
- * Hashes a plaintext password using scrypt + random salt.
- */
-export function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString('hex');
-  const hash = scryptSync(password, salt, 64).toString('hex');
-  return `scrypt$${salt}$${hash}`;
-}
-
-/**
- * Verifies a plaintext password against a stored scrypt hash.
- */
 export function verifyPassword(password: string, storedHash: string): boolean {
   const [scheme, salt, hash] = storedHash.split('$');
 
@@ -130,9 +82,6 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   }
 }
 
-/**
- * Creates an HMAC-signed session token for cookie storage.
- */
 export function createSessionToken(userId: string, email: string, role: UserRole): string {
   const payload: SessionPayload = {
     userId,
@@ -146,9 +95,6 @@ export function createSessionToken(userId: string, email: string, role: UserRole
   return `${encodedPayload}.${signature}`;
 }
 
-/**
- * Parses and validates a session token from cookie value.
- */
 export function parseSessionToken(token: string | undefined): SessionPayload | null {
   if (!token) {
     return null;
@@ -167,9 +113,7 @@ export function parseSessionToken(token: string | undefined): SessionPayload | n
     return null;
   }
 
-  const signaturesMatch = timingSafeEqual(providedSignatureBuffer, expectedSignatureBuffer);
-
-  if (!signaturesMatch) {
+  if (!timingSafeEqual(providedSignatureBuffer, expectedSignatureBuffer)) {
     return null;
   }
 
@@ -193,17 +137,11 @@ export function parseSessionToken(token: string | undefined): SessionPayload | n
   }
 }
 
-/**
- * Reads and verifies the current session from request cookies.
- */
-export function getSessionFromRequest(request: NextRequest): SessionPayload | null {
+export function getSessionFromRequest(request: NextRequest) {
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
   return parseSessionToken(token);
 }
 
-/**
- * Sets the signed session cookie on a response.
- */
 export function setSessionCookie(response: NextResponse, token: string): void {
   response.cookies.set(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
@@ -214,9 +152,6 @@ export function setSessionCookie(response: NextResponse, token: string): void {
   });
 }
 
-/**
- * Clears the session cookie on a response.
- */
 export function clearSessionCookie(response: NextResponse): void {
   response.cookies.set(AUTH_COOKIE_NAME, '', {
     httpOnly: true,

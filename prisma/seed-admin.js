@@ -1,11 +1,18 @@
-import { PrismaClient } from '@prisma/client';
-import { hashPassword } from '../lib/auth';
+/* eslint-disable @typescript-eslint/no-require-imports */
+const { PrismaClient } = require('@prisma/client');
+const { randomBytes, scryptSync } = require('crypto');
 
 const prisma = new PrismaClient();
 
-const adminEmail = process.env.ADMIN_SEED_EMAIL ?? 'demo@progressionlab.ai';
-const adminPassword = process.env.ADMIN_SEED_PASSWORD ?? 'Admin123!ChangeMe';
-const adminName = process.env.ADMIN_SEED_NAME ?? 'Demo Admin';
+const adminEmail = process.env.ADMIN_SEED_EMAIL || 'demo@progressionlab.ai';
+const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'Admin123!ChangeMe';
+const adminName = process.env.ADMIN_SEED_NAME || 'Demo Admin';
+
+function hashPassword(password) {
+  const salt = randomBytes(16).toString('hex');
+  const hash = scryptSync(password, salt, 64).toString('hex');
+  return `scrypt$${salt}$${hash}`;
+}
 
 async function main() {
   await prisma.user.upsert({
@@ -16,7 +23,6 @@ async function main() {
       passwordHash: hashPassword(adminPassword),
     },
     create: {
-      id: 'demo-user-id',
       email: adminEmail,
       name: adminName,
       passwordHash: hashPassword(adminPassword),

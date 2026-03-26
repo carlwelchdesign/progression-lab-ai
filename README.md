@@ -10,6 +10,17 @@
 - Production: [https://progression-lab-ai.vercel.app](https://progression-lab-ai.vercel.app)
 - Storybook Docs: [https://storybook-progression-lab-ai.vercel.app](https://storybook-progression-lab-ai.vercel.app)
 
+## Separate Admin Deployment
+
+This repository now includes a dedicated standalone admin app in [admin-dashboard](admin-dashboard).
+
+- Admin local dev: `yarn admin:dev`
+- Admin lint: `yarn admin:lint`
+- Admin build: `yarn admin:build`
+
+The admin app is intended to be deployed as a separate project from the main app and Storybook.
+See [admin-dashboard/README.md](admin-dashboard/README.md) for setup and deployment details.
+
 ---
 
 <img width="1221" height="1310" alt="image" src="https://github.com/user-attachments/assets/3bfbfba4-b2d5-4e60-9a86-8bdb4765ed48" />
