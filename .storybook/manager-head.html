@@ -22,4 +22,30 @@
   .css-1wpdhyu {
     background: #12171d !important;
   }
+
+  /* Hide default Storybook logo and replace with ProgressionLab.AI branding */
+  a[title='Storybook'] svg {
+    display: none;
+  }
+
+  a[title='Storybook']::before {
+    content: '';
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    background-image: url('/icon.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+
+  a[title='Storybook']::after {
+    content: 'ProgressionLab.AI';
+    font-size: 18px;
+    font-weight: 600;
+    color: #e6edf3;
+    vertical-align: middle;
+  }
 </style>

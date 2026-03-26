@@ -20,6 +20,9 @@ const preview: Preview = {
     ),
   ],
   parameters: {
+    docs: {
+      theme: themes.dark,
+    },
     backgrounds: {
       default: 'app-dark',
       values: [
@@ -27,9 +30,6 @@ const preview: Preview = {
         { name: 'app-light', value: '#f6f8fb' },
         { name: 'neutral', value: '#1e1e1e' },
       ],
-    },
-    docs: {
-      theme: themes.dark,
     },
     controls: {
       matchers: {

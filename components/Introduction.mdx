@@ -1,0 +1,87 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Introduction" />
+
+# Welcome to ProgressionLab.AI 🎸
+
+<img src="/icon.png" alt="ProgressionLab.AI" style={{ width: '150px', height: 'auto', display: 'block', margin: '0 auto 24px' }} />
+
+## What is ProgressionLab.AI?
+
+ProgressionLab.AI is an intelligent chord progression generator designed for musicians and producers. It helps you discover unique and inspiring chord progressions using AI-powered suggestions, visual feedback through guitar and piano diagrams, and real-time audio playback.
+
+### Key Features
+
+- **AI-Powered Chord Generation**: Get intelligent chord progression suggestions based on genre, mood, and harmonic structure
+- **Multi-Instrument Support**: Guitar and piano diagrams for immediate visual reference
+- **Real-Time Audio Playback**: Hear your progressions instantly with MIDI playback and effects
+- **Progression Sharing**: Save and share your favorite progressions with others
+- **Dark Theme UI**: Beautiful, professional interface optimized for music production workflows
+
+## Component Library
+
+This Storybook documents all reusable UI components and feature components used throughout the application. Each component is interactive and can be tested in isolation.
+
+### Browsing Components
+
+**UI Components** — Base components and form fields:
+- Buttons, cards, and input fields
+- Status notifications (snackbar)
+- Theme controls
+
+**Features** — Major application features:
+- Generator — AI chord progression generator interface
+- Progressions — Saved progression management
+- Authentication — Login and registration flows
+
+## Get Started
+
+### Local Development
+
+```bash
+# Install dependencies
+yarn install
+
+# Start Storybook (local development)
+yarn storybook
+
+# Build Storybook (production)
+yarn build-storybook
+```
+
+### Live Application
+
+- **App**: [https://progression-lab-ai.vercel.app](https://progression-lab-ai.vercel.app)
+- **Storybook**: [https://storybook-progression-lab-ai.vercel.app](https://storybook-progression-lab-ai.vercel.app)
+
+## Tech Stack
+
+ProgressionLab.AI is built with modern web technologies:
+
+- **Next.js 15** — React framework with server and client components
+- **React 19** — Modern UI library with latest features
+- **TypeScript** — Type-safe JavaScript for robust code
+- **Material-UI (MUI) v7** — Comprehensive component library
+- **Storybook 10** — Component documentation and testing
+- **Vitest** — Unit testing framework
+- **Prisma** — Database ORM
+- **MSW** — API mocking for development and testing
+- **MIDI.js** — Audio synthesis and playback
+
+## Extras
+
+### Theme System
+
+The application uses a sophisticated dark-first theme system with configurable color palettes. See the **Theme Swatches** story for a complete color reference.
+
+### Testing
+
+All components are tested with Vitest. Each component story includes interactive examples and visual testing capabilities.
+
+### Accessibility
+
+Components follow WCAG 2.1 guidelines with semantic HTML, ARIA attributes, and keyboard navigation support.
+
+---
+
+**Happy composing! 🎵**
