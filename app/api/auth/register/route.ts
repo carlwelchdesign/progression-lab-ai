@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         email,
         name,
         passwordHash: hashPassword(password),
-        role: 'AUDITOR',
+        role: 'USER',
       },
     });
 

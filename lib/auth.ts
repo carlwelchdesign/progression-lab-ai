@@ -14,7 +14,7 @@ type SessionPayload = {
   exp: number;
 };
 
-export type UserRole = 'ADMIN' | 'AUDITOR';
+export type UserRole = 'ADMIN' | 'AUDITOR' | 'USER';
 
 export type AuthRequestPayload = {
   email?: string;
@@ -193,7 +193,7 @@ export function parseSessionToken(token: string | undefined): SessionPayload | n
       return null;
     }
 
-    if (payload.role !== 'ADMIN' && payload.role !== 'AUDITOR') {
+    if (payload.role !== 'ADMIN' && payload.role !== 'AUDITOR' && payload.role !== 'USER') {
       return null;
     }
 
