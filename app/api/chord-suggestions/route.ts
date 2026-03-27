@@ -2,6 +2,9 @@ import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
 
 import type { ChordSuggestionResponse, PianoVoicing } from '../../../lib/types';
+import { NOTE_TO_SEMITONE } from '../../../lib/noteToSemitone';
+import { chordSuggestionInstructions } from './instructions';
+import { chordSuggestionSchema } from './schema';
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -9,29 +12,6 @@ const client = new OpenAI({
 
 const CHORD_ROOT_PATTERN = /^([A-G](?:#|b)?)/;
 const NOTE_PATTERN = /^([A-G](?:#|b)?)(-?\d+)$/;
-const NOTE_TO_SEMITONE: Record<string, number> = {
-  C: 0,
-  'B#': 0,
-  'C#': 1,
-  Db: 1,
-  D: 2,
-  'D#': 3,
-  Eb: 3,
-  E: 4,
-  Fb: 4,
-  F: 5,
-  'E#': 5,
-  'F#': 6,
-  Gb: 6,
-  G: 7,
-  'G#': 8,
-  Ab: 8,
-  A: 9,
-  'A#': 10,
-  Bb: 10,
-  B: 11,
-  Cb: 11,
-};
 
 /**
  * Returns chord-root pitch class from a chord symbol, or null when unknown.
@@ -200,183 +180,6 @@ function normalizeChordSuggestionResponse(
   };
 }
 
-const chordSuggestionSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['inputSummary', 'nextChordSuggestions', 'progressionIdeas', 'structureSuggestions'],
-  properties: {
-    inputSummary: {
-      type: 'object',
-      additionalProperties: false,
-      required: [
-        'seedChords',
-        'mood',
-        'mode',
-        'genre',
-        'styleReference',
-        'instrument',
-        'adventurousness',
-      ],
-      properties: {
-        seedChords: {
-          type: 'array',
-          items: { type: 'string' },
-        },
-        mood: { type: ['string', 'null'] },
-        mode: { type: ['string', 'null'] },
-        genre: { type: ['string', 'null'] },
-        styleReference: { type: ['string', 'null'] },
-        instrument: {
-          type: ['string', 'null'],
-          enum: ['guitar', 'piano', 'both', null],
-        },
-        adventurousness: {
-          type: ['string', 'null'],
-          enum: ['safe', 'balanced', 'surprising', null],
-        },
-      },
-    },
-    nextChordSuggestions: {
-      type: 'array',
-      minItems: 4,
-      maxItems: 4,
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: [
-          'chord',
-          'romanNumeral',
-          'functionExplanation',
-          'tensionLevel',
-          'confidence',
-          'voicingHint',
-          'pianoVoicing',
-          'guitarVoicing',
-        ],
-        properties: {
-          chord: { type: 'string' },
-          romanNumeral: { type: ['string', 'null'] },
-          functionExplanation: { type: 'string' },
-          tensionLevel: { type: 'integer', minimum: 1, maximum: 5 },
-          confidence: { type: 'integer', minimum: 1, maximum: 5 },
-          voicingHint: { type: ['string', 'null'] },
-          pianoVoicing: {
-            type: ['object', 'null'],
-            additionalProperties: false,
-            required: ['leftHand', 'rightHand'],
-            properties: {
-              leftHand: {
-                type: 'array',
-                items: { type: 'string' },
-              },
-              rightHand: {
-                type: 'array',
-                items: { type: 'string' },
-              },
-            },
-          },
-          guitarVoicing: {
-            type: ['object', 'null'],
-            additionalProperties: false,
-            required: ['title', 'position', 'fingers', 'barres'],
-            properties: {
-              title: { type: 'string' },
-              position: { type: ['integer', 'null'] },
-              fingers: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  additionalProperties: false,
-                  required: ['string', 'fret', 'finger'],
-                  properties: {
-                    string: { type: 'integer', minimum: 1, maximum: 6 },
-                    fret: {
-                      anyOf: [
-                        { type: 'integer', minimum: 0, maximum: 24 },
-                        { type: 'string', enum: ['x'] },
-                      ],
-                    },
-                    finger: { type: ['string', 'null'] },
-                  },
-                },
-              },
-              barres: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  additionalProperties: false,
-                  required: ['fromString', 'toString', 'fret', 'text'],
-                  properties: {
-                    fromString: { type: 'integer', minimum: 1, maximum: 6 },
-                    toString: { type: 'integer', minimum: 1, maximum: 6 },
-                    fret: { type: 'integer', minimum: 1, maximum: 24 },
-                    text: { type: ['string', 'null'] },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    progressionIdeas: {
-      type: 'array',
-      minItems: 3,
-      maxItems: 3,
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['label', 'chords', 'feel', 'performanceTip', 'pianoVoicings'],
-        properties: {
-          label: { type: 'string' },
-          chords: {
-            type: 'array',
-            items: { type: 'string' },
-          },
-          feel: { type: 'string' },
-          performanceTip: { type: ['string', 'null'] },
-          pianoVoicings: {
-            type: 'array',
-            items: {
-              type: 'object',
-              additionalProperties: false,
-              required: ['leftHand', 'rightHand'],
-              properties: {
-                leftHand: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
-                rightHand: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    structureSuggestions: {
-      type: 'array',
-      minItems: 3,
-      maxItems: 3,
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['section', 'bars', 'harmonicIdea'],
-        properties: {
-          section: {
-            type: 'string',
-            enum: ['verse', 'pre-chorus', 'chorus', 'bridge', 'outro'],
-          },
-          bars: { type: 'integer', minimum: 1, maximum: 32 },
-          harmonicIdea: { type: 'string' },
-        },
-      },
-    },
-  },
-} as const;
-
 /**
  * Generates chord suggestions, progression ideas, and structure ideas via OpenAI.
  */
@@ -387,67 +190,6 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-
-    const instructions = `
-You are a songwriting and harmony assistant.
-
-Return:
-- 4 next chord suggestions
-- 3 progression ideas
-- 3 structure suggestions
-
-Rules:
-- Be musically plausible.
-- Favor practical ideas for real musicians.
-- Respect the requested mode and mood.
-- If a styleReference is provided, reflect its harmonic language and teaching approach without copying exact songs.
-- You may use tasteful modal borrowing.
-- Prefer readable chord names like Fmaj7, Am7, Cmaj7, G7sus4.
-- Return only JSON matching the schema.
-
-For each next chord suggestion, return a pianoVoicing object with:
-- leftHand: an array of note names in scientific pitch notation
-- rightHand: an array of note names in scientific pitch notation
-
-Rules:
-- Always include octave numbers, e.g. C3, E4, G#4
-- Do not return note names without octaves
-- leftHand should usually contain 1 to 2 notes in a lower register
-- rightHand should usually contain 3 to 5 notes in a playable upper register
-- Make the voicings musical and practical for piano house / modern chord playing
-- Prefer spread, playable voicings rather than dense clusters
-- For add2/add9/sus2 chords, especially in pop and R&B, prefer the 2/9 as a close color tone near the root in the right hand, not isolated more than an octave above the rest of the voicing
-
-Example:
-"pianoVoicing": {
-  "leftHand": ["F2", "C3"],
-  "rightHand": ["A3", "E4", "G4", "C5"]
-}
-
-For each nextChordSuggestion, also return a guitarVoicing object for a playable 6-string standard tuning voicing.
-
-Rules:
-- string is 1 through 6.
-- fret is either an integer or "x" for muted.
-- finger is "1", "2", "3", "4", or null.
-- include barres when needed.
-- if no practical voicing is available, return null.
-
-For each progression idea, also return pianoVoicings.
-
-Rules:
-- pianoVoicings must have the same number of entries as chords
-- each voicing must correspond to the chord at the same index
-- each voicing must use scientific pitch notation with octave numbers
-- each voicing must include:
-  - leftHand: 1 to 2 notes in a lower register
-  - rightHand: 3 to 5 notes in a practical upper register
-- favor smooth voice leading across the progression
-- make the voicings playable and stylistically appropriate for the requested genre and mood
-- for add2/add9/sus2 chords, keep the 2/9 close to the root in the right hand when that serves a pop or R&B feel
-
-When returning progressionIdeas, ensure pianoVoicings.length exactly matches chords.length.
-    `.trim();
 
     const input = JSON.stringify({
       seedChords: body.seedChords ?? [],
@@ -464,7 +206,7 @@ When returning progressionIdeas, ensure pianoVoicings.length exactly matches cho
 
     const response = await client.responses.create({
       model: process.env.OPENAI_MODEL || 'gpt-5.4',
-      instructions,
+      instructions: chordSuggestionInstructions,
       input,
       text: {
         format: {
