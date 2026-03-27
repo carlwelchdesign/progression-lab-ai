@@ -61,7 +61,7 @@ export function middleware() {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // MUI requires unsafe-inline for styles
     "img-src 'self' data:",
     "font-src 'self' data: https://fonts.gstatic.com",
-    `connect-src 'self' ${sentryConnectSources.join(' ')}`,
+    `connect-src 'self' https://tonejs.github.io ${sentryConnectSources.join(' ')}`,
     "frame-ancestors 'none'", // Prevent embedding in any frame
     "base-uri 'self'",
     "form-action 'self'",

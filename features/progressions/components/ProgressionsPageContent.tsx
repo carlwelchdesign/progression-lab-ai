@@ -60,7 +60,8 @@ function getFirstChordName(progression: Progression): string {
 export default function ProgressionsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const initialViewParam = searchParams.get('view');
   const initialViewMode: ViewMode = initialViewParam === 'public' ? 'public' : 'mine';
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
@@ -102,10 +103,10 @@ export default function ProgressionsPageContent() {
       return;
     }
 
-    if (!isAuthenticated && viewMode === 'mine') {
-      setViewMode('public');
+    if ((!isAuthenticated || !isAdmin) && viewMode === 'public') {
+      setViewMode('mine');
     }
-  }, [isAuthLoading, isAuthenticated, viewMode]);
+  }, [isAuthLoading, isAuthenticated, isAdmin, viewMode]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -192,7 +193,20 @@ export default function ProgressionsPageContent() {
     try {
       setDeletingProgressionId(id);
       await deleteProgression(id);
+
+      // Optimistically remove from local state so the card disappears immediately.
       setMyProgressions((prev) => prev.filter((p) => p.id !== id));
+      setPublicProgressions((prev) => prev.filter((p) => p.id !== id));
+
+      // Re-sync the active list so UI state matches server state.
+      if (viewMode === 'public') {
+        const refreshedPublic = await getPublicProgressions({ tags: tagQuery, keys: keyQuery });
+        setPublicProgressions(refreshedPublic);
+      } else {
+        const refreshedMine = await getMyProgressions();
+        setMyProgressions(refreshedMine);
+      }
+
       showSuccess('Progression deleted.');
     } catch (err) {
       const message = (err as Error).message || 'Failed to delete progression';
@@ -214,12 +228,12 @@ export default function ProgressionsPageContent() {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box>
             <Typography variant="h3" component="h1" gutterBottom>
-              {viewMode === 'mine' ? 'My Progressions' : 'Public Progressions'}
+              {viewMode === 'mine' ? 'My Progressions' : 'Examples'}
             </Typography>
             <Typography variant="body1" color="text.secondary">
               {viewMode === 'mine'
                 ? 'View, edit, and share your saved chord progressions'
-                : 'Explore community-shared chord progressions'}
+                : 'Example chord progressions curated by admins'}
             </Typography>
           </Box>
           <Link href="/" passHref>
@@ -244,12 +258,14 @@ export default function ProgressionsPageContent() {
             >
               My Progressions
             </Button>
-            <Button
-              variant={viewMode === 'public' ? 'contained' : 'outlined'}
-              onClick={() => setViewMode('public')}
-            >
-              Public
-            </Button>
+            {isAdmin ? (
+              <Button
+                variant={viewMode === 'public' ? 'contained' : 'outlined'}
+                onClick={() => setViewMode('public')}
+              >
+                Examples
+              </Button>
+            ) : null}
             <Button variant="text" onClick={handleClearFilters} disabled={!hasActiveFilters}>
               Clear Filters
             </Button>
@@ -368,7 +384,7 @@ export default function ProgressionsPageContent() {
             <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
               {viewMode === 'mine'
                 ? "You haven't saved any progressions yet."
-                : 'No public progressions match your filters yet.'}
+                : 'No example progressions match your filters yet.'}
             </Typography>
             <Link href="/" passHref>
               <Button variant="contained">Create a progression</Button>
@@ -394,10 +410,10 @@ export default function ProgressionsPageContent() {
               <ProgressionCard
                 key={progression.id}
                 progression={progression}
-                onDelete={viewMode === 'mine' ? handleDelete : undefined}
+                onDelete={viewMode === 'mine' || isAdmin ? handleDelete : undefined}
                 onOpen={handleOpen}
                 canEdit={false}
-                canDelete={viewMode === 'mine'}
+                canDelete={viewMode === 'mine' || isAdmin}
                 isDeleting={deletingProgressionId === progression.id}
                 instrument={instrument}
               />
