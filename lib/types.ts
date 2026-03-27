@@ -116,3 +116,75 @@ export type Progression = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type ArrangementEvent = {
+  padKey: string;
+  chord: string;
+  source: string;
+  leftHand: string[];
+  rightHand: string[];
+  stepIndex: number;
+  velocity?: number;
+};
+
+export type ArrangementTimeline = {
+  stepsPerBar: number;
+  loopLengthBars: number;
+  totalSteps: number;
+  events: ArrangementEvent[];
+};
+
+export type ArrangementPlaybackSnapshot = {
+  tempoBpm: number;
+  timeSignature: '4/4' | '3/4' | '6/8';
+  padPattern: 'single' | 'quarter-pulse' | 'eighth-pulse' | 'offbeat-stab' | 'syncopated-stab';
+  playbackStyle: 'block' | 'strum';
+  instrument: 'piano' | 'rhodes';
+  octaveShift: number;
+  attack: number;
+  decay: number;
+  padVelocity: number;
+  humanize: number;
+  gate: number;
+  inversionRegister: 'off' | 'low' | 'mid' | 'high';
+};
+
+export type ArrangementPayload = {
+  title?: string;
+  timeline: ArrangementTimeline;
+  playbackSnapshot: ArrangementPlaybackSnapshot;
+  sourceChords?: Array<{
+    key: string;
+    chord: string;
+    source: string;
+    leftHand: string[];
+    rightHand: string[];
+  }>;
+  notes?: string;
+  tags?: string[];
+  isPublic?: boolean;
+};
+
+export type CreateArrangementRequest = ArrangementPayload;
+export type UpdateArrangementRequest = Partial<ArrangementPayload>;
+
+export type Arrangement = {
+  id: string;
+  shareId: string;
+  userId: string;
+  title: string;
+  timeline: ArrangementTimeline;
+  playbackSnapshot: ArrangementPlaybackSnapshot;
+  sourceChords?: Array<{
+    key: string;
+    chord: string;
+    source: string;
+    leftHand: string[];
+    rightHand: string[];
+  }>;
+  notes?: string;
+  tags: string[];
+  isPublic: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};

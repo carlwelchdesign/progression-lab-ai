@@ -11,6 +11,13 @@ import {
   Typography,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import AvTimerIcon from '@mui/icons-material/AvTimer';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import LoopIcon from '@mui/icons-material/Loop';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import SaveIcon from '@mui/icons-material/Save';
+import StopIcon from '@mui/icons-material/Stop';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -20,10 +27,17 @@ import { CHORD_OPTIONS } from '../../../lib/formOptions';
 import PlaybackSettingsButton from './PlaybackSettingsButton';
 import SelectField from '../../../components/ui/SelectField';
 import { stopGlobalPlayback } from '../hooks/usePlaybackToggle';
+import SaveArrangementDialog from '../../arrangements/components/SaveArrangementDialog';
 import type {
   PlaybackSettings,
   PlaybackSettingsChangeHandlers,
 } from '../lib/playbackSettingsModel';
+import type { TimeSignature } from '../../../domain/audio/audio';
+import type {
+  ArrangementEvent,
+  ArrangementPlaybackSnapshot,
+  ArrangementTimeline,
+} from '../../../lib/types';
 
 /**
  * Render-ready chord data for each playable grid pad.
@@ -34,6 +48,14 @@ type ChordGridEntry = {
   source: string;
   leftHand: string[];
   rightHand: string[];
+};
+
+const STEPS_PER_BEAT = 4;
+const LOOP_LENGTH_OPTIONS = [1, 2, 4] as const;
+
+const getBeatsPerBar = (signature: TimeSignature): number => {
+  const numerator = Number.parseInt(signature.split('/')[0], 10);
+  return Number.isFinite(numerator) && numerator > 0 ? numerator : 4;
 };
 
 /**
@@ -109,13 +131,32 @@ export default function GeneratedChordGridDialog({
     padPattern,
     timeSignature,
     padLatchMode,
+    metronomeEnabled,
   } = settings;
 
   const [activePadKey, setActivePadKey] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editableChords, setEditableChords] = useState<ChordGridEntry[]>(chords);
   const [editingPadKey, setEditingPadKey] = useState<string | null>(null);
+  const [isSequencerPlaying, setIsSequencerPlaying] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isLoopEnabled, setIsLoopEnabled] = useState(true);
+  const [loopLengthBars, setLoopLengthBars] = useState<(typeof LOOP_LENGTH_OPTIONS)[number]>(1);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [arrangementEvents, setArrangementEvents] = useState<ArrangementEvent[]>([]);
+  const [saveArrangementDialogOpen, setSaveArrangementDialogOpen] = useState(false);
   const activePadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sequencerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentStepRef = useRef(0);
+  const eventsByStepRef = useRef<Map<number, ArrangementEvent[]>>(new Map());
+  const totalStepsRef = useRef(0);
+  const isLoopEnabledRef = useRef(isLoopEnabled);
+  const metronomeEnabledRef = useRef(metronomeEnabled);
+  const beatsPerBarRef = useRef(4);
+  const beatPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isBeatPulseVisible, setIsBeatPulseVisible] = useState(false);
+  const [isDownbeatPulse, setIsDownbeatPulse] = useState(false);
+  const [currentBeatInBar, setCurrentBeatInBar] = useState(1);
   const padStyles = {
     body: {
       bg: appColors.surface.chordPadBodyGradient,
@@ -132,6 +173,14 @@ export default function GeneratedChordGridDialog({
       if (activePadTimeout.current) {
         clearTimeout(activePadTimeout.current);
       }
+
+      if (sequencerIntervalRef.current) {
+        clearInterval(sequencerIntervalRef.current);
+      }
+
+      if (beatPulseTimeoutRef.current) {
+        clearTimeout(beatPulseTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -139,6 +188,241 @@ export default function GeneratedChordGridDialog({
     setEditableChords(chords);
     setEditingPadKey(null);
   }, [chords, open]);
+
+  useEffect(() => {
+    if (!open) {
+      if (sequencerIntervalRef.current) {
+        clearInterval(sequencerIntervalRef.current);
+        sequencerIntervalRef.current = null;
+      }
+
+      setIsSequencerPlaying(false);
+      setIsRecording(false);
+      setCurrentStep(0);
+      currentStepRef.current = 0;
+    }
+  }, [open]);
+
+  const beatsPerBar = useMemo(() => getBeatsPerBar(timeSignature), [timeSignature]);
+  const stepsPerBar = beatsPerBar * STEPS_PER_BEAT;
+  const totalSteps = stepsPerBar * loopLengthBars;
+
+  const eventsByStep = useMemo(() => {
+    const grouped = new Map<number, ArrangementEvent[]>();
+    arrangementEvents.forEach((event) => {
+      if (!grouped.has(event.stepIndex)) {
+        grouped.set(event.stepIndex, []);
+      }
+
+      grouped.get(event.stepIndex)?.push(event);
+    });
+    return grouped;
+  }, [arrangementEvents]);
+
+  useEffect(() => {
+    eventsByStepRef.current = eventsByStep;
+  }, [eventsByStep]);
+
+  useEffect(() => {
+    totalStepsRef.current = totalSteps;
+  }, [totalSteps]);
+
+  useEffect(() => {
+    isLoopEnabledRef.current = isLoopEnabled;
+  }, [isLoopEnabled]);
+
+  useEffect(() => {
+    metronomeEnabledRef.current = metronomeEnabled;
+  }, [metronomeEnabled]);
+
+  useEffect(() => {
+    beatsPerBarRef.current = beatsPerBar;
+  }, [beatsPerBar]);
+
+  const timeline = useMemo<ArrangementTimeline>(
+    () => ({
+      stepsPerBar,
+      loopLengthBars,
+      totalSteps,
+      events: arrangementEvents,
+    }),
+    [arrangementEvents, loopLengthBars, stepsPerBar, totalSteps],
+  );
+
+  const playbackSnapshot = useMemo<ArrangementPlaybackSnapshot>(
+    () => ({
+      tempoBpm,
+      timeSignature,
+      padPattern,
+      playbackStyle,
+      instrument,
+      octaveShift,
+      attack,
+      decay,
+      padVelocity,
+      humanize,
+      gate,
+      inversionRegister,
+    }),
+    [
+      attack,
+      decay,
+      gate,
+      humanize,
+      instrument,
+      inversionRegister,
+      octaveShift,
+      padPattern,
+      padVelocity,
+      playbackStyle,
+      tempoBpm,
+      timeSignature,
+    ],
+  );
+
+  const playEntry = (
+    entry: Pick<ChordGridEntry, 'key' | 'leftHand' | 'rightHand'>,
+    options?: {
+      stopBefore?: boolean;
+      loop?: boolean;
+      useCurrentPadPattern?: boolean;
+      velocity?: number;
+    },
+  ) => {
+    if (options?.stopBefore !== false) {
+      stopGlobalPlayback();
+    }
+
+    void playChordPattern({
+      leftHand: entry.leftHand,
+      rightHand: entry.rightHand,
+      padPattern: options?.useCurrentPadPattern === false ? 'single' : padPattern,
+      timeSignature,
+      loop: options?.loop ?? false,
+      tempoBpm,
+      playbackStyle,
+      attack,
+      decay,
+      velocity: options?.velocity ?? padVelocity,
+      humanize,
+      gate,
+      inversionRegister,
+      instrument,
+      octaveShift,
+    });
+  };
+
+  const stopSequencer = () => {
+    if (sequencerIntervalRef.current) {
+      clearInterval(sequencerIntervalRef.current);
+      sequencerIntervalRef.current = null;
+    }
+
+    setIsSequencerPlaying(false);
+    setIsRecording(false);
+    setCurrentStep(0);
+    currentStepRef.current = 0;
+    setIsBeatPulseVisible(false);
+    setCurrentBeatInBar(1);
+
+    if (beatPulseTimeoutRef.current) {
+      clearTimeout(beatPulseTimeoutRef.current);
+      beatPulseTimeoutRef.current = null;
+    }
+
+    stopAllAudio();
+  };
+
+  const startSequencer = () => {
+    if (sequencerIntervalRef.current) {
+      clearInterval(sequencerIntervalRef.current);
+    }
+
+    stopGlobalPlayback();
+    stopAllAudio();
+
+    const stepDurationMs = 60_000 / tempoBpm / STEPS_PER_BEAT;
+    currentStepRef.current = 0;
+    setCurrentStep(0);
+    setIsSequencerPlaying(true);
+
+    sequencerIntervalRef.current = setInterval(() => {
+      const stepIndex = currentStepRef.current;
+      setCurrentStep(stepIndex);
+
+      if (metronomeEnabledRef.current && stepIndex % STEPS_PER_BEAT === 0) {
+        const beatInBar = Math.floor(stepIndex / STEPS_PER_BEAT) % beatsPerBarRef.current;
+        const isDownbeat = beatInBar === 0;
+
+        setCurrentBeatInBar(beatInBar + 1);
+        setIsDownbeatPulse(isDownbeat);
+        setIsBeatPulseVisible(true);
+
+        if (beatPulseTimeoutRef.current) {
+          clearTimeout(beatPulseTimeoutRef.current);
+        }
+
+        beatPulseTimeoutRef.current = setTimeout(() => {
+          setIsBeatPulseVisible(false);
+          beatPulseTimeoutRef.current = null;
+        }, 120);
+      }
+
+      const events = eventsByStepRef.current.get(stepIndex) ?? [];
+      events.forEach((event) => {
+        playEntry(
+          { key: event.padKey, leftHand: event.leftHand, rightHand: event.rightHand },
+          {
+            stopBefore: false,
+            loop: false,
+            useCurrentPadPattern: false,
+            velocity: event.velocity ?? padVelocity,
+          },
+        );
+      });
+
+      const nextStep = stepIndex + 1;
+      if (nextStep >= totalStepsRef.current) {
+        if (isLoopEnabledRef.current) {
+          currentStepRef.current = 0;
+          return;
+        }
+
+        stopSequencer();
+        return;
+      }
+
+      currentStepRef.current = nextStep;
+    }, stepDurationMs);
+  };
+
+  const handleSequencerPlayToggle = () => {
+    if (isSequencerPlaying) {
+      stopSequencer();
+      return;
+    }
+
+    startSequencer();
+  };
+
+  const handleRecordToggle = () => {
+    if (isRecording) {
+      setIsRecording(false);
+      return;
+    }
+
+    if (!isSequencerPlaying) {
+      startSequencer();
+    }
+
+    setIsRecording(true);
+  };
+
+  const clearRecordedEvents = () => {
+    setArrangementEvents([]);
+    setCurrentStep(0);
+    currentStepRef.current = 0;
+  };
 
   const triggerPad = (entry: ChordGridEntry) => {
     if (activePadTimeout.current) {
@@ -151,24 +435,11 @@ export default function GeneratedChordGridDialog({
       activePadTimeout.current = null;
     }, 180);
 
-    stopGlobalPlayback();
-
-    void playChordPattern({
-      leftHand: entry.leftHand,
-      rightHand: entry.rightHand,
-      padPattern,
-      timeSignature,
-      loop: padLatchMode,
-      tempoBpm,
-      playbackStyle,
-      attack,
-      decay,
-      velocity: padVelocity,
-      humanize,
-      gate,
-      inversionRegister,
-      instrument,
-      octaveShift,
+    const playInSequencerContext = isSequencerPlaying || isRecording;
+    playEntry(entry, {
+      stopBefore: !playInSequencerContext,
+      loop: playInSequencerContext ? false : padLatchMode,
+      useCurrentPadPattern: !playInSequencerContext,
     });
   };
 
@@ -178,6 +449,27 @@ export default function GeneratedChordGridDialog({
     }
 
     triggerPad(entry);
+
+    if (isRecording) {
+      const stepIndex = Math.min(currentStepRef.current, Math.max(0, totalSteps - 1));
+      const event: ArrangementEvent = {
+        padKey: entry.key,
+        chord: entry.chord,
+        source: entry.source,
+        leftHand: entry.leftHand,
+        rightHand: entry.rightHand,
+        stepIndex,
+        velocity: padVelocity,
+      };
+
+      setArrangementEvents((previous) => {
+        const filtered = previous.filter(
+          (candidate) =>
+            !(candidate.stepIndex === event.stepIndex && candidate.padKey === event.padKey),
+        );
+        return [...filtered, event].sort((a, b) => a.stepIndex - b.stepIndex);
+      });
+    }
   };
 
   const onPadChordChange = (padKey: string, chord: string) => {
@@ -267,6 +559,118 @@ export default function GeneratedChordGridDialog({
         </Box>
       </DialogTitle>
       <DialogContent dividers>
+        <Box
+          sx={{
+            mb: 1.5,
+            p: 1.25,
+            borderRadius: 1.5,
+            bgcolor: appColors.surface.translucentPanel,
+            border: `1px solid ${appColors.surface.translucentPanelBorder}`,
+            display: 'flex',
+            gap: 1,
+            flexWrap: 'wrap',
+            alignItems: 'center',
+          }}
+        >
+          <Button
+            size="small"
+            variant={isSequencerPlaying ? 'contained' : 'outlined'}
+            onClick={handleSequencerPlayToggle}
+            startIcon={
+              isSequencerPlaying ? (
+                <StopIcon fontSize="small" />
+              ) : (
+                <PlayArrowIcon fontSize="small" />
+              )
+            }
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            {isSequencerPlaying ? 'Stop' : 'Play'}
+          </Button>
+          <Button
+            size="small"
+            variant={isRecording ? 'contained' : 'outlined'}
+            color={isRecording ? 'error' : 'primary'}
+            onClick={handleRecordToggle}
+            startIcon={<FiberManualRecordIcon fontSize="small" />}
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            {isRecording ? 'Recording' : 'Record'}
+          </Button>
+          <Button
+            size="small"
+            variant={isLoopEnabled ? 'contained' : 'outlined'}
+            onClick={() => setIsLoopEnabled((previous) => !previous)}
+            startIcon={<LoopIcon fontSize="small" />}
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            Loop
+          </Button>
+          <Button
+            size="small"
+            variant={metronomeEnabled ? 'contained' : 'outlined'}
+            onClick={() => onSettingsChange.onMetronomeEnabledChange(!metronomeEnabled)}
+            startIcon={<AvTimerIcon fontSize="small" />}
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            Metronome
+          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                backgroundColor: isDownbeatPulse
+                  ? theme.palette.error.main
+                  : theme.palette.primary.main,
+                opacity: metronomeEnabled && isBeatPulseVisible ? 1 : 0.25,
+                transform: metronomeEnabled && isBeatPulseVisible ? 'scale(1.35)' : 'scale(1)',
+                boxShadow:
+                  metronomeEnabled && isBeatPulseVisible
+                    ? isDownbeatPulse
+                      ? `0 0 0 5px ${alpha(theme.palette.error.main, 0.24)}`
+                      : `0 0 0 5px ${alpha(theme.palette.primary.main, 0.24)}`
+                    : 'none',
+                transition: 'opacity 90ms ease, transform 90ms ease, box-shadow 90ms ease',
+              }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 50 }}>
+              Beat {currentBeatInBar}/{beatsPerBar}
+            </Typography>
+          </Box>
+          <SelectField
+            label="Length"
+            value={String(loopLengthBars)}
+            size="small"
+            onChange={(event) => {
+              const nextValue = Number.parseInt(event.target.value, 10);
+              if (LOOP_LENGTH_OPTIONS.includes(nextValue as (typeof LOOP_LENGTH_OPTIONS)[number])) {
+                setLoopLengthBars(nextValue as (typeof LOOP_LENGTH_OPTIONS)[number]);
+                setCurrentStep(0);
+                currentStepRef.current = 0;
+              }
+            }}
+            options={LOOP_LENGTH_OPTIONS.map((value) => ({
+              value: String(value),
+              label: `${value} bar${value > 1 ? 's' : ''}`,
+            }))}
+            sx={{ minWidth: 128 }}
+          />
+          <IconButton
+            aria-label="Clear recording"
+            size="small"
+            onClick={clearRecordedEvents}
+            disabled={arrangementEvents.length === 0}
+          >
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
+            Step {currentStep + 1}/{totalSteps} • {arrangementEvents.length} event
+            {arrangementEvents.length === 1 ? '' : 's'}
+          </Typography>
+        </Box>
+
         {isEditMode ? (
           <Box
             sx={{
@@ -454,8 +858,24 @@ export default function GeneratedChordGridDialog({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Button
             size="small"
+            variant="contained"
+            onClick={() => {
+              stopSequencer();
+              setSaveArrangementDialogOpen(true);
+            }}
+            startIcon={<SaveIcon fontSize="small" />}
+            disabled={arrangementEvents.length === 0}
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            Save arrangement
+          </Button>
+          <Button
+            size="small"
             variant="outlined"
-            onClick={stopAllAudio}
+            onClick={() => {
+              stopSequencer();
+              stopAllAudio();
+            }}
             sx={(theme) => ({
               borderWidth: 1.5,
               color: theme.palette.primary.main,
@@ -474,6 +894,14 @@ export default function GeneratedChordGridDialog({
           </Button>
         </Box>
       </DialogActions>
+
+      <SaveArrangementDialog
+        open={saveArrangementDialogOpen}
+        onClose={() => setSaveArrangementDialogOpen(false)}
+        timeline={timeline}
+        playbackSnapshot={playbackSnapshot}
+        sourceChords={editableChords}
+      />
     </Dialog>
   );
 }
