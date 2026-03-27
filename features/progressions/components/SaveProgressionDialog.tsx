@@ -9,24 +9,34 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   Stack,
+  Switch,
+  Typography,
 } from '@mui/material';
 
 import AppTextField from '../../../components/ui/TextField';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
+import { useAuth } from '../../../components/providers/AuthProvider';
 
 import { createProgression } from '../api/progressionsApi';
-import type { GeneratorSnapshot } from '../../../lib/types';
+import type { ChordItem, GeneratorSnapshot, PianoVoicing } from '../../../lib/types';
 
 type SaveProgressionDialogProps = {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  generatorSnapshot: GeneratorSnapshot;
+  generatorSnapshot?: GeneratorSnapshot;
+  chords?: ChordItem[];
+  pianoVoicings?: PianoVoicing[];
+  feel?: string;
+  scale?: string;
+  genre?: string;
 };
 
 type SaveProgressionFormData = {
   title: string;
+  isPublic: boolean;
 };
 
 export default function SaveProgressionDialog({
@@ -34,8 +44,15 @@ export default function SaveProgressionDialog({
   onClose,
   onSuccess,
   generatorSnapshot,
+  chords,
+  pianoVoicings,
+  feel,
+  scale,
+  genre,
 }: SaveProgressionDialogProps) {
   const { showError, showSuccess } = useAppSnackbar();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
 
   const {
     control,
@@ -45,6 +62,7 @@ export default function SaveProgressionDialog({
   } = useForm<SaveProgressionFormData>({
     defaultValues: {
       title: '',
+      isPublic: false,
     },
     mode: 'onChange',
   });
@@ -60,7 +78,10 @@ export default function SaveProgressionDialog({
     try {
       await createProgression({
         title: data.title.trim() || undefined,
-        generatorSnapshot,
+        isPublic: isAdmin ? data.isPublic : false,
+        ...(generatorSnapshot
+          ? { generatorSnapshot }
+          : { chords, pianoVoicings, feel, scale, genre }),
       });
 
       showSuccess('Progression saved!');
@@ -96,6 +117,30 @@ export default function SaveProgressionDialog({
               />
             )}
           />
+
+          {isAdmin ? (
+            <Controller
+              name="isPublic"
+              control={control}
+              render={({ field: { value, onChange } }) => (
+                <Stack spacing={0.5}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={value}
+                        onChange={(e) => onChange(e.target.checked)}
+                        disabled={isSubmitting}
+                      />
+                    }
+                    label="Add to Examples"
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Makes this progression visible to all users under Examples.
+                  </Typography>
+                </Stack>
+              )}
+            />
+          ) : null}
         </Stack>
       </DialogContent>
       <DialogActions>

@@ -37,7 +37,12 @@ import {
   MOOD_OPTIONS,
   STYLE_REFERENCE_OPTIONS,
 } from '../../../lib/formOptions';
-import type { ChordSuggestionResponse, GeneratorSnapshot, GuitarVoicing } from '../../../lib/types';
+import type {
+  ChordItem,
+  ChordSuggestionResponse,
+  GeneratorSnapshot,
+  GuitarVoicing,
+} from '../../../lib/types';
 
 const MAX_RANDOM_SELECTIONS = 7;
 const ADVENTUROUSNESS_INPUT_OPTIONS = [...ADVENTUROUSNESS_OPTIONS];
@@ -124,6 +129,12 @@ export default function GeneratorPageContent() {
   const [generatorSnapshotToSave, setGeneratorSnapshotToSave] = useState<GeneratorSnapshot | null>(
     null,
   );
+  const [individualProgressionToSave, setIndividualProgressionToSave] = useState<{
+    chords: ChordItem[];
+    pianoVoicings: ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings'];
+    feel: string;
+    genre: string;
+  } | null>(null);
   const [progressionDiagramInstrument, setProgressionDiagramInstrument] =
     useState<ProgressionDiagramInstrument>('piano');
   const {
@@ -329,8 +340,28 @@ export default function GeneratorPageContent() {
 
     const formData = getValues();
     setGeneratorSnapshotToSave({ formData, data });
+    setIndividualProgressionToSave(null);
     setSaveDialogOpen(true);
   }, [data, getValues]);
+
+  const handleRequestSaveProgression = useCallback(
+    ({
+      chords,
+      pianoVoicings,
+      feel,
+      genre: progressionGenre,
+    }: {
+      chords: ChordItem[];
+      pianoVoicings: ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings'];
+      feel: string;
+      genre: string;
+    }) => {
+      setIndividualProgressionToSave({ chords, pianoVoicings, feel, genre: progressionGenre });
+      setGeneratorSnapshotToSave(null);
+      setSaveDialogOpen(true);
+    },
+    [],
+  );
 
   const previewVoicing = generatedChordGridEntries[0]
     ? {
@@ -522,6 +553,7 @@ export default function GeneratorPageContent() {
           scale={resolvedScale}
           resolvedGenreForSave={resolvedGenre}
           guitarVoicingByChord={guitarVoicingByChord}
+          onRequestSaveProgression={handleRequestSaveProgression}
         />
       ),
     },
@@ -765,11 +797,16 @@ export default function GeneratorPageContent() {
                     </Stack>
                   )}
 
-                  {generatorSnapshotToSave ? (
+                  {generatorSnapshotToSave || individualProgressionToSave ? (
                     <SaveProgressionDialog
                       open={saveDialogOpen}
                       onClose={() => setSaveDialogOpen(false)}
-                      generatorSnapshot={generatorSnapshotToSave}
+                      generatorSnapshot={generatorSnapshotToSave ?? undefined}
+                      chords={individualProgressionToSave?.chords}
+                      pianoVoicings={individualProgressionToSave?.pianoVoicings}
+                      feel={individualProgressionToSave?.feel}
+                      scale={mode}
+                      genre={individualProgressionToSave?.genre}
                     />
                   ) : null}
                   <GeneratedChordGridDialog

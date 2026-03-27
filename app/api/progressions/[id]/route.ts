@@ -122,11 +122,18 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
+    // Admin can delete any progression; other users can only delete their own.
+    const deleteWhere =
+      session.role === 'ADMIN'
+        ? { id }
+        : {
+            id,
+            userId: session.userId,
+          };
+
     const result = await prisma.progression.deleteMany({
-      where: {
-        id,
-        userId: session.userId,
-      },
+      where: deleteWhere,
     });
 
     if (result.count === 0) {

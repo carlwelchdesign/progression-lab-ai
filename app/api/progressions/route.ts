@@ -45,6 +45,9 @@ export async function POST(request: NextRequest) {
       isPublic = false,
     } = body;
 
+    // Only ADMIN users may mark a progression as public (Examples).
+    const resolvedIsPublic = isPublic && session.role === 'ADMIN';
+
     const snapshot = hasGeneratorSnapshot(generatorSnapshot) ? generatorSnapshot : null;
     const primaryProgression = snapshot ? getPrimaryProgressionFromSnapshot(snapshot) : null;
 
@@ -76,7 +79,7 @@ export async function POST(request: NextRequest) {
       ...(resolvedGenre !== undefined && { genre: resolvedGenre }),
       notes,
       tags,
-      isPublic,
+      isPublic: resolvedIsPublic,
       userId: session.userId,
     };
 
