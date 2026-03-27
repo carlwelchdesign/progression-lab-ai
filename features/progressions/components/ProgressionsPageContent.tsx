@@ -60,7 +60,7 @@ function getFirstChordName(progression: Progression): string {
 export default function ProgressionsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
   const initialViewParam = searchParams.get('view');
   const initialViewMode: ViewMode = initialViewParam === 'public' ? 'public' : 'mine';
@@ -97,16 +97,6 @@ export default function ProgressionsPageContent() {
 
     return sanitizeTags([...CHORD_OPTIONS, ...observedKeys]);
   }, [myProgressions, publicProgressions]);
-
-  useEffect(() => {
-    if (isAuthLoading) {
-      return;
-    }
-
-    if ((!isAuthenticated || !isAdmin) && viewMode === 'public') {
-      setViewMode('mine');
-    }
-  }, [isAuthLoading, isAuthenticated, isAdmin, viewMode]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -258,14 +248,12 @@ export default function ProgressionsPageContent() {
             >
               My Progressions
             </Button>
-            {isAdmin ? (
-              <Button
-                variant={viewMode === 'public' ? 'contained' : 'outlined'}
-                onClick={() => setViewMode('public')}
-              >
-                Examples
-              </Button>
-            ) : null}
+            <Button
+              variant={viewMode === 'public' ? 'contained' : 'outlined'}
+              onClick={() => setViewMode('public')}
+            >
+              Examples
+            </Button>
             <Button variant="text" onClick={handleClearFilters} disabled={!hasActiveFilters}>
               Clear Filters
             </Button>
