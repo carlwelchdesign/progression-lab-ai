@@ -15,7 +15,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.3.9",
     "@prisma/client": "^5.22.0",
-    "next": "^15.2.0",
+    "next": "^15.5.14",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -27,5 +27,15 @@
     "eslint-config-next": "^15.2.0",
     "prisma": "^5.22.0",
     "typescript": "^5.8.2"
+  },
+  "resolutions": {
+    "**/anymatch/picomatch": "2.3.2",
+    "**/jest-util/picomatch": "2.3.2",
+    "**/micromatch/picomatch": "2.3.2",
+    "**/lint-staged/picomatch": "4.0.4",
+    "**/tinyglobby/picomatch": "4.0.4",
+    "**/unplugin/picomatch": "4.0.4",
+    "**/vite/picomatch": "4.0.4",
+    "**/vitest/picomatch": "4.0.4"
   }
 }
