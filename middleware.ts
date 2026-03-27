@@ -47,10 +47,16 @@ export function middleware() {
   );
 
   // Content Security Policy - restrictive by default
-  // Note: Avoiding unsafe-inline for scripts to prevent XSS; inline styles are acceptable
+  // In development: allow unsafe-eval for React Fast Refresh and unsafe-inline for next.js hot module replacement
+  // In production: strict policy to prevent XSS attacks
+  const isDev = process.env.NODE_ENV !== 'production';
+  const scriptSrc = isDev
+    ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'" // Dev: needed for React Fast Refresh
+    : "script-src 'self'"; // Prod: no inline scripts
+
   const csp = [
     "default-src 'self'",
-    "script-src 'self'", // No inline scripts; use external files or service workers
+    scriptSrc,
     "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // MUI requires unsafe-inline for styles
     "img-src 'self' data: https:",

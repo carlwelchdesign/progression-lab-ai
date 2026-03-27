@@ -47,10 +47,16 @@ export function middleware() {
   );
 
   // Strict Content Security Policy for admin panel
-  // Note: Avoiding unsafe-inline for scripts to prevent XSS; inline styles unavoidable with MUI
+  // In development: allow unsafe-eval and unsafe-inline for React Fast Refresh
+  // In production: strict policy to prevent XSS attacks
+  const isDev = process.env.NODE_ENV !== 'production';
+  const scriptSrc = isDev
+    ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'" // Dev: needed for React Fast Refresh
+    : "script-src 'self'"; // Prod: no inline scripts for admin panel
+
   const csp = [
     "default-src 'self'",
-    "script-src 'self'", // No inline scripts for admin panel; use external files
+    scriptSrc,
     "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // MUI requires unsafe-inline for styles
     "img-src 'self' data:",
