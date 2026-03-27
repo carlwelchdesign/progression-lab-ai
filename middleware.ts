@@ -52,7 +52,7 @@ export function middleware() {
   const isDev = process.env.NODE_ENV !== 'production';
   const scriptSrc = isDev
     ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'" // Dev: needed for React Fast Refresh
-    : "script-src 'self'"; // Prod: no inline scripts
+    : "script-src 'self' 'unsafe-inline'"; // Prod: allow Next inline bootstrap scripts
 
   const csp = [
     "default-src 'self'",
