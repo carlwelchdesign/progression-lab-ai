@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { Box, Chip, Divider, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Chip, Divider, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 
 import { getThemeTokens } from '../../lib/themeTokens';
 import type { ThemePreset } from '../../lib/themeMode';
@@ -10,15 +11,21 @@ type ThemeTokensPreviewProps = {
   preset: ThemePreset;
 };
 
-type ThemeTokensMatrixProps = {
-  mode: 'light' | 'dark';
-  preset: ThemePreset;
-};
-
 type TokenEntry = {
   key: string;
   value: string;
 };
+
+function getColorValue(color: unknown): string {
+  if (typeof color === 'string') {
+    return color;
+  }
+  if (color && typeof color === 'object' && 'main' in color) {
+    const main = (color as Record<string, unknown>).main;
+    return typeof main === 'string' ? main : '#000000';
+  }
+  return '#000000';
+}
 
 function flattenTokenGroup(group: Record<string, string | string[]>, prefix: string): TokenEntry[] {
   return Object.entries(group).flatMap(([key, rawValue]) => {
@@ -118,12 +125,22 @@ function TokenGroup({ title, children }: { title: string; children: ReactNode })
 }
 
 function ThemeTokensPreview({ mode, preset }: ThemeTokensPreviewProps) {
+  const [searchFilter, setSearchFilter] = useState('');
   const tokens = getThemeTokens(mode, preset);
   const palette = tokens.palette;
   const appColors = palette?.appColors;
   const surfaceTokens = appColors ? flattenTokenGroup(appColors.surface, 'surface') : [];
   const accentTokens = appColors ? flattenTokenGroup(appColors.accent, 'accent') : [];
   const tagTokens = appColors ? flattenTokenGroup(appColors.tags, 'tags') : [];
+
+  const filterTokens = (items: TokenEntry[]) => {
+    if (!searchFilter.trim()) return items;
+    const query = searchFilter.toLowerCase();
+    return items.filter(
+      (token) =>
+        token.key.toLowerCase().includes(query) || token.value.toLowerCase().includes(query),
+    );
+  };
 
   return (
     <Box
@@ -142,44 +159,80 @@ function ThemeTokensPreview({ mode, preset }: ThemeTokensPreviewProps) {
           <Chip label={`radius: ${tokens.shape?.borderRadius ?? 'n/a'}`} variant="outlined" />
         </Stack>
 
+        <TextField
+          placeholder="Filter tokens by name or value... (e.g., gradient, #FF4D9D)"
+          size="small"
+          value={searchFilter}
+          onChange={(e) => setSearchFilter(e.target.value)}
+          fullWidth
+          sx={{ mb: 1 }}
+        />
+        {searchFilter && (
+          <Typography variant="caption" color="text.secondary">
+            Showing{' '}
+            {filterTokens(surfaceTokens).length +
+              filterTokens(accentTokens).length +
+              filterTokens(tagTokens).length}{' '}
+            of {surfaceTokens.length + accentTokens.length + tagTokens.length} tokens
+          </Typography>
+        )}
+
         <TokenGroup title="Core Palette">
-          <TokenSwatch label="primary.main" value={palette?.primary?.main ?? '#000000'} />
+          <TokenSwatch label="primary.main" value={getColorValue(palette?.primary)} />
           <TokenSwatch
             label="background.default"
-            value={palette?.background?.default ?? '#000000'}
+            value={getColorValue(palette?.background?.default)}
           />
-          <TokenSwatch label="background.paper" value={palette?.background?.paper ?? '#000000'} />
+          <TokenSwatch label="background.paper" value={getColorValue(palette?.background?.paper)} />
         </TokenGroup>
 
         <Divider />
 
-        <TokenGroup title="Surface Tokens">
-          {surfaceTokens.map((token) => (
-            <TokenSwatch key={token.key} label={token.key} value={token.value} />
-          ))}
-        </TokenGroup>
+        {filterTokens(surfaceTokens).length > 0 && (
+          <>
+            <TokenGroup title="Surface Tokens">
+              {filterTokens(surfaceTokens).map((token) => (
+                <TokenSwatch key={token.key} label={token.key} value={token.value} />
+              ))}
+            </TokenGroup>
+            <Divider />
+          </>
+        )}
 
-        <Divider />
+        {filterTokens(accentTokens).length > 0 && (
+          <>
+            <TokenGroup title="Accent Tokens">
+              {filterTokens(accentTokens).map((token) => (
+                <TokenSwatch key={token.key} label={token.key} value={token.value} />
+              ))}
+            </TokenGroup>
+            <Divider />
+          </>
+        )}
 
-        <TokenGroup title="Accent Tokens">
-          {accentTokens.map((token) => (
-            <TokenSwatch key={token.key} label={token.key} value={token.value} />
-          ))}
-        </TokenGroup>
+        {filterTokens(tagTokens).length > 0 && (
+          <TokenGroup title="Tag Tokens">
+            {filterTokens(tagTokens).map((token) => (
+              <TokenSwatch key={token.key} label={token.key} value={token.value} />
+            ))}
+          </TokenGroup>
+        )}
 
-        <Divider />
-
-        <TokenGroup title="Tag Tokens">
-          {tagTokens.map((token) => (
-            <TokenSwatch key={token.key} label={token.key} value={token.value} />
-          ))}
-        </TokenGroup>
+        {searchFilter &&
+          filterTokens(surfaceTokens).length +
+            filterTokens(accentTokens).length +
+            filterTokens(tagTokens).length ===
+            0 && (
+            <Typography color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+              No tokens match &quot;{searchFilter}&quot;.
+            </Typography>
+          )}
       </Stack>
     </Box>
   );
 }
 
-function ThemeTokensMatrix({ mode, preset }: ThemeTokensMatrixProps) {
+function ThemeTokensMatrix() {
   const combinations: Array<{ mode: 'light' | 'dark'; preset: ThemePreset }> = [
     { mode: 'dark', preset: 'default' },
     { mode: 'dark', preset: 'solid' },
