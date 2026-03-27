@@ -33,6 +33,7 @@ import PlaybackToggleButton from './PlaybackToggleButton';
 import SelectField from '../../../components/ui/SelectField';
 import { stopGlobalPlayback } from '../hooks/usePlaybackToggle';
 import SaveArrangementDialog from '../../arrangements/components/SaveArrangementDialog';
+import SequencerTrack from './SequencerTrack';
 import type {
   PlaybackSettings,
   PlaybackSettingsChangeHandlers,
@@ -795,6 +796,18 @@ export default function GeneratedChordGridDialog({
             {arrangementEvents.length === 1 ? '' : 's'}
           </Typography>
         </Box>
+
+        {/* DAW-style sequencer track visualization */}
+        <SequencerTrack
+          currentStep={currentStep}
+          totalSteps={totalSteps}
+          stepsPerBar={stepsPerBar}
+          beatsPerBar={beatsPerBar}
+          tempoBpm={tempoBpm}
+          isPlaying={isSequencerPlaying}
+          loopLengthBars={loopLengthBars}
+          events={arrangementEvents}
+        />
 
         {isEditMode ? (
           <Box
