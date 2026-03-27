@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 
 import GuitarChordDiagram from './GuitarChordDiagram';
 import PianoChordDiagram from './PianoChordDiagram';
@@ -18,6 +18,8 @@ import type { TimeSignature } from '../../../domain/audio/audio';
 import { getGuitarShapeTextFromVoicing } from '../../../domain/music/guitarDiagramUtils';
 import { downloadChordMidi } from '../../../lib/midi';
 import type { ChordSuggestionResponse } from '../../../lib/types';
+import PlaybackToggleButton from './PlaybackToggleButton';
+import { getProgressionAutoResetMs, usePlaybackToggle } from '../hooks/usePlaybackToggle';
 import type { ProgressionDiagramInstrument } from '../types';
 
 /**
@@ -63,6 +65,8 @@ export default function NextChordSuggestionsSection({
   scale,
   genre,
 }: NextChordSuggestionsSectionProps) {
+  const { playingId, initializingId, handlePlayToggle } = usePlaybackToggle();
+
   return (
     <Box component="section" id="suggestions">
       {showTitle ? (
@@ -111,10 +115,11 @@ export default function NextChordSuggestionsSection({
           gap: 2,
         }}
       >
-        {suggestions.map((item) => (
+        {suggestions.map((item, index) => (
           <Card key={`${item.chord}-${item.functionExplanation}`}>
             {(() => {
               const pianoVoicing = item.pianoVoicing;
+              const playId = `next-chord-${index}-${item.chord}`;
 
               return (
                 <>
@@ -142,30 +147,35 @@ export default function NextChordSuggestionsSection({
                   ) : null}
                   {pianoVoicing ? (
                     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1.5 }}>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        onClick={() =>
-                          void playChordPattern({
-                            leftHand: pianoVoicing.leftHand,
-                            rightHand: pianoVoicing.rightHand,
-                            padPattern,
-                            timeSignature,
-                            loop: false,
-                            tempoBpm,
-                            playbackStyle,
-                            attack,
-                            decay,
-                            humanize,
-                            gate,
-                            inversionRegister,
-                            instrument,
-                            octaveShift,
-                          })
-                        }
-                      >
-                        Play chord
-                      </Button>
+                      <PlaybackToggleButton
+                        playTitle="Play chord"
+                        stopTitle="Stop chord"
+                        isPlaying={playingId === playId}
+                        isInitializing={initializingId === playId}
+                        onClick={() => {
+                          void handlePlayToggle(
+                            playId,
+                            () =>
+                              playChordPattern({
+                                leftHand: pianoVoicing.leftHand,
+                                rightHand: pianoVoicing.rightHand,
+                                padPattern,
+                                timeSignature,
+                                loop: false,
+                                tempoBpm,
+                                playbackStyle,
+                                attack,
+                                decay,
+                                humanize,
+                                gate,
+                                inversionRegister,
+                                instrument,
+                                octaveShift,
+                              }),
+                            getProgressionAutoResetMs(1, tempoBpm),
+                          );
+                        }}
+                      />
                       <MidiDownloadButton
                         variant="outlined"
                         size="small"

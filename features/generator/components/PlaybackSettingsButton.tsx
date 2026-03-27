@@ -47,6 +47,7 @@ import SelectField from '../../../components/ui/SelectField';
 import EffectParamSlider from './EffectParamSlider';
 import EffectSettingsCard from './EffectSettingsCard';
 import EnvelopeControls from './EnvelopeControls';
+import { stopGlobalPlayback } from '../hooks/usePlaybackToggle';
 import type {
   PlaybackSettings,
   PlaybackSettingsChangeHandlers,
@@ -144,6 +145,8 @@ export default function PlaybackSettingsButton({
     if (!previewVoicing) {
       return;
     }
+
+    stopGlobalPlayback();
 
     void playChordVoicing({
       leftHand: previewVoicing.leftHand,

@@ -19,6 +19,7 @@ import { createPianoVoicingFromChordSymbol } from '../../../domain/music/chordVo
 import { CHORD_OPTIONS } from '../../../lib/formOptions';
 import PlaybackSettingsButton from './PlaybackSettingsButton';
 import SelectField from '../../../components/ui/SelectField';
+import { stopGlobalPlayback } from '../hooks/usePlaybackToggle';
 import type {
   PlaybackSettings,
   PlaybackSettingsChangeHandlers,
@@ -149,6 +150,8 @@ export default function GeneratedChordGridDialog({
       setActivePadKey(null);
       activePadTimeout.current = null;
     }, 180);
+
+    stopGlobalPlayback();
 
     void playChordPattern({
       leftHand: entry.leftHand,

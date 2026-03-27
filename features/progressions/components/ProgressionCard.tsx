@@ -7,16 +7,14 @@ import {
   Card,
   CardContent,
   Chip,
-  CircularProgress,
   Stack,
   Typography,
+  CircularProgress,
 } from '@mui/material';
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import StopIcon from '@mui/icons-material/Stop';
 
 import type { Progression } from '../../../lib/types';
 import { playProgression } from '../../../domain/audio/audio';
@@ -26,6 +24,7 @@ import {
   getProgressionAutoResetMs,
   usePlaybackToggle,
 } from '../../generator/hooks/usePlaybackToggle';
+import PlaybackToggleButton from '../../generator/components/PlaybackToggleButton';
 
 type ProgressionCardProps = {
   progression: Progression;
@@ -150,23 +149,16 @@ export default function ProgressionCard({
           {/* Actions container fixed to bottom */}
           <Box sx={{ pt: 1, mt: 'auto' }}>
             <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={
-                  isInitializingAudio ? (
-                    <CircularProgress size={16} color="inherit" />
-                  ) : isPlaying ? (
-                    <StopIcon />
-                  ) : (
-                    <PlayArrowIcon />
-                  )
-                }
-                onClick={handlePlay}
+              <PlaybackToggleButton
+                playTitle="Play"
+                stopTitle="Stop"
+                isPlaying={isPlaying}
+                isInitializing={isInitializingAudio}
+                onClick={() => {
+                  void handlePlay();
+                }}
                 disabled={!canPlay}
-              >
-                {isInitializingAudio ? 'Initializing...' : isPlaying ? 'Stop' : 'Play'}
-              </Button>
+              />
 
               {onOpen && (
                 <Button

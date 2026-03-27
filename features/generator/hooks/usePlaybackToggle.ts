@@ -45,6 +45,15 @@ const subscribeToGlobalPlayback = (
   };
 };
 
+export const stopGlobalPlayback = (): void => {
+  stopAllAudio();
+  setGlobalPlaybackState({
+    key: null,
+    phase: 'idle',
+    requestId: getNextPlaybackRequestId(),
+  });
+};
+
 /**
  * Hook that provides play/stop toggle functionality with a single active playback state.
  * Automatically resets to play state when audio finishes.
@@ -120,10 +129,8 @@ export function usePlaybackToggle() {
   }, [clearAutoResetTimeout]);
 
   const cancelActivePlayback = useCallback(() => {
-    const requestId = getNextPlaybackRequestId();
-    stopAllAudio();
     clearAutoResetTimeout();
-    setGlobalPlaybackState({ key: null, phase: 'idle', requestId });
+    stopGlobalPlayback();
   }, [clearAutoResetTimeout]);
 
   const handlePlayToggle = useCallback(

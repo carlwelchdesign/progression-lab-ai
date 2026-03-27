@@ -353,27 +353,34 @@ export default function ProgressionIdeasSection({
                             </Box>
 
                             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={() =>
-                                  playChordVoicing({
-                                    leftHand: voicing.leftHand,
-                                    rightHand: voicing.rightHand,
-                                    tempoBpm,
-                                    playbackStyle,
-                                    attack,
-                                    decay,
-                                    humanize,
-                                    gate,
-                                    inversionRegister,
-                                    instrument,
-                                    octaveShift,
-                                  })
+                              <PlaybackToggleButton
+                                playTitle="Play chord"
+                                stopTitle="Stop chord"
+                                isPlaying={playingId === `${idea.label}-${chord}-${index}-piano`}
+                                isInitializing={
+                                  initializingId === `${idea.label}-${chord}-${index}-piano`
                                 }
-                              >
-                                Play chord
-                              </Button>
+                                onClick={() => {
+                                  void handlePlayToggle(
+                                    `${idea.label}-${chord}-${index}-piano`,
+                                    () =>
+                                      playChordVoicing({
+                                        leftHand: voicing.leftHand,
+                                        rightHand: voicing.rightHand,
+                                        tempoBpm,
+                                        playbackStyle,
+                                        attack,
+                                        decay,
+                                        humanize,
+                                        gate,
+                                        inversionRegister,
+                                        instrument,
+                                        octaveShift,
+                                      }),
+                                    getProgressionAutoResetMs(1, tempoBpm),
+                                  );
+                                }}
+                              />
                               <MidiDownloadButton
                                 variant="outlined"
                                 size="small"
@@ -426,25 +433,34 @@ export default function ProgressionIdeasSection({
                             </Box>
                             {voicing ? (
                               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  onClick={() =>
-                                    playChordVoicing({
-                                      leftHand: voicing.leftHand,
-                                      rightHand: voicing.rightHand,
-                                      tempoBpm,
-                                      playbackStyle,
-                                      attack,
-                                      decay,
-                                      humanize,
-                                      gate,
-                                      inversionRegister,
-                                    })
+                                <PlaybackToggleButton
+                                  playTitle="Play chord"
+                                  stopTitle="Stop chord"
+                                  isPlaying={playingId === `${idea.label}-${chord}-${index}-guitar`}
+                                  isInitializing={
+                                    initializingId === `${idea.label}-${chord}-${index}-guitar`
                                   }
-                                >
-                                  Play chord
-                                </Button>
+                                  onClick={() => {
+                                    void handlePlayToggle(
+                                      `${idea.label}-${chord}-${index}-guitar`,
+                                      () =>
+                                        playChordVoicing({
+                                          leftHand: voicing.leftHand,
+                                          rightHand: voicing.rightHand,
+                                          tempoBpm,
+                                          playbackStyle,
+                                          attack,
+                                          decay,
+                                          humanize,
+                                          gate,
+                                          inversionRegister,
+                                          instrument,
+                                          octaveShift,
+                                        }),
+                                      getProgressionAutoResetMs(1, tempoBpm),
+                                    );
+                                  }}
+                                />
                                 <MidiDownloadButton
                                   variant="outlined"
                                   size="small"

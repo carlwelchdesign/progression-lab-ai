@@ -4,8 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Alert, Box, Button, CircularProgress, Container, Stack, Typography } from '@mui/material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import StopIcon from '@mui/icons-material/Stop';
 import Link from 'next/link';
 
 import ProgressionCard from '../../../features/progressions/components/ProgressionCard';
@@ -17,6 +15,7 @@ import {
   getProgressionAutoResetMs,
   usePlaybackToggle,
 } from '../../../features/generator/hooks/usePlaybackToggle';
+import PlaybackToggleButton from '../../../features/generator/components/PlaybackToggleButton';
 
 export default function SharedProgressionPage() {
   const params = useParams();
@@ -119,28 +118,17 @@ export default function SharedProgressionPage() {
             />
 
             {progression.pianoVoicings && progression.pianoVoicings.length > 0 ? (
-              <Button
-                variant="outlined"
-                size="large"
-                startIcon={
-                  initializingId === `shared-page-${progression.id}` ? (
-                    <CircularProgress size={18} color="inherit" />
-                  ) : playingId === `shared-page-${progression.id}` ? (
-                    <StopIcon />
-                  ) : (
-                    <PlayArrowIcon />
-                  )
-                }
-                onClick={handlePlay}
-                fullWidth
-                sx={{ py: 2 }}
-              >
-                {initializingId === `shared-page-${progression.id}`
-                  ? 'Initializing audio...'
-                  : playingId === `shared-page-${progression.id}`
-                    ? 'Stop progression'
-                    : 'Play progression'}
-              </Button>
+              <Box sx={{ width: '100%' }}>
+                <PlaybackToggleButton
+                  playTitle="Play progression"
+                  stopTitle="Stop progression"
+                  isPlaying={playingId === `shared-page-${progression.id}`}
+                  isInitializing={initializingId === `shared-page-${progression.id}`}
+                  onClick={() => {
+                    void handlePlay();
+                  }}
+                />
+              </Box>
             ) : null}
 
             <Button
