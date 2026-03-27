@@ -32,6 +32,7 @@ model Progression {
   title        String
   chords       Json
   pianoVoicings Json?
+  generatorSnapshot Json?
   feel         String?
   scale        String?
   genre        String?

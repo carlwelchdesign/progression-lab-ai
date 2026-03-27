@@ -60,4 +60,69 @@ describe('POST /api/progressions', () => {
     expect(body).toEqual({ message: 'Failed to save progression' });
     expect('error' in body).toBe(false);
   });
+
+  it('derives progression metadata from generator snapshot when title and chords are omitted', async () => {
+    mockCheckCsrfToken.mockReturnValue(null);
+    mockGetSessionFromRequest.mockReturnValue({ userId: 'user-1' });
+    mockProgressionCreate.mockResolvedValue({ id: 'progression-1' });
+
+    const response = await POST({
+      json: async () => ({
+        generatorSnapshot: {
+          formData: {
+            seedChords: 'Cmaj7, Am7',
+            mood: 'warm',
+            mode: 'ionian',
+            customMode: '',
+            genre: 'jazz',
+            customGenre: '',
+            styleReference: '',
+            adventurousness: 'balanced',
+            tempoBpm: 100,
+          },
+          data: {
+            inputSummary: {
+              seedChords: ['Cmaj7', 'Am7'],
+              mood: 'warm',
+              mode: 'ionian',
+              genre: 'jazz',
+              styleReference: null,
+              instrument: 'both',
+              adventurousness: 'balanced',
+            },
+            nextChordSuggestions: [],
+            progressionIdeas: [
+              {
+                label: 'Lift and Resolve',
+                chords: ['Cmaj7', 'Am7', 'Dm7', 'G7'],
+                feel: 'Warm and flowing',
+                performanceTip: null,
+                pianoVoicings: [],
+              },
+            ],
+            structureSuggestions: [],
+          },
+        },
+      }),
+    } as never);
+
+    expect(response.status).toBe(201);
+    expect(mockProgressionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: 'Lift and Resolve',
+          chords: [
+            { name: 'Cmaj7', beats: 1 },
+            { name: 'Am7', beats: 1 },
+            { name: 'Dm7', beats: 1 },
+            { name: 'G7', beats: 1 },
+          ],
+          feel: 'Warm and flowing',
+          scale: 'ionian',
+          genre: 'jazz',
+          userId: 'user-1',
+        }),
+      }),
+    );
+  });
 });

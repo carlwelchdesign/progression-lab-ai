@@ -4,6 +4,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useForm } from 'react-hook-form';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import GridViewIcon from '@mui/icons-material/GridView';
+import SaveIcon from '@mui/icons-material/Save';
 import { alpha } from '@mui/material/styles';
 import {
   Accordion,
@@ -36,7 +37,7 @@ import {
   MOOD_OPTIONS,
   STYLE_REFERENCE_OPTIONS,
 } from '../../../lib/formOptions';
-import type { ChordItem, ChordSuggestionResponse, GuitarVoicing } from '../../../lib/types';
+import type { ChordSuggestionResponse, GeneratorSnapshot, GuitarVoicing } from '../../../lib/types';
 
 const MAX_RANDOM_SELECTIONS = 7;
 const ADVENTUROUSNESS_INPUT_OPTIONS = [...ADVENTUROUSNESS_OPTIONS];
@@ -82,6 +83,7 @@ export default function GeneratorPageContent() {
     watch,
     reset,
     setValue,
+    getValues,
     formState: { isSubmitting, errors },
   } = useForm<GeneratorFormData>({
     defaultValues: {
@@ -119,12 +121,9 @@ export default function GeneratorPageContent() {
   const [data, setData] = useState<ChordSuggestionResponse | null>(null);
   const [isLoadedFromSavedProgression, setIsLoadedFromSavedProgression] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [selectedProgressionChords, setSelectedProgressionChords] = useState<ChordItem[]>([]);
-  const [selectedProgressionVoicings, setSelectedProgressionVoicings] = useState<
-    ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings']
-  >([]);
-  const [selectedProgressionFeel, setSelectedProgressionFeel] = useState('');
-  const [selectedProgressionGenre, setSelectedProgressionGenre] = useState('');
+  const [generatorSnapshotToSave, setGeneratorSnapshotToSave] = useState<GeneratorSnapshot | null>(
+    null,
+  );
   const [progressionDiagramInstrument, setProgressionDiagramInstrument] =
     useState<ProgressionDiagramInstrument>('piano');
   const {
@@ -323,26 +322,15 @@ export default function GeneratorPageContent() {
     [data, visibleStructureSuggestionsCount],
   );
 
-  const handleRequestSaveProgression = useCallback(
-    ({
-      chords,
-      pianoVoicings,
-      feel,
-      genre: progressionGenre,
-    }: {
-      chords: ChordItem[];
-      pianoVoicings: ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings'];
-      feel: string;
-      genre: string;
-    }) => {
-      setSelectedProgressionChords(chords);
-      setSelectedProgressionVoicings(pianoVoicings);
-      setSelectedProgressionFeel(feel);
-      setSelectedProgressionGenre(progressionGenre);
-      setSaveDialogOpen(true);
-    },
-    [],
-  );
+  const handleOpenSaveDialog = useCallback(() => {
+    if (!data) {
+      return;
+    }
+
+    const formData = getValues();
+    setGeneratorSnapshotToSave({ formData, data });
+    setSaveDialogOpen(true);
+  }, [data, getValues]);
 
   const previewVoicing = generatedChordGridEntries[0]
     ? {
@@ -534,7 +522,6 @@ export default function GeneratorPageContent() {
           scale={resolvedScale}
           resolvedGenreForSave={resolvedGenre}
           guitarVoicingByChord={guitarVoicingByChord}
-          onRequestSaveProgression={handleRequestSaveProgression}
         />
       ),
     },
@@ -634,6 +621,30 @@ export default function GeneratorPageContent() {
                     }}
                   >
                     <Stack direction="row" spacing={1} alignItems="center">
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<SaveIcon />}
+                        onClick={handleOpenSaveDialog}
+                        disabled={data.progressionIdeas.length === 0}
+                        sx={{
+                          borderWidth: 1.5,
+                          color: (theme) => theme.palette.primary.main,
+                          borderColor: (theme) => alpha(theme.palette.primary.main, 0.9),
+                          backgroundColor: 'transparent',
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          backdropFilter: 'blur(10px)',
+                          WebkitBackdropFilter: 'blur(10px)',
+                          '&:hover': {
+                            borderColor: (theme) => theme.palette.primary.main,
+                            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                            borderWidth: 1.5,
+                          },
+                        }}
+                      >
+                        Save
+                      </Button>
                       <PlaybackSettingsButton
                         settings={playbackSettings}
                         onChange={playbackSettingsChangeHandlers}
@@ -754,15 +765,13 @@ export default function GeneratorPageContent() {
                     </Stack>
                   )}
 
-                  <SaveProgressionDialog
-                    open={saveDialogOpen}
-                    onClose={() => setSaveDialogOpen(false)}
-                    chords={selectedProgressionChords}
-                    pianoVoicings={selectedProgressionVoicings}
-                    feel={selectedProgressionFeel}
-                    scale={mode}
-                    genre={selectedProgressionGenre}
-                  />
+                  {generatorSnapshotToSave ? (
+                    <SaveProgressionDialog
+                      open={saveDialogOpen}
+                      onClose={() => setSaveDialogOpen(false)}
+                      generatorSnapshot={generatorSnapshotToSave}
+                    />
+                  ) : null}
                   <GeneratedChordGridDialog
                     open={isGeneratedChordGridOpen}
                     onClose={() => setIsGeneratedChordGridOpen(false)}

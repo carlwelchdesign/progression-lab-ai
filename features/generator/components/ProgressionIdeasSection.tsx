@@ -21,7 +21,7 @@ import {
   getGuitarShapeTextFromVoicing,
 } from '../../../domain/music/guitarDiagramUtils';
 import { downloadChordMidi, downloadProgressionMidi } from '../../../lib/midi';
-import type { ChordItem, ChordSuggestionResponse, GuitarVoicing } from '../../../lib/types';
+import type { ChordSuggestionResponse, GuitarVoicing } from '../../../lib/types';
 import PlaybackToggleButton from './PlaybackToggleButton';
 import type { ProgressionDiagramInstrument } from '../types';
 import { getProgressionAutoResetMs, usePlaybackToggle } from '../hooks/usePlaybackToggle';
@@ -50,12 +50,6 @@ type ProgressionIdeasSectionProps = {
   resolvedGenreForSave: string;
   scale?: string;
   guitarVoicingByChord?: Partial<Record<string, GuitarVoicing>>;
-  onRequestSaveProgression: (payload: {
-    chords: ChordItem[];
-    pianoVoicings: ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings'];
-    feel: string;
-    genre: string;
-  }) => void;
 };
 
 type DiagramFinger = [number, number | 'x'];
@@ -146,7 +140,6 @@ export default function ProgressionIdeasSection({
   resolvedGenreForSave,
   scale,
   guitarVoicingByChord,
-  onRequestSaveProgression,
 }: ProgressionIdeasSectionProps) {
   const { playingId, initializingId, handlePlayToggle } = usePlaybackToggle();
 
@@ -271,20 +264,6 @@ export default function ProgressionIdeasSection({
                         })),
                       }}
                     />
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => {
-                        onRequestSaveProgression({
-                          chords: idea.chords.map((chord) => ({ name: chord, beats: 1 })),
-                          pianoVoicings: idea.pianoVoicings,
-                          feel: idea.feel,
-                          genre: resolvedGenreForSave,
-                        });
-                      }}
-                    >
-                      Save
-                    </Button>
                   </Stack>
                   <Typography variant="caption" color="text.secondary">
                     Tempo: {tempoBpm} BPM
