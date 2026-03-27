@@ -7,6 +7,8 @@ DEFAULT_MIGRATION_NAME="20260326143000_add_user_role_default_user"
 MIGRATION_NAME="${1:-$DEFAULT_MIGRATION_NAME}"
 ENVIRONMENT="${VERCEL_ENVIRONMENT:-production}"
 ENV_FILE="${VERCEL_ENV_FILE:-.env.vercel.${ENVIRONMENT}}"
+ROLE_ENUM_NAME="${PRISMA_ROLE_ENUM_NAME:-UserRole}"
+ROLE_ENUM_VALUE="${PRISMA_ROLE_ENUM_VALUE:-USER}"
 
 cd "$REPO_ROOT"
 
@@ -38,6 +40,10 @@ fi
 
 echo "Current migration status:"
 npx prisma migrate status || true
+
+echo "Ensuring enum value '$ROLE_ENUM_VALUE' exists on '$ROLE_ENUM_NAME'"
+printf "ALTER TYPE \"%s\" ADD VALUE IF NOT EXISTS '%s';\n" "$ROLE_ENUM_NAME" "$ROLE_ENUM_VALUE" | \
+  npx prisma db execute --stdin --schema prisma/schema.prisma
 
 echo "Attempting to mark failed migration as rolled back"
 if npx prisma migrate resolve --rolled-back "$MIGRATION_NAME"; then
