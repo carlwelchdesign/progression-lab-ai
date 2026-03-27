@@ -106,11 +106,20 @@ describe('useGeneratorSessionCache', () => {
     sessionStorage.setItem(
       'loadedProgression',
       JSON.stringify({
-        title: 'Saved Progression',
-        chords: ['Dm7', { name: 'G7' }, { name: 'Cmaj7' }],
-        feel: 'floating',
-        scale: 'dorian',
-        genre: 'my custom style',
+        generatorSnapshot: {
+          formData: {
+            seedChords: 'Dm7, G7, Cmaj7',
+            mood: 'floating',
+            mode: 'dorian',
+            customMode: '',
+            genre: 'custom',
+            customGenre: 'my custom style',
+            styleReference: '',
+            adventurousness: 'balanced',
+            tempoBpm: 100,
+          },
+          data: mockSuggestionData,
+        },
       }),
     );
     sessionStorage.setItem('generatorCache', JSON.stringify({ stale: true }));
@@ -140,16 +149,8 @@ describe('useGeneratorSessionCache', () => {
       adventurousness: 'balanced',
       tempoBpm: 100,
     });
-    expect(setIsLoadedFromSavedProgression).toHaveBeenCalledWith(true);
-    expect(setData).toHaveBeenCalledWith(expect.any(Function));
-
-    const updateFromBootstrap = setData.mock.calls[0][0] as (
-      prev: ChordSuggestionResponse | null,
-    ) => ChordSuggestionResponse;
-    const updatedData = updateFromBootstrap(mockSuggestionData);
-
-    expect(updatedData.progressionIdeas[0].label).toBe('Saved Progression');
-    expect(updatedData.progressionIdeas[0].chords).toEqual(['Dm7', 'G7', 'Cmaj7']);
+    expect(setIsLoadedFromSavedProgression).toHaveBeenCalledWith(false);
+    expect(setData).toHaveBeenCalledWith(mockSuggestionData);
     expect(sessionStorage.getItem('loadedProgression')).toBeNull();
     expect(sessionStorage.getItem('generatorCache')).toBeNull();
     expect(applyPlaybackSettings).not.toHaveBeenCalled();

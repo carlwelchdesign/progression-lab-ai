@@ -60,6 +60,23 @@ export type ChordSuggestionResponse = {
   }>;
 };
 
+export type SavedGeneratorFormData = {
+  seedChords: string;
+  mood: string;
+  mode: string;
+  customMode: string;
+  genre: string;
+  customGenre: string;
+  styleReference: string;
+  adventurousness: Adventurousness;
+  tempoBpm: number;
+};
+
+export type GeneratorSnapshot = {
+  formData: SavedGeneratorFormData;
+  data: ChordSuggestionResponse;
+};
+
 // Progression database types
 export type ChordItem = {
   name: string;
@@ -67,8 +84,8 @@ export type ChordItem = {
 };
 
 export type ProgressionPayload = {
-  title: string;
-  chords: ChordItem[];
+  title?: string;
+  chords?: ChordItem[];
   pianoVoicings?: PianoVoicing[];
   feel?: string;
   scale?: string;
@@ -76,6 +93,7 @@ export type ProgressionPayload = {
   notes?: string;
   tags?: string[];
   isPublic?: boolean;
+  generatorSnapshot?: GeneratorSnapshot;
 };
 
 export type CreateProgressionRequest = ProgressionPayload;
@@ -94,6 +112,7 @@ export type Progression = {
   notes?: string;
   tags: string[];
   isPublic: boolean;
+  generatorSnapshot?: GeneratorSnapshot;
   createdAt: Date;
   updatedAt: Date;
 };

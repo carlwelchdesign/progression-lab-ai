@@ -3,7 +3,11 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { UseFormReset } from 'react-hook-form';
 
 import { GENRE_OPTIONS } from '../../../lib/formOptions';
-import type { Adventurousness, ChordSuggestionResponse } from '../../../lib/types';
+import type {
+  Adventurousness,
+  ChordSuggestionResponse,
+  GeneratorSnapshot,
+} from '../../../lib/types';
 import type { GeneratorFormData } from '../types';
 import {
   applyPlaybackSettings,
@@ -36,6 +40,7 @@ type GeneratorCache = {
 };
 
 type LoadedProgressionPayload = {
+  generatorSnapshot?: GeneratorSnapshot;
   title?: string;
   chords?: Array<{ name?: string } | string>;
   pianoVoicings?: ChordSuggestionResponse['progressionIdeas'][number]['pianoVoicings'];
@@ -46,7 +51,8 @@ type LoadedProgressionPayload = {
 
 type LoadedProgressionRestorePayload = {
   resetPayload: GeneratorFormData;
-  dataUpdater: (prev: ChordSuggestionResponse | null) => ChordSuggestionResponse;
+  restoredData: ChordSuggestionResponse;
+  isLoadedFromSavedProgression: boolean;
 };
 
 /**
@@ -118,6 +124,15 @@ const parseLoadedProgressionPayload = (
   rawLoadedProgression: string,
 ): LoadedProgressionRestorePayload | null => {
   const parsed = parseJsonObject(rawLoadedProgression) as LoadedProgressionPayload;
+
+  if (parsed.generatorSnapshot) {
+    return {
+      resetPayload: parsed.generatorSnapshot.formData,
+      restoredData: parsed.generatorSnapshot.data,
+      isLoadedFromSavedProgression: false,
+    };
+  }
+
   const chordNames = extractChordNames(parsed.chords);
 
   if (chordNames.length === 0) {
@@ -139,17 +154,17 @@ const parseLoadedProgressionPayload = (
       adventurousness: 'balanced',
       tempoBpm: 100,
     },
-    dataUpdater: (prev) => ({
+    restoredData: {
       inputSummary: {
         seedChords: chordNames,
-        mood: parsed.feel ?? prev?.inputSummary.mood ?? null,
-        mode: parsed.scale ?? prev?.inputSummary.mode ?? null,
-        genre: parsed.genre ?? prev?.inputSummary.genre ?? null,
-        styleReference: prev?.inputSummary.styleReference ?? null,
+        mood: parsed.feel ?? null,
+        mode: parsed.scale ?? null,
+        genre: parsed.genre ?? null,
+        styleReference: null,
         instrument: 'both',
-        adventurousness: prev?.inputSummary.adventurousness ?? null,
+        adventurousness: 'balanced',
       },
-      nextChordSuggestions: prev?.nextChordSuggestions ?? [],
+      nextChordSuggestions: [],
       progressionIdeas: [
         {
           label: parsed.title || 'Loaded progression',
@@ -159,8 +174,9 @@ const parseLoadedProgressionPayload = (
           pianoVoicings: loadedVoicings,
         },
       ],
-      structureSuggestions: prev?.structureSuggestions ?? [],
-    }),
+      structureSuggestions: [],
+    },
+    isLoadedFromSavedProgression: true,
   };
 };
 
@@ -260,8 +276,8 @@ const restoreFromLoadedProgression = ({
 
   reset(parsed.resetPayload);
   setHasRestoredSessionData(true);
-  setIsLoadedFromSavedProgression(true);
-  setData(parsed.dataUpdater);
+  setIsLoadedFromSavedProgression(parsed.isLoadedFromSavedProgression);
+  setData(parsed.restoredData);
 };
 
 /**

@@ -4,8 +4,12 @@ import { createCsrfHeaders } from '../../../lib/csrfClient';
 
 async function readErrorMessage(response: Response, fallback: string) {
   try {
-    const body = (await response.json()) as { message?: string };
-    return body.message || fallback;
+    const body = (await response.json()) as { message?: string; detail?: string };
+    if (body.message && body.detail) {
+      return `${body.message}: ${body.detail}`;
+    }
+
+    return body.message || body.detail || fallback;
   } catch {
     return fallback;
   }

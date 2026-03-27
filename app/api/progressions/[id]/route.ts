@@ -5,6 +5,8 @@ import { checkCsrfToken } from '../../../../lib/csrf';
 import { prisma } from '../../../../lib/prisma';
 import type { UpdateProgressionRequest } from '../../../../lib/types';
 
+const toPrismaJson = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
 /**
  * Fetches a single saved progression for the authenticated user.
  */
@@ -51,7 +53,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
     const body = (await request.json()) as UpdateProgressionRequest;
-    const { title, chords, pianoVoicings, feel, scale, genre, notes, tags, isPublic } = body;
+    const {
+      title,
+      chords,
+      pianoVoicings,
+      generatorSnapshot,
+      feel,
+      scale,
+      genre,
+      notes,
+      tags,
+      isPublic,
+    } = body;
 
     const existing = await prisma.progression.findFirst({
       where: {
@@ -69,8 +82,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       where: { id },
       data: {
         ...(title !== undefined && { title }),
-        ...(chords !== undefined && { chords }),
-        ...(pianoVoicings !== undefined && { pianoVoicings }),
+        ...(chords !== undefined && { chords: toPrismaJson(chords) }),
+        ...(pianoVoicings !== undefined && { pianoVoicings: toPrismaJson(pianoVoicings) }),
+        ...(generatorSnapshot !== undefined && {
+          generatorSnapshot: toPrismaJson(generatorSnapshot),
+        }),
         ...(feel !== undefined && { feel }),
         ...(scale !== undefined && { scale }),
         ...(genre !== undefined && { genre }),
