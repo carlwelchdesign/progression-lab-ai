@@ -78,6 +78,7 @@ export default function SequencerTrack({
   const theme = useTheme();
   const { appColors } = theme.palette;
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const playheadRef = useRef<HTMLDivElement | null>(null);
   const scrollAnimationFrameRef = useRef<number | null>(null);
   const rulerCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const laneCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -116,13 +117,28 @@ export default function SequencerTrack({
 
   const stepDelta = displayCurrentStep - previousStepRef.current;
   const isLoopWrapJump = stepDelta < 0;
-  const shouldAnimatePlayhead = isPlaying && stepDelta === 1;
   previousStepRef.current = displayCurrentStep;
+
+  const setPlayheadTransform = (step: number) => {
+    if (!playheadRef.current) {
+      return;
+    }
+
+    playheadRef.current.style.transform = `translate3d(${step * PIXELS_PER_STEP}px, 0, 0)`;
+  };
 
   useEffect(() => {
     currentStepRef.current = displayCurrentStep;
     stepTickStartedAtRef.current = performance.now();
   }, [displayCurrentStep]);
+
+  useEffect(() => {
+    if (isPlaying && !isLoopWrapJump) {
+      return;
+    }
+
+    setPlayheadTransform(displayCurrentStep);
+  }, [displayCurrentStep, isLoopWrapJump, isPlaying]);
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -203,6 +219,7 @@ export default function SequencerTrack({
       const elapsedSinceTickMs = performance.now() - stepTickStartedAtRef.current;
       const stepProgress = Math.min(1, Math.max(0, elapsedSinceTickMs / stepDurationMs));
       const interpolatedStep = currentStepRef.current + stepProgress;
+      setPlayheadTransform(interpolatedStep);
       const playheadCenterPx = interpolatedStep * PIXELS_PER_STEP + PIXELS_PER_STEP / 2;
       const desiredScrollLeft = Math.max(
         0,
@@ -725,6 +742,7 @@ export default function SequencerTrack({
                 ) : null}
 
                 <Box
+                  ref={playheadRef}
                   sx={{
                     position: 'absolute',
                     left: 0,
@@ -738,10 +756,7 @@ export default function SequencerTrack({
                     zIndex: 5,
                     opacity: isCenteredOverlayActive ? 0 : 1,
                     pointerEvents: 'none',
-                    transition:
-                      shouldAnimatePlayhead && !isLoopWrapJump
-                        ? `transform ${stepDurationMs}ms linear`
-                        : 'none',
+                    transition: 'none',
                   }}
                 >
                   <Box
