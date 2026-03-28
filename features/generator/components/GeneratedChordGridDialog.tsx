@@ -64,6 +64,7 @@ type ChordGridEntry = {
 };
 
 const STEPS_PER_BEAT = 4;
+const RECORDING_LEAD_IN_BARS = 1;
 const LOOP_LENGTH_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 const PAD_TRIGGER_KEYS = [
   '1',
@@ -256,6 +257,7 @@ export default function GeneratedChordGridDialog({
   const [isLoopEnabled, setIsLoopEnabled] = useState(true);
   const [loopLengthBars, setLoopLengthBars] = useState<(typeof LOOP_LENGTH_OPTIONS)[number]>(1);
   const [currentStep, setCurrentStep] = useState(0);
+  const [trackScrollRequestKey, setTrackScrollRequestKey] = useState(0);
   const [arrangementEvents, setArrangementEvents] = useState<ArrangementEvent[]>([]);
   const [saveArrangementDialogOpen, setSaveArrangementDialogOpen] = useState(false);
   const activePadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -415,6 +417,7 @@ export default function GeneratedChordGridDialog({
     }),
     [arrangementEvents, loopLengthBars, stepsPerBar, totalSteps],
   );
+  const showRecordingLeadIn = isCountInActive || isRecording;
 
   const padHotkeyBindings = useMemo(
     () =>
@@ -637,51 +640,63 @@ export default function GeneratedChordGridDialog({
     stopSequencer();
     setCurrentBeatInBar(1);
     setIsCountInActive(true);
+    setTrackScrollRequestKey((previous) => previous + 1);
 
     void startAudio().then(() => {
-      let beatIndex = 0;
-      const beatDurationMs = 60_000 / tempoBpm;
+      let stepIndex = 0;
+      const stepDurationMs = 60_000 / tempoBpm / STEPS_PER_BEAT;
+      const totalPreRollBeats = beatsPerBar;
+      const totalPreRollSteps = totalPreRollBeats * STEPS_PER_BEAT;
+      const leadInSteps = RECORDING_LEAD_IN_BARS * stepsPerBar;
       let expectedNextTick = getSchedulerNowMs();
 
-      const scheduleNextCountInBeat = () => {
-        expectedNextTick += beatDurationMs;
+      setCurrentStep(-leadInSteps);
+
+      const scheduleNextCountInStep = () => {
+        expectedNextTick += stepDurationMs;
         const delayMs = Math.max(0, expectedNextTick - getSchedulerNowMs());
 
         countInTimerRef.current = setTimeout(() => {
-          runCountInBeat();
+          runCountInStep();
         }, delayMs);
       };
 
-      const runCountInBeat = () => {
-        const beatNumber = beatIndex + 1;
-        const isDownbeat = beatIndex === 0;
+      const runCountInStep = () => {
+        const beatIndex = Math.floor(stepIndex / STEPS_PER_BEAT);
+        const beatNumber = (beatIndex % beatsPerBar) + 1;
+        const isDownbeat = beatNumber === 1;
+        const isAudibleCountInBeat = beatIndex < beatsPerBar;
 
-        pulseBeatIndicator(beatNumber, isDownbeat);
-        void playMetronomeClick(metronomeVolume, isDownbeat);
+        if (stepIndex % STEPS_PER_BEAT === 0) {
+          pulseBeatIndicator(beatNumber, isDownbeat);
+          if (isAudibleCountInBeat) {
+            void playMetronomeClick(metronomeVolume, isDownbeat);
+          }
+        }
 
-        beatIndex += 1;
+        const completedPreRollSteps = stepIndex + 1;
+        setCurrentStep(completedPreRollSteps - leadInSteps);
 
-        if (beatIndex >= beatsPerBar) {
+        stepIndex += 1;
+
+        if (stepIndex >= totalPreRollSteps) {
           if (countInTimerRef.current) {
             clearTimeout(countInTimerRef.current);
             countInTimerRef.current = null;
           }
 
-          countInStartTimeoutRef.current = setTimeout(() => {
-            countInStartTimeoutRef.current = null;
-            setIsCountInActive(false);
-            setCurrentBeatInBar(1);
-            startSequencer();
-            setIsRecording(true);
-          }, beatDurationMs);
+          setIsCountInActive(false);
+          setCurrentBeatInBar(1);
+          startSequencer();
+          setIsRecording(true);
 
           return;
         }
 
-        scheduleNextCountInBeat();
+        scheduleNextCountInStep();
       };
 
-      runCountInBeat();
+      runCountInStep();
     });
   };
 
@@ -1095,8 +1110,11 @@ export default function GeneratedChordGridDialog({
           stepsPerBar={stepsPerBar}
           beatsPerBar={beatsPerBar}
           tempoBpm={tempoBpm}
-          isPlaying={isSequencerPlaying}
+          isPlaying={isSequencerPlaying || isCountInActive}
           loopLengthBars={loopLengthBars}
+          leadInBars={showRecordingLeadIn ? RECORDING_LEAD_IN_BARS : 0}
+          scrollToStep={showRecordingLeadIn ? stepsPerBar * RECORDING_LEAD_IN_BARS : 0}
+          scrollRequestKey={trackScrollRequestKey}
           events={arrangementEvents}
         />
 
