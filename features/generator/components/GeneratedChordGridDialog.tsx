@@ -221,6 +221,8 @@ export default function GeneratedChordGridDialog({
 }: GeneratedChordGridDialogProps) {
   const theme = useTheme();
   const { appColors } = theme.palette;
+  const isLightMode = theme.palette.mode === 'light';
+  const padChordTextColor = isLightMode ? '#334155' : theme.palette.common.white;
 
   const {
     playbackStyle,
@@ -1184,7 +1186,11 @@ export default function GeneratedChordGridDialog({
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <Typography
                     component="span"
-                    sx={{ fontWeight: 700, fontSize: { xs: '0.88rem', sm: '1.02rem' } }}
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: { xs: '0.88rem', sm: '1.02rem' },
+                      color: padChordTextColor,
+                    }}
                   >
                     {entry.chord}
                   </Typography>

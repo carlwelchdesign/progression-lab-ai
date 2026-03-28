@@ -92,17 +92,19 @@ export default function SequencerTrack({
     viewportWidth > 0 && centeredDesiredScroll > 0 && centeredDesiredScroll < maxScrollLeft;
   const laneTop = (LANE_HEIGHT - CLIP_HEIGHT) / 2;
   const isDarkMode = theme.palette.mode === 'dark';
-  const frameBorder = alpha(theme.palette.common.white, isDarkMode ? 0.1 : 0.18);
-  const rulerBorder = alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.14);
-  const barLineColor = alpha(theme.palette.common.white, isDarkMode ? 0.18 : 0.28);
-  const beatLineColor = alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.16);
-  const stepLineColor = alpha(theme.palette.common.white, isDarkMode ? 0.035 : 0.08);
+  const useInvertedLightTrackPalette = theme.palette.mode === 'light';
+  const useDarkTrackPalette = isDarkMode || useInvertedLightTrackPalette;
+  const frameBorder = alpha(theme.palette.common.white, useDarkTrackPalette ? 0.1 : 0.18);
+  const rulerBorder = alpha(theme.palette.common.white, useDarkTrackPalette ? 0.08 : 0.14);
+  const barLineColor = alpha(theme.palette.common.white, useDarkTrackPalette ? 0.18 : 0.28);
+  const beatLineColor = alpha(theme.palette.common.white, useDarkTrackPalette ? 0.08 : 0.16);
+  const stepLineColor = alpha(theme.palette.common.white, useDarkTrackPalette ? 0.035 : 0.08);
   const playheadColor = appColors.accent.chordPadActiveBorder;
-  const surfaceColor = isDarkMode ? '#1E2329' : '#D8DEE6';
-  const rulerColor = isDarkMode ? '#343A43' : '#C8D0DA';
-  const laneColor = isDarkMode ? '#242A31' : '#E7ECF2';
-  const labelColor = alpha(theme.palette.common.white, isDarkMode ? 0.92 : 0.5);
-  const metaColor = alpha(theme.palette.common.white, isDarkMode ? 0.45 : 0.4);
+  const surfaceColor = useDarkTrackPalette ? '#1E2329' : '#D8DEE6';
+  const rulerColor = useDarkTrackPalette ? '#343A43' : '#C8D0DA';
+  const laneColor = useDarkTrackPalette ? '#242A31' : '#E7ECF2';
+  const labelColor = useDarkTrackPalette ? alpha(theme.palette.common.white, 0.92) : '#334155';
+  const metaColor = useDarkTrackPalette ? alpha(theme.palette.common.white, 0.45) : '#475569';
 
   const isLoopWrapJump = currentStep < previousStepRef.current;
   previousStepRef.current = currentStep;
@@ -258,7 +260,7 @@ export default function SequencerTrack({
         }
 
         const barStart = barIndex * stepsPerBar * PIXELS_PER_STEP;
-        ctx.fillStyle = alpha(theme.palette.common.white, isDarkMode ? 0.025 : 0.14);
+        ctx.fillStyle = alpha(theme.palette.common.white, useDarkTrackPalette ? 0.025 : 0.14);
         ctx.fillRect(barStart, 0, stepsPerBar * PIXELS_PER_STEP, height);
       }
 
@@ -288,13 +290,13 @@ export default function SequencerTrack({
     barLineColor,
     beatLineColor,
     extendedTrackWidth,
-    isDarkMode,
     loopLengthBars,
     stepLineColor,
     stepsPerBar,
     stepsPerBeat,
     theme.palette.common.white,
     totalSteps,
+    useDarkTrackPalette,
   ]);
 
   const clips = useMemo<RenderedClip[]>(() => {
@@ -354,9 +356,12 @@ export default function SequencerTrack({
 
     const clipTop = laneTop;
     const clipRadius = 6;
-    const highlightColor = alpha(theme.palette.common.white, isDarkMode ? 0.14 : 0.26);
-    const clipTextColor = alpha(theme.palette.common.white, isDarkMode ? 0.95 : 0.82);
-    const clipTextShadowColor = alpha(theme.palette.common.black, isDarkMode ? 0.35 : 0.24);
+    const highlightColor = alpha(theme.palette.common.white, useDarkTrackPalette ? 0.14 : 0.26);
+    const clipTextColor = alpha(theme.palette.common.white, useDarkTrackPalette ? 0.95 : 0.82);
+    const clipTextShadowColor = alpha(
+      theme.palette.common.black,
+      useDarkTrackPalette ? 0.35 : 0.24,
+    );
 
     const truncateLabel = (input: string, maxWidth: number): string => {
       if (maxWidth <= 0) {
@@ -409,7 +414,7 @@ export default function SequencerTrack({
       ctx.quadraticCurveTo(left, clipTop, left + clipRadius, clipTop);
       ctx.closePath();
 
-      ctx.fillStyle = isDarkMode ? alpha(clip.color, 0.24) : alpha(clip.color, 0.2);
+      ctx.fillStyle = useDarkTrackPalette ? alpha(clip.color, 0.24) : alpha(clip.color, 0.2);
       ctx.fill();
       ctx.lineWidth = 1;
       ctx.strokeStyle = alpha(clip.color, 0.84);
@@ -432,7 +437,14 @@ export default function SequencerTrack({
         ctx.fillText(renderedLabel, textLeft, textY);
       }
     }
-  }, [clips, extendedTrackWidth, isDarkMode, laneTop, theme.palette.common.white, totalWidth]);
+  }, [
+    clips,
+    extendedTrackWidth,
+    laneTop,
+    theme.palette.common.white,
+    totalWidth,
+    useDarkTrackPalette,
+  ]);
 
   return (
     <Box
@@ -442,7 +454,7 @@ export default function SequencerTrack({
         borderRadius: 1.5,
         border: `1px solid ${frameBorder}`,
         backgroundColor: surfaceColor,
-        boxShadow: isDarkMode
+        boxShadow: useDarkTrackPalette
           ? `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.04)}`
           : `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.45)}`,
       }}
@@ -457,7 +469,7 @@ export default function SequencerTrack({
         <Box
           sx={{
             borderRight: `1px solid ${rulerBorder}`,
-            backgroundColor: isDarkMode ? '#2B3139' : '#D0D7E0',
+            backgroundColor: useDarkTrackPalette ? '#2B3139' : '#D0D7E0',
           }}
         >
           <Box
@@ -529,14 +541,23 @@ export default function SequencerTrack({
                 height: 9,
               },
               '&::-webkit-scrollbar-track': {
-                backgroundColor: alpha(theme.palette.common.black, isDarkMode ? 0.24 : 0.08),
+                backgroundColor: alpha(
+                  theme.palette.common.black,
+                  useDarkTrackPalette ? 0.24 : 0.08,
+                ),
               },
               '&::-webkit-scrollbar-thumb': {
                 borderRadius: 999,
-                backgroundColor: alpha(theme.palette.common.white, isDarkMode ? 0.18 : 0.28),
+                backgroundColor: alpha(
+                  theme.palette.common.white,
+                  useDarkTrackPalette ? 0.18 : 0.28,
+                ),
               },
               '&::-webkit-scrollbar-thumb:hover': {
-                backgroundColor: alpha(theme.palette.common.white, isDarkMode ? 0.24 : 0.36),
+                backgroundColor: alpha(
+                  theme.palette.common.white,
+                  useDarkTrackPalette ? 0.24 : 0.36,
+                ),
               },
             }}
           >
