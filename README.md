@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![MUI](https://img.shields.io/badge/MUI_v7-007FFF?style=flat&logo=mui&logoColor=white)](https://mui.com)
 
-- Production: [https://progression-lab-ai.vercel.app](https://progression-lab-ai.vercel.app)
+- Production: [https://progressionlab.app/](https://progressionlab.app/)
 - Storybook Docs: [https://storybook-progression-lab-ai.vercel.app](https://storybook-progression-lab-ai.vercel.app)
 
 ## Separate Admin Deployment
