@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { AppSnackbarProvider } from '../../components/providers/AppSnackbarProvider';
+import { LocaleProvider } from '../../components/providers/LocaleProvider';
 import AppThemeProvider from '../../components/providers/AppThemeProvider';
 import HomePage from '../page';
 
@@ -76,6 +77,7 @@ const mockResponse = {
     styleReference: null,
     instrument: 'both',
     adventurousness: 'balanced',
+    language: 'en',
   },
   nextChordSuggestions: [
     {
@@ -120,11 +122,13 @@ const mockResponse = {
 
 const renderHomePage = () =>
   render(
-    <AppThemeProvider>
-      <AppSnackbarProvider>
-        <HomePage />
-      </AppSnackbarProvider>
-    </AppThemeProvider>,
+    <LocaleProvider>
+      <AppThemeProvider>
+        <AppSnackbarProvider>
+          <HomePage />
+        </AppSnackbarProvider>
+      </AppThemeProvider>
+    </LocaleProvider>,
   );
 
 describe('HomePage', () => {
@@ -132,7 +136,22 @@ describe('HomePage', () => {
 
   beforeEach(() => {
     fetchMock.mockReset();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      if (input === '/api/arrangements') {
+        return {
+          ok: true,
+          json: async () => ({ arrangements: [] }),
+        } as Response;
+      }
+
+      return {
+        ok: true,
+        json: async () => ({}),
+      } as Response;
+    });
     global.fetch = fetchMock as unknown as typeof fetch;
+    window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
   it('shows validation when mode / scale is cleared', async () => {
@@ -147,14 +166,30 @@ describe('HomePage', () => {
     });
 
     expect(screen.getByRole('button', { name: 'Generate Ideas' })).toBeDisabled();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls.some(([url]) => url === '/api/chord-suggestions')).toBe(false);
   });
 
   it('submits and renders API results', async () => {
     const user = userEvent.setup();
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => mockResponse,
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      if (input === '/api/chord-suggestions') {
+        return {
+          ok: true,
+          json: async () => mockResponse,
+        } as Response;
+      }
+
+      if (input === '/api/arrangements') {
+        return {
+          ok: true,
+          json: async () => ({ arrangements: [] }),
+        } as Response;
+      }
+
+      return {
+        ok: true,
+        json: async () => ({}),
+      } as Response;
     });
 
     renderHomePage();
@@ -177,7 +212,13 @@ describe('HomePage', () => {
       }),
     );
 
-    const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body as string) as {
+    const chordSuggestionsCall = fetchMock.mock.calls.find(
+      ([url]) => url === '/api/chord-suggestions',
+    );
+
+    expect(chordSuggestionsCall).toBeDefined();
+
+    const requestBody = JSON.parse(chordSuggestionsCall?.[1]?.body as string) as {
       seedChords: string[];
       mood: string;
       mode: string;
@@ -185,6 +226,7 @@ describe('HomePage', () => {
       styleReference: string | null;
       instrument: string;
       adventurousness: string;
+      language: string;
     };
 
     expect(requestBody.seedChords.length).toBeGreaterThan(0);
@@ -195,5 +237,56 @@ describe('HomePage', () => {
     expect((requestBody.styleReference ?? '').length).toBeGreaterThan(0);
     expect(requestBody.instrument).toBe('both');
     expect(['safe', 'balanced', 'surprising']).toContain(requestBody.adventurousness);
+    expect(requestBody.language).toBe('en');
+  });
+
+  it('uses the selected locale in the chord suggestions request', async () => {
+    const user = userEvent.setup();
+
+    window.localStorage.setItem('app-locale', 'es');
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      if (input === '/api/chord-suggestions') {
+        return {
+          ok: true,
+          json: async () => mockResponse,
+        } as Response;
+      }
+
+      if (input === '/api/arrangements') {
+        return {
+          ok: true,
+          json: async () => ({ arrangements: [] }),
+        } as Response;
+      }
+
+      return {
+        ok: true,
+        json: async () => ({}),
+      } as Response;
+    });
+
+    renderHomePage();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Generar ideas' })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Generar ideas' }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    const chordSuggestionsCall = fetchMock.mock.calls.find(
+      ([url]) => url === '/api/chord-suggestions',
+    );
+
+    expect(chordSuggestionsCall).toBeDefined();
+
+    const requestBody = JSON.parse(chordSuggestionsCall?.[1]?.body as string) as {
+      language: string;
+    };
+
+    expect(requestBody.language).toBe('es');
   });
 });

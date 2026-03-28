@@ -26,6 +26,7 @@ const validModelPayload = {
     styleReference: null,
     instrument: 'both',
     adventurousness: 'balanced',
+    language: 'en',
   },
   nextChordSuggestions: [
     {
@@ -116,6 +117,7 @@ describe('POST /api/chord-suggestions', () => {
           styleReference: 'Barry Harris',
           instrument: 'both',
           adventurousness: 'balanced',
+          language: 'es',
         }),
     } as never);
 
@@ -126,6 +128,8 @@ describe('POST /api/chord-suggestions', () => {
     expect(mockCreate).toHaveBeenCalledTimes(1);
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
+        instructions: expect.stringContaining('Write all explanatory prose fields in Spanish.'),
+        input: expect.any(String),
         text: expect.objectContaining({
           format: expect.objectContaining({
             schema: expect.objectContaining({
@@ -148,6 +152,48 @@ describe('POST /api/chord-suggestions', () => {
         }),
       }),
     );
+
+    const openAiRequest = mockCreate.mock.calls[0][0] as { input: string };
+    expect(JSON.parse(openAiRequest.input)).toEqual(
+      expect.objectContaining({
+        language: 'es',
+      }),
+    );
+  });
+
+  it('falls back to English when the requested locale is unsupported', async () => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    mockCreate.mockResolvedValue({
+      output_text: JSON.stringify(validModelPayload),
+    });
+
+    const response = await POST({
+      text: async () =>
+        JSON.stringify({
+          seedChords: ['Fmaj7'],
+          mood: 'dreamy',
+          mode: 'lydian',
+          genre: 'piano house',
+          styleReference: null,
+          instrument: 'both',
+          adventurousness: 'balanced',
+          language: 'xx-invalid',
+        }),
+    } as never);
+
+    expect(response.status).toBe(200);
+
+    const openAiRequest = mockCreate.mock.calls[0][0] as {
+      input: string;
+      instructions: string;
+    };
+
+    expect(JSON.parse(openAiRequest.input)).toEqual(
+      expect.objectContaining({
+        language: 'en',
+      }),
+    );
+    expect(openAiRequest.instructions).toContain('Write all explanatory prose fields in English.');
   });
 
   it('returns 502 when the model returns invalid JSON', async () => {

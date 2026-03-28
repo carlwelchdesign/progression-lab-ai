@@ -5,6 +5,7 @@ import { themes } from 'storybook/theming';
 
 import AppThemeProvider from '../components/providers/AppThemeProvider';
 import { AppSnackbarProvider } from '../components/providers/AppSnackbarProvider';
+import { LocaleProvider } from '../components/providers/LocaleProvider';
 
 initialize({ onUnhandledRequest: 'bypass' });
 
@@ -12,11 +13,13 @@ const preview: Preview = {
   loaders: [mswLoader],
   decorators: [
     (Story) => (
-      <AppThemeProvider>
-        <AppSnackbarProvider>
-          <Story />
-        </AppSnackbarProvider>
-      </AppThemeProvider>
+      <LocaleProvider>
+        <AppThemeProvider>
+          <AppSnackbarProvider>
+            <Story />
+          </AppSnackbarProvider>
+        </AppThemeProvider>
+      </LocaleProvider>
     ),
   ],
   parameters: {

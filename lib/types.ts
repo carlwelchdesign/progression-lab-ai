@@ -50,6 +50,7 @@ export type ChordSuggestionResponse = {
     styleReference: string | null;
     instrument: InstrumentPreference | null;
     adventurousness: Adventurousness | null;
+    language: string | null;
   };
   nextChordSuggestions: NextChordSuggestion[];
   progressionIdeas: ProgressionIdea[];

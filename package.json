@@ -38,6 +38,7 @@
     "admin:seed": "node prisma/seed-admin.js"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.9",
@@ -45,6 +46,7 @@
     "@prisma/client": "^5.10.0",
     "@sentry/nextjs": "^10.46.0",
     "@sentry/replay": "^7.116.0",
+    "i18next": "^26.0.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "next": "^15.5.14",
@@ -53,6 +55,9 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.71.2",
+    "react-i18next": "^17.0.1",
+    "stylis": "^4.3.6",
+    "stylis-plugin-rtl": "^2.1.1",
     "svguitar": "^2.5.1",
     "tone": "^15.1.22"
   },

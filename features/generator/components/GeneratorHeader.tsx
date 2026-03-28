@@ -2,11 +2,14 @@
 
 import Image from 'next/image';
 import { Box, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Top-of-page branding and short generator description.
  */
 export default function GeneratorHeader() {
+  const { t } = useTranslation();
+
   return (
     <Box id="generator">
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -16,8 +19,7 @@ export default function GeneratorHeader() {
         </Typography>
       </Box>
       <Typography variant="body1" color="text.secondary">
-        Enter a few chords, a mood, and a mode. Get back progression ideas, structure suggestions,
-        and simple guitar/piano diagrams.
+        {t('generator.header.description')}
       </Typography>
     </Box>
   );

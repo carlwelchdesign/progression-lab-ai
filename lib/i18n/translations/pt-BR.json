@@ -1,0 +1,66 @@
+{
+  "common": {
+    "languageLabel": "Idioma",
+    "languageSelectorAriaLabel": "Selecionar idioma do aplicativo",
+    "openNavigationMenu": "Abrir menu de navegacao"
+  },
+  "nav": {
+    "generator": "Gerador",
+    "suggestions": "Sugestoes",
+    "progressions": "Progressoes",
+    "structure": "Estrutura",
+    "myProgressions": "Minhas progressoes",
+    "login": "Entrar",
+    "logout": "Sair"
+  },
+  "generator": {
+    "header": {
+      "description": "Informe alguns acordes, um clima e um modo. Receba ideias de progressao, sugestoes de estrutura e diagramas simples de guitarra e piano."
+    },
+    "status": {
+      "loadingSuggestions": "Carregando sugestoes..."
+    },
+    "errors": {
+      "selectMode": "Selecione ou digite um modo / escala.",
+      "selectGenre": "Selecione ou digite um genero.",
+      "requestFailed": "Nao foi possivel gerar sugestoes."
+    },
+    "form": {
+      "seedChords": {
+        "label": "Acordes base",
+        "placeholder": "Fmaj7, F#m7",
+        "required": "Os acordes base sao obrigatorios",
+        "atLeastOne": "Digite pelo menos um acorde"
+      },
+      "mood": {
+        "label": "Clima",
+        "placeholder": "sonhador, escuro, esperancoso",
+        "required": "O clima e obrigatorio"
+      },
+      "mode": {
+        "label": "Modo / escala",
+        "placeholder": "jonico, dorico, menor harmonica",
+        "required": "O modo / escala e obrigatorio"
+      },
+      "genre": {
+        "label": "Genero",
+        "placeholder": "piano house, jazz, indie pop",
+        "required": "O genero e obrigatorio"
+      },
+      "styleReference": {
+        "label": "Referencia de estilo (opcional)",
+        "placeholder": "Barry Harris, Bill Evans, etc.",
+        "helperText": "Use um artista, professor ou escola harmonica como guia estilistica."
+      },
+      "adventurousness": {
+        "label": "Ousadia",
+        "placeholder": "seguro, equilibrado, surpreendente"
+      },
+      "actions": {
+        "randomizeInputs": "Aleatorizar entradas",
+        "generateIdeas": "Gerar ideias",
+        "generating": "Gerando..."
+      }
+    }
+  }
+}

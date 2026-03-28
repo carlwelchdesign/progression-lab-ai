@@ -1,10 +1,11 @@
 import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getLocaleDefinition, normalizeAppLocale } from '../../../lib/i18n/locales';
 import { createRateLimitResponse } from '../../../lib/rateLimiting';
 import type { ChordSuggestionResponse, PianoVoicing } from '../../../lib/types';
 import { NOTE_TO_SEMITONE } from '../../../lib/noteToSemitone';
-import { chordSuggestionInstructions } from './instructions';
+import { buildChordSuggestionInstructions } from './instructions';
 import { chordSuggestionSchema } from './schema';
 
 const client = new OpenAI({
@@ -29,6 +30,18 @@ type ChordSuggestionRequestBody = {
   styleReference?: unknown;
   instrument?: unknown;
   adventurousness?: unknown;
+  language?: unknown;
+};
+
+type ChordSuggestionModelInput = {
+  seedChords: string[];
+  mood: string;
+  mode: string;
+  genre: string;
+  styleReference: string | null;
+  instrument: 'guitar' | 'piano' | 'both';
+  adventurousness: 'safe' | 'balanced' | 'surprising';
+  language: string;
 };
 
 /**
@@ -223,7 +236,7 @@ function parseRequestBody(rawBody: string): ChordSuggestionRequestBody {
   }
 }
 
-function buildModelInput(body: ChordSuggestionRequestBody): string {
+function buildModelInput(body: ChordSuggestionRequestBody): ChordSuggestionModelInput {
   const seedChords = Array.isArray(body.seedChords)
     ? body.seedChords.filter((value): value is string => typeof value === 'string')
     : [];
@@ -237,7 +250,7 @@ function buildModelInput(body: ChordSuggestionRequestBody): string {
     .filter((chord) => chord.length > 0)
     .slice(0, MAX_SEED_CHORDS);
 
-  return JSON.stringify({
+  return {
     seedChords: normalizedSeedChords,
     mood: normalizeTextField(body.mood ?? '', 'Mood'),
     mode: normalizeTextField(body.mode ?? '', 'Mode'),
@@ -253,10 +266,11 @@ function buildModelInput(body: ChordSuggestionRequestBody): string {
     adventurousness:
       body.adventurousness === 'safe' ||
       body.adventurousness === 'balanced' ||
-      body.adventurousness === 'adventurous'
+      body.adventurousness === 'surprising'
         ? body.adventurousness
         : 'balanced',
-  });
+    language: normalizeAppLocale(body.language),
+  };
 }
 
 /**
@@ -275,11 +289,13 @@ export async function POST(req: NextRequest) {
 
     const rawBody = await req.text();
     const body = parseRequestBody(rawBody);
-    const input = buildModelInput(body);
+    const modelInput = buildModelInput(body);
+    const input = JSON.stringify(modelInput);
+    const localeDefinition = getLocaleDefinition(modelInput.language);
 
     const response = await client.responses.create({
       model: process.env.OPENAI_MODEL || 'gpt-5.4',
-      instructions: chordSuggestionInstructions,
+      instructions: buildChordSuggestionInstructions(localeDefinition.modelLanguage),
       input,
       text: {
         format: {

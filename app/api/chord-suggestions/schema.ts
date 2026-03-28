@@ -14,6 +14,7 @@ export const chordSuggestionSchema = {
         'styleReference',
         'instrument',
         'adventurousness',
+        'language',
       ],
       properties: {
         seedChords: {
@@ -32,6 +33,7 @@ export const chordSuggestionSchema = {
           type: ['string', 'null'],
           enum: ['safe', 'balanced', 'surprising', null],
         },
+        language: { type: ['string', 'null'] },
       },
     },
     nextChordSuggestions: {

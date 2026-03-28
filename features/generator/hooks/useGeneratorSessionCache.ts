@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { UseFormReset } from 'react-hook-form';
 
+import {
+  DEFAULT_APP_LOCALE,
+  normalizeAppLocale,
+  type AppLocaleCode,
+} from '../../../lib/i18n/locales';
 import { GENRE_OPTIONS } from '../../../lib/formOptions';
 import type {
   Adventurousness,
@@ -24,6 +29,7 @@ const LOADED_PROGRESSION_KEY = 'loadedProgression';
  * Session payload persisted after generating results.
  */
 type GeneratorCache = {
+  locale?: AppLocaleCode;
   seedChords: string;
   mood: string;
   mode: string;
@@ -62,6 +68,7 @@ type UseGeneratorSessionCacheParams = {
   reset: UseFormReset<GeneratorFormData>;
   setData: Dispatch<SetStateAction<ChordSuggestionResponse | null>>;
   setIsLoadedFromSavedProgression: Dispatch<SetStateAction<boolean>>;
+  locale: AppLocaleCode;
   playbackSettings: PlaybackSettings;
   playbackSettingsSetters: PlaybackSettingsSetters;
 };
@@ -163,6 +170,7 @@ const parseLoadedProgressionPayload = (
         styleReference: null,
         instrument: 'both',
         adventurousness: 'balanced',
+        language: DEFAULT_APP_LOCALE,
       },
       nextChordSuggestions: [],
       progressionIdeas: [
@@ -181,6 +189,7 @@ const parseLoadedProgressionPayload = (
 };
 
 type ParsedGeneratorCache = {
+  locale: AppLocaleCode;
   formData: GeneratorFormData;
   data: ChordSuggestionResponse;
   playbackSettings: PlaybackSettings;
@@ -190,6 +199,7 @@ const parseGeneratorCachePayload = (rawGeneratorCache: string): ParsedGeneratorC
   const parsedCache = parseJsonObject(rawGeneratorCache) as GeneratorCache;
 
   return {
+    locale: normalizeAppLocale(parsedCache.locale ?? DEFAULT_APP_LOCALE),
     formData: {
       seedChords: parsedCache.seedChords,
       mood: parsedCache.mood,
@@ -210,10 +220,12 @@ const parseGeneratorCachePayload = (rawGeneratorCache: string): ParsedGeneratorC
 };
 
 const buildGeneratorCachePayload = (
+  locale: AppLocaleCode,
   formData: GeneratorFormData,
   data: ChordSuggestionResponse,
   playbackSettings: PlaybackSettings,
 ): GeneratorCache => ({
+  locale,
   seedChords: formData.seedChords,
   mood: formData.mood,
   mode: formData.mode,
@@ -229,6 +241,7 @@ const buildGeneratorCachePayload = (
 });
 
 type RestoreGeneratorCacheParams = {
+  activeLocale: AppLocaleCode;
   rawGeneratorCache: string;
   reset: UseFormReset<GeneratorFormData>;
   setData: Dispatch<SetStateAction<ChordSuggestionResponse | null>>;
@@ -238,6 +251,7 @@ type RestoreGeneratorCacheParams = {
 };
 
 const restoreFromGeneratorCache = ({
+  activeLocale,
   rawGeneratorCache,
   reset,
   setData,
@@ -246,6 +260,10 @@ const restoreFromGeneratorCache = ({
   playbackSettingsSetters,
 }: RestoreGeneratorCacheParams): void => {
   const parsedCache = parseGeneratorCachePayload(rawGeneratorCache);
+
+  if (parsedCache.locale !== activeLocale) {
+    throw new Error('Generator cache locale mismatch');
+  }
 
   reset(parsedCache.formData);
   setIsLoadedFromSavedProgression(false);
@@ -290,6 +308,7 @@ export default function useGeneratorSessionCache({
   reset,
   setData,
   setIsLoadedFromSavedProgression,
+  locale,
   playbackSettings,
   playbackSettingsSetters,
 }: UseGeneratorSessionCacheParams): UseGeneratorSessionCacheResult {
@@ -330,6 +349,7 @@ export default function useGeneratorSessionCache({
 
       try {
         restoreFromGeneratorCache({
+          activeLocale: locale,
           rawGeneratorCache,
           reset,
           setData,
@@ -344,10 +364,10 @@ export default function useGeneratorSessionCache({
     } finally {
       setIsRestoringState(false);
     }
-  }, [reset, setData, setIsLoadedFromSavedProgression]);
+  }, [locale, reset, setData, setIsLoadedFromSavedProgression]);
 
   const cacheGeneratorResult = (formData: GeneratorFormData, data: ChordSuggestionResponse) => {
-    const cachePayload = buildGeneratorCachePayload(formData, data, playbackSettings);
+    const cachePayload = buildGeneratorCachePayload(locale, formData, data, playbackSettings);
     writeSessionStorage(GENERATOR_CACHE_KEY, JSON.stringify(cachePayload));
   };
 

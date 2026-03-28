@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import AppThemeProvider from './providers/AppThemeProvider';
 import { AppSnackbarProvider } from './providers/AppSnackbarProvider';
 import { AuthProvider } from './providers/AuthProvider';
+import { LocaleProvider } from './providers/LocaleProvider';
 import AppWrapper from './AppWrapper';
 
 type Props = {
@@ -11,12 +12,14 @@ type Props = {
 
 export default function App({ children }: Props) {
   return (
-    <AppThemeProvider>
-      <AppSnackbarProvider>
-        <AuthProvider>
-          <AppWrapper>{children}</AppWrapper>
-        </AuthProvider>
-      </AppSnackbarProvider>
-    </AppThemeProvider>
+    <LocaleProvider>
+      <AppThemeProvider>
+        <AppSnackbarProvider>
+          <AuthProvider>
+            <AppWrapper>{children}</AppWrapper>
+          </AuthProvider>
+        </AppSnackbarProvider>
+      </AppThemeProvider>
+    </LocaleProvider>
   );
 }
