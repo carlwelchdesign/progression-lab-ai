@@ -6,6 +6,8 @@ import FileCopyIcon from '@mui/icons-material/FileCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import AudioFileIcon from '@mui/icons-material/AudioFile';
 
 import type { Progression } from '../../../lib/types';
 import { playProgression } from '../../../domain/audio/audio';
@@ -16,6 +18,9 @@ import {
   usePlaybackToggle,
 } from '../../generator/hooks/usePlaybackToggle';
 import PlaybackToggleButton from '../../generator/components/PlaybackToggleButton';
+import { downloadSessionPdf } from '../../../lib/pdf';
+import { downloadProgressionMidi } from '../../../lib/midi';
+import { progressionToPdfOptions, getProgressionFileName } from '../utils/progressionDownloadUtils';
 import GenericCard from './GenericCard';
 import CardStatus from './CardStatus';
 
@@ -41,6 +46,8 @@ export default function ProgressionCard({
   instrument,
 }: ProgressionCardProps) {
   const [copied, setCopied] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [isDownloadingMidi, setIsDownloadingMidi] = useState(false);
   const { playingId, initializingId, handlePlayToggle } = usePlaybackToggle();
   const playId = `progression-card-${progression.id}`;
   const isPlaying = playingId === playId;
@@ -56,6 +63,32 @@ export default function ProgressionCard({
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error('Failed to copy link:', error);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      setIsDownloadingPdf(true);
+      const pdfOptions = progressionToPdfOptions(progression);
+      await downloadSessionPdf(pdfOptions);
+    } catch (error) {
+      console.error('Failed to download PDF:', error);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
+  const handleDownloadMidi = () => {
+    try {
+      setIsDownloadingMidi(true);
+      if (Array.isArray(progression.pianoVoicings) && progression.pianoVoicings.length > 0) {
+        const fileName = getProgressionFileName(progression.title);
+        downloadProgressionMidi(fileName, progression.pianoVoicings, 100);
+      }
+    } catch (error) {
+      console.error('Failed to download MIDI:', error);
+    } finally {
+      setIsDownloadingMidi(false);
     }
   };
 
@@ -133,7 +166,7 @@ export default function ProgressionCard({
   );
 
   const actionsSection = (
-    <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+    <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
       <PlaybackToggleButton
         playTitle="Play"
         stopTitle="Stop"
@@ -144,6 +177,32 @@ export default function ProgressionCard({
         }}
         disabled={!canPlay}
       />
+
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={
+          isDownloadingPdf ? <CircularProgress size={16} color="inherit" /> : <FileDownloadIcon />
+        }
+        onClick={handleDownloadPdf}
+        disabled={isDownloadingPdf}
+        title="Download as PDF chart"
+      >
+        {isDownloadingPdf ? 'PDF...' : 'PDF'}
+      </Button>
+
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={
+          isDownloadingMidi ? <CircularProgress size={16} color="inherit" /> : <AudioFileIcon />
+        }
+        onClick={handleDownloadMidi}
+        disabled={isDownloadingMidi || !canPlay}
+        title="Download as MIDI file"
+      >
+        {isDownloadingMidi ? 'MIDI...' : 'MIDI'}
+      </Button>
 
       {onOpen && (
         <Button

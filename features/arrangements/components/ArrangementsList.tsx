@@ -5,6 +5,8 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import AudioFileIcon from '@mui/icons-material/AudioFile';
 import {
   Box,
   CircularProgress,
@@ -18,6 +20,11 @@ import { alpha, useTheme } from '@mui/material/styles';
 
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import type { Arrangement } from '../../../lib/types';
+import { downloadSessionPdf } from '../../../lib/pdf';
+import {
+  arrangementToPdfOptions,
+  downloadArrangementMidi,
+} from '../utils/arrangementDownloadUtils';
 import { deleteArrangement, getMyArrangements } from '../api/arrangementsApi';
 
 type Props = {
@@ -45,6 +52,8 @@ export default function ArrangementsList({ onLoad, refreshSignal, onAvailability
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
+  const [downloadingMidiId, setDownloadingMidiId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -82,6 +91,35 @@ export default function ArrangementsList({ onLoad, refreshSignal, onAvailability
       }
     },
     [onAvailabilityChange, showError, showSuccess],
+  );
+
+  const handleDownloadPdf = useCallback(
+    async (arrangement: Arrangement) => {
+      setDownloadingPdfId(arrangement.id);
+      try {
+        const pdfOptions = arrangementToPdfOptions(arrangement);
+        await downloadSessionPdf(pdfOptions);
+      } catch (err) {
+        showError((err as Error).message || 'Failed to download PDF');
+      } finally {
+        setDownloadingPdfId(null);
+      }
+    },
+    [showError],
+  );
+
+  const handleDownloadMidi = useCallback(
+    (arrangement: Arrangement) => {
+      setDownloadingMidiId(arrangement.id);
+      try {
+        downloadArrangementMidi(arrangement);
+      } catch (err) {
+        showError((err as Error).message || 'Failed to download MIDI');
+      } finally {
+        setDownloadingMidiId(null);
+      }
+    },
+    [showError],
   );
 
   if (isLoading) {
@@ -179,6 +217,46 @@ export default function ArrangementsList({ onLoad, refreshSignal, onAvailability
                 {meta} · {timeAgo(arr.updatedAt)}
               </Typography>
             </Box>
+            <Tooltip title="Download as PDF chart">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={() => void handleDownloadPdf(arr)}
+                  disabled={deletingId === arr.id || downloadingPdfId === arr.id}
+                  aria-label={`Download ${arr.title} as PDF`}
+                  sx={{
+                    color: theme.palette.info.main,
+                    '&:hover': { backgroundColor: alpha(theme.palette.info.main, 0.1) },
+                  }}
+                >
+                  {downloadingPdfId === arr.id ? (
+                    <CircularProgress size={14} color="inherit" />
+                  ) : (
+                    <FileDownloadIcon fontSize="small" />
+                  )}
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Download as MIDI">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={() => handleDownloadMidi(arr)}
+                  disabled={deletingId === arr.id || downloadingMidiId === arr.id}
+                  aria-label={`Download ${arr.title} as MIDI`}
+                  sx={{
+                    color: theme.palette.success.main,
+                    '&:hover': { backgroundColor: alpha(theme.palette.success.main, 0.1) },
+                  }}
+                >
+                  {downloadingMidiId === arr.id ? (
+                    <CircularProgress size={14} color="inherit" />
+                  ) : (
+                    <AudioFileIcon fontSize="small" />
+                  )}
+                </IconButton>
+              </span>
+            </Tooltip>
             <Tooltip title="Load in Chord Playground">
               <span>
                 <IconButton
