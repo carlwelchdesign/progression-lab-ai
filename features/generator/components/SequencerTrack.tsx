@@ -75,6 +75,7 @@ export default function SequencerTrack({
   const scrollAnimationFrameRef = useRef<number | null>(null);
   const rulerCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const laneCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const clipCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const currentStepRef = useRef(currentStep);
   const stepTickStartedAtRef = useRef(performance.now());
   const previousStepRef = useRef(currentStep);
@@ -331,6 +332,108 @@ export default function SequencerTrack({
     });
   }, [appColors.accent.chordSuggestionBorders, events, totalSteps]);
 
+  useEffect(() => {
+    const canvas = clipCanvasRef.current;
+    if (!canvas || extendedTrackWidth <= 0) {
+      return;
+    }
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.round(extendedTrackWidth * dpr));
+    canvas.height = Math.max(1, Math.round(LANE_HEIGHT * dpr));
+    canvas.style.width = `${extendedTrackWidth}px`;
+    canvas.style.height = `${LANE_HEIGHT}px`;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, extendedTrackWidth, LANE_HEIGHT);
+
+    const clipTop = laneTop;
+    const clipRadius = 6;
+    const highlightColor = alpha(theme.palette.common.white, isDarkMode ? 0.14 : 0.26);
+    const clipTextColor = alpha(theme.palette.common.white, isDarkMode ? 0.95 : 0.82);
+    const clipTextShadowColor = alpha(theme.palette.common.black, isDarkMode ? 0.35 : 0.24);
+
+    const truncateLabel = (input: string, maxWidth: number): string => {
+      if (maxWidth <= 0) {
+        return '';
+      }
+
+      if (ctx.measureText(input).width <= maxWidth) {
+        return input;
+      }
+
+      const ellipsis = '...';
+      let endIndex = input.length;
+      while (endIndex > 0) {
+        const candidate = `${input.slice(0, endIndex)}${ellipsis}`;
+        if (ctx.measureText(candidate).width <= maxWidth) {
+          return candidate;
+        }
+
+        endIndex -= 1;
+      }
+
+      return ellipsis;
+    };
+
+    ctx.font = '700 11px ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif';
+    ctx.textBaseline = 'middle';
+
+    for (const clip of clips) {
+      const left = clip.stepIndex * PIXELS_PER_STEP + 1;
+      const width = Math.min(clip.width, totalWidth - clip.stepIndex * PIXELS_PER_STEP - 2);
+
+      if (width <= 0) {
+        continue;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(left + clipRadius, clipTop);
+      ctx.lineTo(left + width - clipRadius, clipTop);
+      ctx.quadraticCurveTo(left + width, clipTop, left + width, clipTop + clipRadius);
+      ctx.lineTo(left + width, clipTop + CLIP_HEIGHT - clipRadius);
+      ctx.quadraticCurveTo(
+        left + width,
+        clipTop + CLIP_HEIGHT,
+        left + width - clipRadius,
+        clipTop + CLIP_HEIGHT,
+      );
+      ctx.lineTo(left + clipRadius, clipTop + CLIP_HEIGHT);
+      ctx.quadraticCurveTo(left, clipTop + CLIP_HEIGHT, left, clipTop + CLIP_HEIGHT - clipRadius);
+      ctx.lineTo(left, clipTop + clipRadius);
+      ctx.quadraticCurveTo(left, clipTop, left + clipRadius, clipTop);
+      ctx.closePath();
+
+      ctx.fillStyle = isDarkMode ? alpha(clip.color, 0.24) : alpha(clip.color, 0.2);
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = alpha(clip.color, 0.84);
+      ctx.stroke();
+
+      ctx.fillStyle = clip.color;
+      ctx.fillRect(left + 1, clipTop + 1, 4, Math.max(0, CLIP_HEIGHT - 2));
+
+      ctx.fillStyle = highlightColor;
+      ctx.fillRect(left + 1, clipTop + 1, Math.max(0, width - 2), 1);
+
+      const textLeft = left + 10;
+      const textMaxWidth = Math.max(0, width - 16);
+      const renderedLabel = truncateLabel(clip.label, textMaxWidth);
+      if (renderedLabel) {
+        const textY = clipTop + CLIP_HEIGHT / 2;
+        ctx.fillStyle = clipTextShadowColor;
+        ctx.fillText(renderedLabel, textLeft, textY + 1);
+        ctx.fillStyle = clipTextColor;
+        ctx.fillText(renderedLabel, textLeft, textY);
+      }
+    }
+  }, [clips, extendedTrackWidth, isDarkMode, laneTop, theme.palette.common.white, totalWidth]);
+
   return (
     <Box
       sx={{
@@ -498,10 +601,24 @@ export default function SequencerTrack({
                   }}
                 />
 
+                <Box
+                  component="canvas"
+                  ref={clipCanvasRef}
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                  }}
+                />
+
                 {clips.map((clip, index) => (
                   <Box
                     key={`${clip.padKey}-${clip.stepIndex}-${index}`}
                     title={`${clip.label} at step ${clip.stepIndex + 1}`}
+                    aria-label={`${clip.label} at step ${clip.stepIndex + 1}`}
                     sx={{
                       position: 'absolute',
                       left: clip.stepIndex * PIXELS_PER_STEP + 1,
@@ -512,34 +629,11 @@ export default function SequencerTrack({
                       ),
                       minWidth: 28,
                       height: CLIP_HEIGHT,
-                      px: 1.1,
-                      overflow: 'hidden',
-                      display: 'flex',
-                      alignItems: 'center',
                       borderRadius: 0.5,
-                      border: `1px solid ${alpha(clip.color, 0.84)}`,
-                      backgroundColor: isDarkMode
-                        ? alpha(clip.color, 0.24)
-                        : alpha(clip.color, 0.2),
-                      boxShadow: `inset 4px 0 0 ${clip.color}, inset 0 1px 0 ${alpha(theme.palette.common.white, 0.1)}`,
+                      backgroundColor: 'transparent',
                       zIndex: 3,
                     }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        overflow: 'hidden',
-                        fontSize: '0.73rem',
-                        fontWeight: 700,
-                        letterSpacing: 0.24,
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        color: theme.palette.common.white,
-                      }}
-                    >
-                      {clip.label}
-                    </Typography>
-                  </Box>
+                  />
                 ))}
 
                 {clips.length === 0 ? (

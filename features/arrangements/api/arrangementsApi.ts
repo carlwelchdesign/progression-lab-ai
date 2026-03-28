@@ -1,4 +1,4 @@
-import { createCsrfHeaders } from '../../../lib/csrfClient';
+import { createCsrfHeaders, ensureCsrfCookie } from '../../../lib/csrfClient';
 import type { CreateArrangementRequest, UpdateArrangementRequest } from '../../../lib/types';
 
 async function readErrorMessage(response: Response, fallback: string) {
@@ -15,6 +15,7 @@ async function readErrorMessage(response: Response, fallback: string) {
 }
 
 export async function createArrangement(payload: CreateArrangementRequest) {
+  await ensureCsrfCookie();
   const response = await fetch('/api/arrangements', {
     method: 'POST',
     headers: createCsrfHeaders({
@@ -51,6 +52,7 @@ export async function getArrangement(id: string) {
 }
 
 export async function updateArrangement(id: string, payload: UpdateArrangementRequest) {
+  await ensureCsrfCookie();
   const response = await fetch(`/api/arrangements/${id}`, {
     method: 'PUT',
     headers: createCsrfHeaders({
@@ -67,6 +69,7 @@ export async function updateArrangement(id: string, payload: UpdateArrangementRe
 }
 
 export async function deleteArrangement(id: string) {
+  await ensureCsrfCookie();
   const response = await fetch(`/api/arrangements/${id}`, {
     method: 'DELETE',
     headers: createCsrfHeaders(),
