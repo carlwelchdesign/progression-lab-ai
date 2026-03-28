@@ -85,6 +85,7 @@ export interface AudioEngine {
   setPhaserOctaves: (value: number) => void;
   setPhaserQ: (value: number) => void;
   startAudio: () => Promise<void>;
+  playMetronomeClick: (volume: number, isDownbeat: boolean) => Promise<void>;
   stopAllAudio: () => void;
   playChordVoicing: (params: PlayChordVoicingParams) => Promise<void>;
   playProgression: (

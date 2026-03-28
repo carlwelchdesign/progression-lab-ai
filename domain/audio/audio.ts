@@ -889,6 +889,14 @@ export const createToneAudioEngine = (): AudioEngine => {
     }
   };
 
+  const playMetronomeClick = async (volume: number, isDownbeat: boolean): Promise<void> => {
+    await startAudio();
+
+    const synth = getMetronomeSynth();
+    synth.volume.value = volume > 0 ? Tone.gainToDb(volume * 0.45) : -Infinity;
+    synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
+  };
+
   const stopAllAudio = (): void => {
     scheduledPlaybackTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
     scheduledPlaybackTimeouts = [];
@@ -1247,6 +1255,7 @@ export const createToneAudioEngine = (): AudioEngine => {
     setPhaserOctaves,
     setPhaserQ,
     startAudio,
+    playMetronomeClick,
     stopAllAudio,
     playChordVoicing,
     playProgression,
@@ -1416,6 +1425,8 @@ export const setVibratoDepth = (value: number): void => {
   getAudioEngine().setVibratoDepth(value);
 };
 
+export const getAudioClockSeconds = (): number => Tone.now();
+
 export const setPhaserEnabled = (enabled: boolean): void => {
   getAudioEngine().setPhaserEnabled(enabled);
 };
@@ -1438,6 +1449,10 @@ export const setPhaserQ = (value: number): void => {
 
 export const startAudio = async (): Promise<void> => {
   await getAudioEngine().startAudio();
+};
+
+export const playMetronomeClick = async (volume: number, isDownbeat: boolean): Promise<void> => {
+  await getAudioEngine().playMetronomeClick(volume, isDownbeat);
 };
 
 export const stopAllAudio = (): void => {
