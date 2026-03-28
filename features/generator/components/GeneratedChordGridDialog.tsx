@@ -21,6 +21,7 @@ import { alpha, type Theme, useTheme } from '@mui/material/styles';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
+  getAudioClockSeconds,
   playChordPattern,
   playMetronomeClick,
   startAudio,
@@ -112,6 +113,15 @@ const isTypingTarget = (target: EventTarget | null): boolean => {
   }
 
   return target.closest('[role="textbox"]') !== null;
+};
+
+const getSchedulerNowMs = (): number => {
+  const audioClockMs = getAudioClockSeconds() * 1000;
+  if (Number.isFinite(audioClockMs) && audioClockMs > 0) {
+    return audioClockMs;
+  }
+
+  return performance.now();
 };
 
 const getBeatsPerBar = (signature: TimeSignature): number => {
@@ -228,8 +238,8 @@ export default function GeneratedChordGridDialog({
   const [arrangementEvents, setArrangementEvents] = useState<ArrangementEvent[]>([]);
   const [saveArrangementDialogOpen, setSaveArrangementDialogOpen] = useState(false);
   const activePadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sequencerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const countInIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sequencerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countInStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentStepRef = useRef(0);
   const eventsByStepRef = useRef<Map<number, ArrangementEvent[]>>(new Map());
@@ -258,12 +268,12 @@ export default function GeneratedChordGridDialog({
         clearTimeout(activePadTimeout.current);
       }
 
-      if (sequencerIntervalRef.current) {
-        clearInterval(sequencerIntervalRef.current);
+      if (sequencerTimerRef.current) {
+        clearTimeout(sequencerTimerRef.current);
       }
 
-      if (countInIntervalRef.current) {
-        clearInterval(countInIntervalRef.current);
+      if (countInTimerRef.current) {
+        clearTimeout(countInTimerRef.current);
       }
 
       if (countInStartTimeoutRef.current) {
@@ -283,14 +293,14 @@ export default function GeneratedChordGridDialog({
 
   useEffect(() => {
     if (!open) {
-      if (sequencerIntervalRef.current) {
-        clearInterval(sequencerIntervalRef.current);
-        sequencerIntervalRef.current = null;
+      if (sequencerTimerRef.current) {
+        clearTimeout(sequencerTimerRef.current);
+        sequencerTimerRef.current = null;
       }
 
-      if (countInIntervalRef.current) {
-        clearInterval(countInIntervalRef.current);
-        countInIntervalRef.current = null;
+      if (countInTimerRef.current) {
+        clearTimeout(countInTimerRef.current);
+        countInTimerRef.current = null;
       }
 
       if (countInStartTimeoutRef.current) {
@@ -435,14 +445,14 @@ export default function GeneratedChordGridDialog({
   };
 
   const stopSequencer = () => {
-    if (sequencerIntervalRef.current) {
-      clearInterval(sequencerIntervalRef.current);
-      sequencerIntervalRef.current = null;
+    if (sequencerTimerRef.current) {
+      clearTimeout(sequencerTimerRef.current);
+      sequencerTimerRef.current = null;
     }
 
-    if (countInIntervalRef.current) {
-      clearInterval(countInIntervalRef.current);
-      countInIntervalRef.current = null;
+    if (countInTimerRef.current) {
+      clearTimeout(countInTimerRef.current);
+      countInTimerRef.current = null;
     }
 
     if (countInStartTimeoutRef.current) {
@@ -482,17 +492,29 @@ export default function GeneratedChordGridDialog({
   };
 
   const startSequencer = () => {
-    if (sequencerIntervalRef.current) {
-      clearInterval(sequencerIntervalRef.current);
+    if (sequencerTimerRef.current) {
+      clearTimeout(sequencerTimerRef.current);
+      sequencerTimerRef.current = null;
     }
 
     stopGlobalPlayback();
     stopAllAudio();
+    void startAudio();
 
     const stepDurationMs = 60_000 / tempoBpm / STEPS_PER_BEAT;
+    let expectedNextTick = getSchedulerNowMs();
     currentStepRef.current = 0;
     setCurrentStep(0);
     setIsSequencerPlaying(true);
+
+    const scheduleNextStep = () => {
+      expectedNextTick += stepDurationMs;
+      const delayMs = Math.max(0, expectedNextTick - getSchedulerNowMs());
+
+      sequencerTimerRef.current = setTimeout(() => {
+        runSequencerStep();
+      }, delayMs);
+    };
 
     const runSequencerStep = () => {
       const stepIndex = currentStepRef.current;
@@ -523,6 +545,7 @@ export default function GeneratedChordGridDialog({
       if (nextStep >= totalStepsRef.current) {
         if (isLoopEnabledRef.current) {
           currentStepRef.current = 0;
+          scheduleNextStep();
           return;
         }
 
@@ -531,13 +554,10 @@ export default function GeneratedChordGridDialog({
       }
 
       currentStepRef.current = nextStep;
+      scheduleNextStep();
     };
 
     runSequencerStep();
-
-    sequencerIntervalRef.current = setInterval(() => {
-      runSequencerStep();
-    }, stepDurationMs);
   };
 
   const handleSequencerPlayToggle = () => {
@@ -566,7 +586,17 @@ export default function GeneratedChordGridDialog({
 
     void startAudio().then(() => {
       let beatIndex = 0;
-      const stepDurationMs = 60_000 / tempoBpm;
+      const beatDurationMs = 60_000 / tempoBpm;
+      let expectedNextTick = getSchedulerNowMs();
+
+      const scheduleNextCountInBeat = () => {
+        expectedNextTick += beatDurationMs;
+        const delayMs = Math.max(0, expectedNextTick - getSchedulerNowMs());
+
+        countInTimerRef.current = setTimeout(() => {
+          runCountInBeat();
+        }, delayMs);
+      };
 
       const runCountInBeat = () => {
         const beatNumber = beatIndex + 1;
@@ -578,9 +608,9 @@ export default function GeneratedChordGridDialog({
         beatIndex += 1;
 
         if (beatIndex >= beatsPerBar) {
-          if (countInIntervalRef.current) {
-            clearInterval(countInIntervalRef.current);
-            countInIntervalRef.current = null;
+          if (countInTimerRef.current) {
+            clearTimeout(countInTimerRef.current);
+            countInTimerRef.current = null;
           }
 
           countInStartTimeoutRef.current = setTimeout(() => {
@@ -589,12 +619,15 @@ export default function GeneratedChordGridDialog({
             setCurrentBeatInBar(1);
             startSequencer();
             setIsRecording(true);
-          }, stepDurationMs);
+          }, beatDurationMs);
+
+          return;
         }
+
+        scheduleNextCountInBeat();
       };
 
       runCountInBeat();
-      countInIntervalRef.current = setInterval(runCountInBeat, stepDurationMs);
     });
   };
 

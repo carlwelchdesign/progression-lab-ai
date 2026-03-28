@@ -1425,6 +1425,8 @@ export const setVibratoDepth = (value: number): void => {
   getAudioEngine().setVibratoDepth(value);
 };
 
+export const getAudioClockSeconds = (): number => Tone.now();
+
 export const setPhaserEnabled = (enabled: boolean): void => {
   getAudioEngine().setPhaserEnabled(enabled);
 };

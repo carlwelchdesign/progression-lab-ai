@@ -2,7 +2,7 @@
 
 import { Box, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ArrangementEvent } from '../../../lib/types';
 
@@ -28,6 +28,7 @@ const PIXELS_PER_STEP = 18;
 const RULER_HEIGHT = 30;
 const LANE_HEIGHT = 86;
 const CLIP_HEIGHT = 42;
+const PLAYHEAD_ANCHOR_RATIO = 0.5;
 
 function getClipTone(chordName: string, palette: readonly string[]): string {
   if (/sus/i.test(chordName)) {
@@ -71,8 +72,23 @@ export default function SequencerTrack({
   const theme = useTheme();
   const { appColors } = theme.palette;
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const scrollAnimationFrameRef = useRef<number | null>(null);
+  const rulerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const laneCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const currentStepRef = useRef(currentStep);
+  const stepTickStartedAtRef = useRef(performance.now());
+  const previousStepRef = useRef(currentStep);
+  const [viewportWidth, setViewportWidth] = useState(0);
   const stepsPerBeat = stepsPerBar / beatsPerBar;
+  const stepDurationMs = Math.max(45, 60_000 / Math.max(tempoBpm, 1) / Math.max(stepsPerBeat, 1));
   const totalWidth = Math.max(totalSteps * PIXELS_PER_STEP, 360);
+  const playheadAnchorPx = viewportWidth * PLAYHEAD_ANCHOR_RATIO;
+  const extendedTrackWidth = totalWidth + playheadAnchorPx;
+  const playheadCenterPx = currentStep * PIXELS_PER_STEP + PIXELS_PER_STEP / 2;
+  const maxScrollLeft = Math.max(0, extendedTrackWidth - viewportWidth);
+  const centeredDesiredScroll = playheadCenterPx - playheadAnchorPx;
+  const isCenteredOverlayActive =
+    viewportWidth > 0 && centeredDesiredScroll > 0 && centeredDesiredScroll < maxScrollLeft;
   const laneTop = (LANE_HEIGHT - CLIP_HEIGHT) / 2;
   const isDarkMode = theme.palette.mode === 'dark';
   const frameBorder = alpha(theme.palette.common.white, isDarkMode ? 0.1 : 0.18);
@@ -87,20 +103,94 @@ export default function SequencerTrack({
   const labelColor = alpha(theme.palette.common.white, isDarkMode ? 0.92 : 0.5);
   const metaColor = alpha(theme.palette.common.white, isDarkMode ? 0.45 : 0.4);
 
+  const isLoopWrapJump = currentStep < previousStepRef.current;
+  previousStepRef.current = currentStep;
+
+  useEffect(() => {
+    currentStepRef.current = currentStep;
+    stepTickStartedAtRef.current = performance.now();
+  }, [currentStep]);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) {
+      return;
+    }
+
+    const updateViewportWidth = () => {
+      setViewportWidth(container.clientWidth);
+    };
+
+    updateViewportWidth();
+
+    const resizeObserver = new ResizeObserver(updateViewportWidth);
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || !isPlaying) {
       return;
     }
 
-    const playheadCenter = currentStep * PIXELS_PER_STEP + PIXELS_PER_STEP / 2;
-    const viewportWidth = container.clientWidth;
-    const desiredScrollLeft = Math.max(0, playheadCenter - viewportWidth * 0.42);
+    const desiredScrollLeft = Math.max(0, Math.min(maxScrollLeft, centeredDesiredScroll));
+    container.scrollLeft = desiredScrollLeft;
+  }, [centeredDesiredScroll, isPlaying, maxScrollLeft]);
 
-    if (Math.abs(desiredScrollLeft - container.scrollLeft) > PIXELS_PER_STEP) {
-      container.scrollLeft = desiredScrollLeft;
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || !isPlaying) {
+      if (scrollAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+        scrollAnimationFrameRef.current = null;
+      }
+
+      return;
     }
-  }, [currentStep, isPlaying]);
+
+    const animateScroll = () => {
+      const container = scrollRef.current;
+      if (!container) {
+        scrollAnimationFrameRef.current = null;
+        return;
+      }
+
+      const elapsedSinceTickMs = performance.now() - stepTickStartedAtRef.current;
+      const stepProgress = Math.min(1, Math.max(0, elapsedSinceTickMs / stepDurationMs));
+      const interpolatedStep = currentStepRef.current + stepProgress;
+      const playheadCenterPx = interpolatedStep * PIXELS_PER_STEP + PIXELS_PER_STEP / 2;
+      const desiredScrollLeft = Math.max(
+        0,
+        Math.min(maxScrollLeft, playheadCenterPx - playheadAnchorPx),
+      );
+
+      if (!isCenteredOverlayActive) {
+        container.scrollLeft = desiredScrollLeft;
+      } else {
+        container.scrollLeft = desiredScrollLeft;
+      }
+
+      if (isPlaying) {
+        scrollAnimationFrameRef.current = requestAnimationFrame(animateScroll);
+        return;
+      }
+
+      scrollAnimationFrameRef.current = null;
+    };
+
+    scrollAnimationFrameRef.current = requestAnimationFrame(animateScroll);
+
+    return () => {
+      if (scrollAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+        scrollAnimationFrameRef.current = null;
+      }
+    };
+  }, [isCenteredOverlayActive, isPlaying, maxScrollLeft, playheadAnchorPx, stepDurationMs]);
 
   const bars = useMemo(
     () =>
@@ -111,38 +201,100 @@ export default function SequencerTrack({
     [loopLengthBars, stepsPerBar],
   );
 
-  const totalBeats = useMemo(
-    () => Math.max(1, Math.floor(totalSteps / Math.max(stepsPerBeat, 1))),
-    [stepsPerBeat, totalSteps],
-  );
+  useEffect(() => {
+    const drawCanvas = (
+      canvas: HTMLCanvasElement | null,
+      height: number,
+      draw: (ctx: CanvasRenderingContext2D, width: number, canvasHeight: number) => void,
+    ) => {
+      if (!canvas || extendedTrackWidth <= 0) {
+        return;
+      }
 
-  const beatMarkers = useMemo(
-    () =>
-      Array.from({ length: Math.max(0, totalBeats - 1) }, (_, index) => {
-        const beatNumber = index + 1;
-        return {
-          index: beatNumber,
-          left: beatNumber * stepsPerBeat * PIXELS_PER_STEP,
-        };
-      }),
-    [stepsPerBeat, totalBeats],
-  );
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.round(extendedTrackWidth * dpr));
+      canvas.height = Math.max(1, Math.round(height * dpr));
+      canvas.style.width = `${extendedTrackWidth}px`;
+      canvas.style.height = `${height}px`;
 
-  const stepMarkers = useMemo(
-    () =>
-      Array.from({ length: Math.max(0, totalSteps - 1) }, (_, index) => {
-        const stepNumber = index + 1;
-        if (stepNumber % stepsPerBeat === 0) {
-          return null;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        return;
+      }
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, extendedTrackWidth, height);
+      draw(ctx, extendedTrackWidth, height);
+    };
+
+    drawCanvas(rulerCanvasRef.current, RULER_HEIGHT, (ctx, width, height) => {
+      const beatTickHeight = 10;
+
+      for (let step = 1; step < totalSteps; step += 1) {
+        if (step % stepsPerBeat !== 0) {
+          continue;
         }
 
-        return {
-          index: stepNumber,
-          left: stepNumber * PIXELS_PER_STEP,
-        };
-      }).filter((marker): marker is { index: number; left: number } => marker !== null),
-    [stepsPerBeat, totalSteps],
-  );
+        const x = step * PIXELS_PER_STEP;
+        if (step % stepsPerBar === 0) {
+          ctx.fillStyle = barLineColor;
+          ctx.fillRect(Math.round(x - 1), 0, 2, height);
+        } else {
+          ctx.fillStyle = beatLineColor;
+          ctx.fillRect(Math.round(x), height - beatTickHeight, 1, beatTickHeight);
+        }
+      }
+
+      ctx.fillStyle = barLineColor;
+      ctx.fillRect(0, 0, 2, height);
+      ctx.fillRect(Math.round(width - 1), 0, 2, height);
+    });
+
+    drawCanvas(laneCanvasRef.current, LANE_HEIGHT, (ctx, width, height) => {
+      for (let barIndex = 0; barIndex < loopLengthBars; barIndex += 1) {
+        if (barIndex % 2 !== 0) {
+          continue;
+        }
+
+        const barStart = barIndex * stepsPerBar * PIXELS_PER_STEP;
+        ctx.fillStyle = alpha(theme.palette.common.white, isDarkMode ? 0.025 : 0.14);
+        ctx.fillRect(barStart, 0, stepsPerBar * PIXELS_PER_STEP, height);
+      }
+
+      for (let step = 1; step < totalSteps; step += 1) {
+        const x = step * PIXELS_PER_STEP;
+        if (step % stepsPerBar === 0) {
+          ctx.fillStyle = barLineColor;
+          ctx.fillRect(Math.round(x - 1), 0, 2, height);
+          continue;
+        }
+
+        if (step % stepsPerBeat === 0) {
+          ctx.fillStyle = beatLineColor;
+          ctx.fillRect(Math.round(x), 0, 1, height);
+          continue;
+        }
+
+        ctx.fillStyle = stepLineColor;
+        ctx.fillRect(Math.round(x), 0, 1, height);
+      }
+
+      ctx.fillStyle = barLineColor;
+      ctx.fillRect(0, 0, 2, height);
+      ctx.fillRect(Math.round(width - 1), 0, 2, height);
+    });
+  }, [
+    barLineColor,
+    beatLineColor,
+    extendedTrackWidth,
+    isDarkMode,
+    loopLengthBars,
+    stepLineColor,
+    stepsPerBar,
+    stepsPerBeat,
+    theme.palette.common.white,
+    totalSteps,
+  ]);
 
   const clips = useMemo<RenderedClip[]>(() => {
     const groupedEvents = new Map<number, ArrangementEvent[]>();
@@ -264,51 +416,53 @@ export default function SequencerTrack({
           </Box>
         </Box>
 
-        <Box
-          ref={scrollRef}
-          sx={{
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            '&::-webkit-scrollbar': {
-              height: 9,
-            },
-            '&::-webkit-scrollbar-track': {
-              backgroundColor: alpha(theme.palette.common.black, isDarkMode ? 0.24 : 0.08),
-            },
-            '&::-webkit-scrollbar-thumb': {
-              borderRadius: 999,
-              backgroundColor: alpha(theme.palette.common.white, isDarkMode ? 0.18 : 0.28),
-            },
-            '&::-webkit-scrollbar-thumb:hover': {
-              backgroundColor: alpha(theme.palette.common.white, isDarkMode ? 0.24 : 0.36),
-            },
-          }}
-        >
-          <Box sx={{ position: 'relative', width: totalWidth, minWidth: '100%' }}>
-            <Box
-              sx={{
-                position: 'relative',
-                height: RULER_HEIGHT,
-                borderBottom: `1px solid ${rulerBorder}`,
-                backgroundColor: rulerColor,
-              }}
-            >
-              {bars.map((bar) => {
-                const barLeft = bar.startStep * PIXELS_PER_STEP;
+        <Box sx={{ position: 'relative' }}>
+          <Box
+            ref={scrollRef}
+            sx={{
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              '&::-webkit-scrollbar': {
+                height: 9,
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: alpha(theme.palette.common.black, isDarkMode ? 0.24 : 0.08),
+              },
+              '&::-webkit-scrollbar-thumb': {
+                borderRadius: 999,
+                backgroundColor: alpha(theme.palette.common.white, isDarkMode ? 0.18 : 0.28),
+              },
+              '&::-webkit-scrollbar-thumb:hover': {
+                backgroundColor: alpha(theme.palette.common.white, isDarkMode ? 0.24 : 0.36),
+              },
+            }}
+          >
+            <Box sx={{ position: 'relative', width: extendedTrackWidth, minWidth: '100%' }}>
+              <Box
+                sx={{
+                  position: 'relative',
+                  height: RULER_HEIGHT,
+                  borderBottom: `1px solid ${rulerBorder}`,
+                  backgroundColor: rulerColor,
+                }}
+              >
+                <Box
+                  component="canvas"
+                  ref={rulerCanvasRef}
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                  }}
+                />
 
-                return (
-                  <Box key={`bar-ruler-${bar.index}`}>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        left: barLeft,
-                        top: 0,
-                        width: 2,
-                        height: '100%',
-                        backgroundColor: barLineColor,
-                      }}
-                    />
+                {bars.map((bar) => {
+                  const barLeft = bar.startStep * PIXELS_PER_STEP;
+                  return (
                     <Typography
+                      key={`bar-ruler-label-${bar.index}`}
                       variant="caption"
                       sx={{
                         position: 'absolute',
@@ -321,189 +475,171 @@ export default function SequencerTrack({
                     >
                       {bar.index + 1}
                     </Typography>
-                  </Box>
-                );
-              })}
-
-              {beatMarkers.map((marker) => (
-                <Box
-                  key={`ruler-beat-${marker.index}`}
-                  sx={{
-                    position: 'absolute',
-                    left: marker.left,
-                    bottom: 0,
-                    width: '1px',
-                    height: '10px',
-                    backgroundColor: beatLineColor,
-                  }}
-                />
-              ))}
-            </Box>
-
-            <Box
-              sx={{
-                position: 'relative',
-                height: LANE_HEIGHT,
-                backgroundColor: laneColor,
-              }}
-            >
-              {bars.map((bar) => {
-                const barLeft = bar.startStep * PIXELS_PER_STEP;
-
-                return (
-                  <Box key={`bar-grid-${bar.index}`}>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        left: barLeft,
-                        top: 0,
-                        width: 2,
-                        height: '100%',
-                        backgroundColor: barLineColor,
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        left: barLeft,
-                        top: 0,
-                        width: stepsPerBar * PIXELS_PER_STEP,
-                        height: '100%',
-                        backgroundColor:
-                          bar.index % 2 === 0
-                            ? alpha(theme.palette.common.white, isDarkMode ? 0.025 : 0.14)
-                            : 'transparent',
-                      }}
-                    />
-                  </Box>
-                );
-              })}
-
-              {beatMarkers.map((marker) => (
-                <Box
-                  key={`beat-grid-${marker.index}`}
-                  sx={{
-                    position: 'absolute',
-                    left: marker.left,
-                    top: 0,
-                    width: '1px',
-                    height: '100%',
-                    backgroundColor: beatLineColor,
-                  }}
-                />
-              ))}
-
-              {stepMarkers.map((marker) => (
-                <Box
-                  key={`step-grid-${marker.index}`}
-                  sx={{
-                    position: 'absolute',
-                    left: marker.left,
-                    top: 0,
-                    width: '1px',
-                    height: '100%',
-                    backgroundColor: stepLineColor,
-                  }}
-                />
-              ))}
-
-              {clips.map((clip, index) => (
-                <Box
-                  key={`${clip.padKey}-${clip.stepIndex}-${index}`}
-                  title={`${clip.label} at step ${clip.stepIndex + 1}`}
-                  sx={{
-                    position: 'absolute',
-                    left: clip.stepIndex * PIXELS_PER_STEP + 1,
-                    top: laneTop,
-                    width: Math.min(clip.width, totalWidth - clip.stepIndex * PIXELS_PER_STEP - 2),
-                    minWidth: 28,
-                    height: CLIP_HEIGHT,
-                    px: 1.1,
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center',
-                    borderRadius: 0.5,
-                    border: `1px solid ${alpha(clip.color, 0.84)}`,
-                    backgroundColor: isDarkMode ? alpha(clip.color, 0.24) : alpha(clip.color, 0.2),
-                    boxShadow: `inset 4px 0 0 ${clip.color}, inset 0 1px 0 ${alpha(theme.palette.common.white, 0.1)}`,
-                    zIndex: 3,
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      overflow: 'hidden',
-                      fontSize: '0.73rem',
-                      fontWeight: 700,
-                      letterSpacing: 0.24,
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      color: theme.palette.common.white,
-                    }}
-                  >
-                    {clip.label}
-                  </Typography>
-                </Box>
-              ))}
-
-              {clips.length === 0 ? (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      px: 1.25,
-                      py: 0.5,
-                      borderRadius: 0.75,
-                      border: `1px solid ${alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.16)}`,
-                      backgroundColor: alpha(theme.palette.common.black, isDarkMode ? 0.18 : 0.04),
-                      color: alpha(theme.palette.common.white, isDarkMode ? 0.38 : 0.38),
-                      letterSpacing: 0.2,
-                    }}
-                  >
-                    Record chords to place regions on the timeline
-                  </Typography>
-                </Box>
-              ) : null}
+                  );
+                })}
+              </Box>
 
               <Box
                 sx={{
-                  position: 'absolute',
-                  left: currentStep * PIXELS_PER_STEP,
-                  top: 0,
-                  bottom: 0,
-                  width: 2,
-                  backgroundColor: playheadColor,
-                  boxShadow: `0 0 0 1px ${alpha(playheadColor, 0.28)}, 0 0 14px ${alpha(playheadColor, 0.36)}`,
-                  zIndex: 5,
-                  pointerEvents: 'none',
-                  transition: isPlaying ? 'none' : 'left 150ms ease-out',
+                  position: 'relative',
+                  height: LANE_HEIGHT,
+                  backgroundColor: laneColor,
                 }}
               >
                 <Box
+                  component="canvas"
+                  ref={laneCanvasRef}
                   sx={{
                     position: 'absolute',
-                    top: 6,
-                    left: '50%',
-                    width: 0,
-                    height: 0,
-                    borderLeft: '5px solid transparent',
-                    borderRight: '5px solid transparent',
-                    borderTop: `7px solid ${playheadColor}`,
-                    transform: 'translateX(-50%)',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
                   }}
                 />
+
+                {clips.map((clip, index) => (
+                  <Box
+                    key={`${clip.padKey}-${clip.stepIndex}-${index}`}
+                    title={`${clip.label} at step ${clip.stepIndex + 1}`}
+                    sx={{
+                      position: 'absolute',
+                      left: clip.stepIndex * PIXELS_PER_STEP + 1,
+                      top: laneTop,
+                      width: Math.min(
+                        clip.width,
+                        totalWidth - clip.stepIndex * PIXELS_PER_STEP - 2,
+                      ),
+                      minWidth: 28,
+                      height: CLIP_HEIGHT,
+                      px: 1.1,
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      borderRadius: 0.5,
+                      border: `1px solid ${alpha(clip.color, 0.84)}`,
+                      backgroundColor: isDarkMode
+                        ? alpha(clip.color, 0.24)
+                        : alpha(clip.color, 0.2),
+                      boxShadow: `inset 4px 0 0 ${clip.color}, inset 0 1px 0 ${alpha(theme.palette.common.white, 0.1)}`,
+                      zIndex: 3,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        overflow: 'hidden',
+                        fontSize: '0.73rem',
+                        fontWeight: 700,
+                        letterSpacing: 0.24,
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        color: theme.palette.common.white,
+                      }}
+                    >
+                      {clip.label}
+                    </Typography>
+                  </Box>
+                ))}
+
+                {clips.length === 0 ? (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        px: 1.25,
+                        py: 0.5,
+                        borderRadius: 0.75,
+                        border: `1px solid ${alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.16)}`,
+                        backgroundColor: alpha(
+                          theme.palette.common.black,
+                          isDarkMode ? 0.18 : 0.04,
+                        ),
+                        color: alpha(theme.palette.common.white, isDarkMode ? 0.38 : 0.38),
+                        letterSpacing: 0.2,
+                      }}
+                    >
+                      Record chords to place regions on the timeline
+                    </Typography>
+                  </Box>
+                ) : null}
+
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 2,
+                    transform: `translate3d(${currentStep * PIXELS_PER_STEP}px, 0, 0)`,
+                    willChange: isPlaying ? 'transform' : 'auto',
+                    backgroundColor: playheadColor,
+                    boxShadow: `0 0 0 1px ${alpha(playheadColor, 0.28)}, 0 0 14px ${alpha(playheadColor, 0.36)}`,
+                    zIndex: 5,
+                    opacity: isCenteredOverlayActive ? 0 : 1,
+                    pointerEvents: 'none',
+                    transition:
+                      isPlaying && !isLoopWrapJump
+                        ? `transform ${stepDurationMs}ms linear`
+                        : 'none',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 6,
+                      left: '50%',
+                      width: 0,
+                      height: 0,
+                      borderLeft: '5px solid transparent',
+                      borderRight: '5px solid transparent',
+                      borderTop: `7px solid ${playheadColor}`,
+                      transform: 'translateX(-50%)',
+                    }}
+                  />
+                </Box>
               </Box>
             </Box>
           </Box>
+
+          {isCenteredOverlayActive ? (
+            <Box
+              sx={{
+                position: 'absolute',
+                left: Math.max(0, playheadAnchorPx - 1),
+                top: RULER_HEIGHT,
+                bottom: 9,
+                width: 2,
+                backgroundColor: playheadColor,
+                boxShadow: `0 0 0 1px ${alpha(playheadColor, 0.28)}, 0 0 14px ${alpha(playheadColor, 0.36)}`,
+                zIndex: 7,
+                pointerEvents: 'none',
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 6,
+                  left: '50%',
+                  width: 0,
+                  height: 0,
+                  borderLeft: '5px solid transparent',
+                  borderRight: '5px solid transparent',
+                  borderTop: `7px solid ${playheadColor}`,
+                  transform: 'translateX(-50%)',
+                }}
+              />
+            </Box>
+          ) : null}
         </Box>
       </Box>
     </Box>
