@@ -58,6 +58,61 @@ type ChordGridEntry = {
 
 const STEPS_PER_BEAT = 4;
 const LOOP_LENGTH_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+const PAD_TRIGGER_KEYS = [
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  '0',
+  'a',
+  'b',
+  'c',
+  'd',
+  'e',
+  'f',
+  'g',
+  'h',
+  'i',
+  'j',
+  'k',
+  'l',
+  'm',
+  'n',
+  'o',
+  'p',
+  'q',
+  'r',
+  's',
+  't',
+  'u',
+  'v',
+  'w',
+  'x',
+  'y',
+  'z',
+] as const;
+
+const isTypingTarget = (target: EventTarget | null): boolean => {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  const tag = target.tagName.toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+    return true;
+  }
+
+  if (target.isContentEditable || target.closest('[contenteditable="true"]')) {
+    return true;
+  }
+
+  return target.closest('[role="textbox"]') !== null;
+};
 
 const getBeatsPerBar = (signature: TimeSignature): number => {
   const numerator = Number.parseInt(signature.split('/')[0], 10);
@@ -296,6 +351,25 @@ export default function GeneratedChordGridDialog({
     }),
     [arrangementEvents, loopLengthBars, stepsPerBar, totalSteps],
   );
+
+  const padHotkeyBindings = useMemo(
+    () =>
+      editableChords.map((entry, index) => ({
+        entry,
+        hotkey: PAD_TRIGGER_KEYS[index] ?? null,
+      })),
+    [editableChords],
+  );
+
+  const padHotkeyMap = useMemo(() => {
+    const bindings = new Map<string, ChordGridEntry>();
+    padHotkeyBindings.forEach(({ entry, hotkey }) => {
+      if (hotkey) {
+        bindings.set(hotkey, entry);
+      }
+    });
+    return bindings;
+  }, [padHotkeyBindings]);
 
   const playbackSnapshot = useMemo<ArrangementPlaybackSnapshot>(
     () => ({
@@ -577,6 +651,57 @@ export default function GeneratedChordGridDialog({
       });
     }
   };
+
+  useEffect(() => {
+    if (!open || saveArrangementDialogOpen) {
+      return;
+    }
+
+    const onWindowKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.repeat || isTypingTarget(event.target)) {
+        return;
+      }
+
+      if (event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+
+      if (key === ' ') {
+        event.preventDefault();
+        handleSequencerPlayToggle();
+        return;
+      }
+
+      if (event.key === 'Shift') {
+        event.preventDefault();
+        handleRecordToggle();
+        return;
+      }
+
+      const matchedEntry = padHotkeyMap.get(key);
+      if (!matchedEntry) {
+        return;
+      }
+
+      event.preventDefault();
+      onPadPress(matchedEntry);
+    };
+
+    window.addEventListener('keydown', onWindowKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', onWindowKeyDown);
+    };
+  }, [
+    handleRecordToggle,
+    handleSequencerPlayToggle,
+    onPadPress,
+    open,
+    padHotkeyMap,
+    saveArrangementDialogOpen,
+  ]);
 
   const onPadChordChange = (padKey: string, chord: string) => {
     const voicing = createPianoVoicingFromChordSymbol(chord);
@@ -865,7 +990,7 @@ export default function GeneratedChordGridDialog({
             border: `1px solid ${appColors.surface.translucentPanelBorder}`,
           }}
         >
-          {editableChords.map((entry) => {
+          {padHotkeyBindings.map(({ entry, hotkey }) => {
             const isActive = activePadKey === entry.key;
             const isEditing = editingPadKey === entry.key;
             const borderColor = getChordBorderColor(
@@ -873,6 +998,7 @@ export default function GeneratedChordGridDialog({
               appColors.accent.chordSuggestionBorders,
             );
             const editingBorderColor = appColors.accent.chordPadEditBorder;
+            const hotkeyLabel = hotkey ? hotkey.toUpperCase() : null;
 
             return (
               <Button
@@ -886,6 +1012,7 @@ export default function GeneratedChordGridDialog({
                   onPadPress(entry);
                 }}
                 sx={{
+                  position: 'relative',
                   aspectRatio: '1 / 1',
                   minHeight: { xs: 82, sm: 108 },
                   borderRadius: 1.5,
@@ -942,6 +1069,32 @@ export default function GeneratedChordGridDialog({
                   },
                 }}
               >
+                {hotkeyLabel ? (
+                  <Box
+                    component="span"
+                    sx={{
+                      position: 'absolute',
+                      top: 6,
+                      left: 6,
+                      minWidth: 20,
+                      height: 20,
+                      px: 0.5,
+                      borderRadius: 0.75,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: { xs: '0.64rem', sm: '0.68rem' },
+                      fontWeight: 700,
+                      lineHeight: 1,
+                      color: theme.palette.common.white,
+                      bgcolor: alpha(theme.palette.common.black, 0.36),
+                      border: `1px solid ${alpha(theme.palette.common.white, 0.32)}`,
+                      boxShadow: `0 1px 0 ${alpha(theme.palette.common.black, 0.3)}`,
+                    }}
+                  >
+                    {hotkeyLabel}
+                  </Box>
+                ) : null}
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <Typography
                     component="span"
@@ -954,6 +1107,10 @@ export default function GeneratedChordGridDialog({
             );
           })}
         </Box>
+
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+          Keyboard: pads use 1-0 then A-Z, Space plays/stops the track, Shift toggles record.
+        </Typography>
 
         {editableChords.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
