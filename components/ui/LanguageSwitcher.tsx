@@ -1,7 +1,7 @@
 'use client';
 
 import LanguageIcon from '@mui/icons-material/Language';
-import { Box, IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
+import { Box, IconButton, Popover, Tooltip } from '@mui/material';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -65,7 +65,7 @@ export default function LanguageSwitcher({ fullWidth = false }: LanguageSwitcher
           size="small"
           onClick={(event) => setAnchorEl(event.currentTarget)}
           aria-label={t('languageSelectorAriaLabel')}
-          aria-controls={open ? 'language-flag-menu' : undefined}
+          aria-controls={open ? 'language-flag-popover' : undefined}
           aria-haspopup="menu"
           aria-expanded={open ? 'true' : undefined}
           sx={{
@@ -87,37 +87,66 @@ export default function LanguageSwitcher({ fullWidth = false }: LanguageSwitcher
         </IconButton>
       </Tooltip>
 
-      <Menu
-        id="language-flag-menu"
+      <Popover
+        id="language-flag-popover"
         anchorEl={anchorEl}
         open={open}
         onClose={() => setAnchorEl(null)}
-        MenuListProps={{ 'aria-label': t('languageSelectorAriaLabel') }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        {supportedLocales.map((supportedLocale) => {
-          const localeFlag = resolveLocaleFlag(supportedLocale.code);
-          return (
-            <MenuItem
-              key={supportedLocale.code}
-              selected={supportedLocale.code === locale}
-              onClick={() => {
-                setLocale(supportedLocale.code);
-                setAnchorEl(null);
-              }}
-              aria-label={`${supportedLocale.nativeLabel} (${supportedLocale.englishLabel})`}
-              sx={{ minWidth: 56, justifyContent: 'center' }}
-            >
-              {localeFlag ? (
-                <Box component="span" sx={{ fontSize: 20, lineHeight: 1 }} aria-hidden>
-                  {localeFlag}
-                </Box>
-              ) : (
-                <LanguageIcon fontSize="small" />
-              )}
-            </MenuItem>
-          );
-        })}
-      </Menu>
+        <Box
+          role="menu"
+          aria-label={t('languageSelectorAriaLabel')}
+          sx={{
+            p: 1,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+            gap: 0.5,
+            width: 252,
+            maxWidth: 'calc(100vw - 24px)',
+          }}
+        >
+          {supportedLocales.map((supportedLocale) => {
+            const localeFlag = resolveLocaleFlag(supportedLocale.code);
+            const selected = supportedLocale.code === locale;
+
+            return (
+              <Tooltip
+                key={supportedLocale.code}
+                title={`${supportedLocale.nativeLabel} (${supportedLocale.englishLabel})`}
+              >
+                <IconButton
+                  size="small"
+                  role="menuitemradio"
+                  aria-checked={selected}
+                  aria-label={`${supportedLocale.nativeLabel} (${supportedLocale.englishLabel})`}
+                  onClick={() => {
+                    setLocale(supportedLocale.code);
+                    setAnchorEl(null);
+                  }}
+                  sx={{
+                    width: 34,
+                    height: 34,
+                    border: 1,
+                    borderColor: selected ? 'primary.main' : 'divider',
+                    bgcolor: selected ? 'action.selected' : 'transparent',
+                    borderRadius: 1,
+                  }}
+                >
+                  {localeFlag ? (
+                    <Box component="span" sx={{ fontSize: 18, lineHeight: 1 }} aria-hidden>
+                      {localeFlag}
+                    </Box>
+                  ) : (
+                    <LanguageIcon fontSize="small" />
+                  )}
+                </IconButton>
+              </Tooltip>
+            );
+          })}
+        </Box>
+      </Popover>
     </>
   );
 }
