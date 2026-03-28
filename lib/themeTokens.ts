@@ -26,6 +26,8 @@ type AppSurfaceColors = {
 type AppAccentColors = {
   chordPadActiveBorder: string;
   chordPadEditBorder: string;
+  chordPadCofBorder: string;
+  chordPadCofGlow: string;
   chordCloseIcon: string;
   chordSuggestionBorders: string[];
 };
@@ -92,6 +94,8 @@ const darkAppColors: AppColorTokens = {
   accent: {
     chordPadActiveBorder: '#FACC15',
     chordPadEditBorder: '#FF4D9D',
+    chordPadCofBorder: '#4ADE80',
+    chordPadCofGlow: '#4ADE8066',
     chordCloseIcon: '#CBD5E1',
     chordSuggestionBorders: ['#F97316', '#22D3EE', '#A3E635', '#F43F5E', '#F59E0B', '#60A5FA'],
   },
@@ -163,6 +167,8 @@ const lightAppColors: AppColorTokens = {
   accent: {
     chordPadActiveBorder: '#CA8A04',
     chordPadEditBorder: '#D61F7A',
+    chordPadCofBorder: '#16A34A',
+    chordPadCofGlow: '#16A34A55',
     chordCloseIcon: '#475569',
     chordSuggestionBorders: ['#EA580C', '#0EA5E9', '#65A30D', '#E11D48', '#D97706', '#2563EB'],
   },

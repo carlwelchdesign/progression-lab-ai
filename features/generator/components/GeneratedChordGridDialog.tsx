@@ -30,6 +30,10 @@ import {
   stopAllAudio,
 } from '../../../domain/audio/audio';
 import { createPianoVoicingFromChordSymbol } from '../../../domain/music/chordVoicing';
+import {
+  getChordRootSemitone,
+  getCircleOfFifthsNeighborSemitones,
+} from '../../../domain/music/circleOfFifths';
 import { CHORD_OPTIONS } from '../../../lib/formOptions';
 import PlaybackSettingsButton from './PlaybackSettingsButton';
 import PlaybackToggleButton from './PlaybackToggleButton';
@@ -242,6 +246,7 @@ export default function GeneratedChordGridDialog({
   } = settings;
 
   const [activePadKey, setActivePadKey] = useState<string | null>(null);
+  const [cofFocusPadKey, setCofFocusPadKey] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editableChords, setEditableChords] = useState<ChordGridEntry[]>(chords);
   const [editingPadKey, setEditingPadKey] = useState<string | null>(null);
@@ -361,6 +366,7 @@ export default function GeneratedChordGridDialog({
       setIsCountInActive(false);
       setCurrentStep(0);
       currentStepRef.current = 0;
+      setCofFocusPadKey(null);
     }
   }, [open]);
 
@@ -707,6 +713,8 @@ export default function GeneratedChordGridDialog({
   const onPadPress = (entry: ChordGridEntry) => {
     if (isEditMode) {
       setEditingPadKey(entry.key);
+    } else {
+      setCofFocusPadKey((previous) => (previous === entry.key ? null : entry.key));
     }
 
     triggerPad(entry);
@@ -809,6 +817,37 @@ export default function GeneratedChordGridDialog({
       ),
     );
   };
+
+  const cofHighlightedKeys = useMemo<Set<string>>(() => {
+    if (!cofFocusPadKey) {
+      return new Set();
+    }
+
+    const focusedEntry = editableChords.find((entry) => entry.key === cofFocusPadKey);
+    if (!focusedEntry) {
+      return new Set();
+    }
+
+    const rootSemitone = getChordRootSemitone(focusedEntry.chord);
+    if (rootSemitone === null) {
+      return new Set();
+    }
+
+    const neighborSemitones = getCircleOfFifthsNeighborSemitones(rootSemitone);
+    const highlighted = new Set<string>();
+    for (const entry of editableChords) {
+      if (entry.key === cofFocusPadKey) {
+        continue;
+      }
+
+      const entrySemitone = getChordRootSemitone(entry.chord);
+      if (entrySemitone !== null && neighborSemitones.has(entrySemitone)) {
+        highlighted.add(entry.key);
+      }
+    }
+
+    return highlighted;
+  }, [cofFocusPadKey, editableChords]);
 
   const editableChordOptions = useMemo(() => {
     const values = Array.from(
@@ -1120,11 +1159,14 @@ export default function GeneratedChordGridDialog({
           {padHotkeyBindings.map(({ entry, hotkey }) => {
             const isActive = activePadKey === entry.key;
             const isEditing = editingPadKey === entry.key;
+            const isCoFHighlighted = cofHighlightedKeys.has(entry.key);
             const borderColor = getChordBorderColor(
               entry.chord,
               appColors.accent.chordSuggestionBorders,
             );
             const editingBorderColor = appColors.accent.chordPadEditBorder;
+            const cofBorderColor = appColors.accent.chordPadCofBorder;
+            const cofGlowColor = appColors.accent.chordPadCofGlow;
             const hotkeyLabel = hotkey ? hotkey.toUpperCase() : null;
 
             return (
@@ -1159,12 +1201,16 @@ export default function GeneratedChordGridDialog({
                     ? editingBorderColor
                     : isActive
                       ? padStyles.active.border
-                      : borderColor,
+                      : isCoFHighlighted
+                        ? cofBorderColor
+                        : borderColor,
                   boxShadow: isEditing
                     ? `0 0 0 2px ${appColors.surface.chordPadEditGlow}, 0 8px 0 ${appColors.surface.chordPadShadowRest}`
                     : isActive
                       ? `0 3px 0 ${appColors.surface.chordPadShadowPressed}`
-                      : `0 8px 0 ${appColors.surface.chordPadShadowRest}`,
+                      : isCoFHighlighted
+                        ? `0 0 0 3px ${cofGlowColor}, 0 8px 0 ${appColors.surface.chordPadShadowRest}`
+                        : `0 8px 0 ${appColors.surface.chordPadShadowRest}`,
                   transform: isActive ? 'translateY(5px)' : 'translateY(0)',
                   transition:
                     'transform 90ms ease, box-shadow 90ms ease, background 120ms, border-color 120ms',
@@ -1178,12 +1224,16 @@ export default function GeneratedChordGridDialog({
                       ? `0 0 0 2px ${appColors.surface.chordPadEditGlowHover}, 0 8px 0 ${appColors.surface.chordPadShadowRest}`
                       : isActive
                         ? `0 3px 0 ${appColors.surface.chordPadShadowPressed}`
-                        : `0 8px 0 ${appColors.surface.chordPadShadowRest}`,
+                        : isCoFHighlighted
+                          ? `0 0 0 4px ${cofGlowColor}, 0 8px 0 ${appColors.surface.chordPadShadowRest}`
+                          : `0 8px 0 ${appColors.surface.chordPadShadowRest}`,
                     borderColor: isEditing
                       ? editingBorderColor
                       : isActive
                         ? padStyles.active.border
-                        : borderColor,
+                        : isCoFHighlighted
+                          ? cofBorderColor
+                          : borderColor,
                   },
                   '&:active': {
                     transform: 'translateY(5px)',
