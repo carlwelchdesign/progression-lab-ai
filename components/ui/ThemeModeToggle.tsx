@@ -11,9 +11,8 @@ import { useThemeMode } from '../../lib/themeMode';
  * Header action button that toggles between light and dark mode.
  */
 export default function ThemeModeToggle() {
-  const { mode, toggleMode, preset, cyclePreset } = useThemeMode();
+  const { mode, toggleMode } = useThemeMode();
   const isDark = mode === 'dark';
-  const presetLabel = preset.toUpperCase();
 
   return (
     <Stack direction="row" spacing={0.5}>

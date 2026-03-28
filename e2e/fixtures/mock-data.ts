@@ -9,6 +9,7 @@ export const generatorResponse: ChordSuggestionResponse = {
     styleReference: null,
     instrument: 'both',
     adventurousness: 'balanced',
+    language: 'en',
   },
   nextChordSuggestions: [
     {

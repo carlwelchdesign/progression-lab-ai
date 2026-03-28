@@ -89,6 +89,7 @@ describe('POST /api/progressions', () => {
               styleReference: null,
               instrument: 'both',
               adventurousness: 'balanced',
+              language: 'en',
             },
             nextChordSuggestions: [],
             progressionIdeas: [

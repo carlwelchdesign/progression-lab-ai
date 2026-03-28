@@ -13,6 +13,7 @@ const MOCK_SUGGESTIONS_RESPONSE = {
     styleReference: 'Bill Evans',
     instrument: 'both',
     adventurousness: 'balanced',
+    language: 'en',
   },
   nextChordSuggestions: [
     {

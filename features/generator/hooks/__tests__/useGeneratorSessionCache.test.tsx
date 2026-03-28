@@ -25,6 +25,7 @@ const mockSuggestionData: ChordSuggestionResponse = {
     styleReference: null,
     instrument: 'both',
     adventurousness: 'balanced',
+    language: 'en',
   },
   nextChordSuggestions: [],
   progressionIdeas: [

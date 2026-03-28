@@ -34,6 +34,7 @@ describe('SaveProgressionDialog', () => {
         styleReference: 'Bill Evans',
         instrument: 'both',
         adventurousness: 'balanced',
+        language: 'en',
       },
       nextChordSuggestions: [],
       progressionIdeas: [

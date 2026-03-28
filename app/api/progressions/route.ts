@@ -96,7 +96,8 @@ export async function POST(request: NextRequest) {
 
       // Backward-compatible fallback when deployed DB is missing the generatorSnapshot column.
       // Saves still succeed, but full-result restore is unavailable until migration is applied.
-      const { generatorSnapshot: _omitted, ...fallbackData } = progressionCreateData;
+      const fallbackData = { ...progressionCreateData };
+      delete fallbackData.generatorSnapshot;
       progression = await prisma.progression.create({ data: fallbackData });
     }
 
