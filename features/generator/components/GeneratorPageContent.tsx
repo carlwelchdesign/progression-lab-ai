@@ -86,7 +86,7 @@ function pickRandomUnique<T>(items: T[], count: number): T[] {
 }
 
 export default function GeneratorPageContent() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('generator');
   const { locale } = useAppLocale();
   const {
     control,
@@ -420,12 +420,12 @@ export default function GeneratorPageContent() {
     const resolvedGenre = formData.genre.trim();
 
     if (!resolvedMode) {
-      setError(t('generator.errors.selectMode'));
+      setError(t('errors.selectMode'));
       return;
     }
 
     if (!resolvedGenre) {
-      setError(t('generator.errors.selectGenre'));
+      setError(t('errors.selectGenre'));
       return;
     }
 
@@ -459,7 +459,7 @@ export default function GeneratorPageContent() {
       cacheGeneratorResult(formData, json);
     } catch (err) {
       console.error(err);
-      const errorMessage = t('generator.errors.requestFailed');
+      const errorMessage = t('errors.requestFailed');
       setError(errorMessage);
       showError(errorMessage);
     } finally {
@@ -549,7 +549,7 @@ export default function GeneratorPageContent() {
     {
       key: 'next',
       shouldRender: !isLoadedFromSavedProgression,
-      fallbackLabel: t('generator.status.loadingSuggestions'),
+      fallbackLabel: t('status.loadingSuggestions'),
       render: (isCollapsibleLayout: boolean) => (
         <NextChordSuggestionsSection
           suggestions={visibleNextChordSuggestions}

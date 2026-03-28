@@ -1,0 +1,124 @@
+{
+  "header": {
+    "description": "输入几个和弦、一种情绪和一个调式。即可获得和弦进行灵感、结构建议以及简单的吉他/钢琴图示。"
+  },
+  "status": {
+    "loadingSuggestions": "正在加载建议..."
+  },
+  "errors": {
+    "selectMode": "请选择或输入调式 / 音阶。",
+    "selectGenre": "请选择或输入风格。",
+    "requestFailed": "无法生成建议。"
+  },
+  "form": {
+    "seedChords": {
+      "label": "起始和弦",
+      "placeholder": "Fmaj7, F#m7",
+      "required": "起始和弦为必填项",
+      "atLeastOne": "请至少输入一个和弦"
+    },
+    "mood": {
+      "label": "情绪",
+      "placeholder": "梦幻、深沉、充满希望",
+      "required": "情绪为必填项"
+    },
+    "mode": {
+      "label": "调式 / 音阶",
+      "placeholder": "ionian、dorian、和声小调",
+      "required": "调式 / 音阶为必填项"
+    },
+    "genre": {
+      "label": "风格",
+      "placeholder": "piano house、jazz、indie pop",
+      "required": "风格为必填项"
+    },
+    "styleReference": {
+      "label": "风格参考（可选）",
+      "placeholder": "Barry Harris、Bill Evans 等",
+      "helperText": "可使用演奏者、教师或和声学派作为风格参考。"
+    },
+    "adventurousness": {
+      "label": "冒险程度",
+      "placeholder": "稳妥、平衡、惊喜"
+    },
+    "actions": {
+      "randomizeInputs": "随机输入",
+      "generateIdeas": "生成灵感",
+      "generating": "生成中..."
+    }
+  },
+  "optionGroups": {
+    "mode": {
+      "majorDiatonic": "大调 / 自然音阶",
+      "minorModal": "小调 / 调式",
+      "pentatonicBlues": "五声音阶 / 布鲁斯",
+      "extendedColors": "扩展色彩",
+      "symmetricAdvanced": "对称 / 进阶",
+      "other": "其他"
+    },
+    "genre": {
+      "danceClub": "舞曲 / 夜店",
+      "popSongwriter": "流行 / 唱作",
+      "urbanGroove": "都市 / Groove",
+      "jazzHarmony": "爵士 / 和声",
+      "atmosphericCinematic": "氛围 / 电影感",
+      "bandAcoustic": "乐队 / 原声",
+      "other": "其他"
+    },
+    "adventurousness": {
+      "riskProfile": "风险画像"
+    }
+  },
+  "styleReferenceGroups": {
+    "jazzPianoIcons": "爵士钢琴经典",
+    "modernHarmonyVoices": "现代和声语汇",
+    "educatorsAndMethods": "教育者与方法"
+  },
+  "options": {
+    "mode": {
+      "ionian": "Ionian（大调）",
+      "dorian": "Dorian",
+      "phrygian": "Phrygian",
+      "lydian": "Lydian",
+      "mixolydian": "Mixolydian",
+      "aeolian": "Aeolian（自然小调）",
+      "locrian": "Locrian",
+      "majorPentatonic": "大调五声音阶",
+      "minorPentatonic": "小调五声音阶",
+      "harmonicMinor": "和声小调",
+      "melodicMinor": "旋律小调",
+      "blues": "布鲁斯",
+      "wholeTone": "全音音阶",
+      "diminished": "减音音阶",
+      "chromatic": "半音音阶",
+      "custom": "自定义"
+    },
+    "genre": {
+      "house": "House",
+      "pianoHouse": "Piano House",
+      "deepHouse": "Deep House",
+      "discoHouse": "Disco House",
+      "techHouse": "Tech House",
+      "funkDisco": "Funk / Disco",
+      "pop": "Pop",
+      "indiePop": "Indie Pop",
+      "rnbNeoSoul": "R&B / Neo Soul",
+      "jazz": "Jazz",
+      "loFi": "Lo-fi",
+      "ambient": "Ambient",
+      "cinematic": "电影感",
+      "edm": "EDM",
+      "afroHouse": "Afro House",
+      "progressiveHouse": "Progressive House",
+      "hipHop": "Hip-Hop",
+      "rock": "Rock",
+      "folk": "Folk",
+      "custom": "自定义"
+    },
+    "adventurousness": {
+      "safe": "稳妥",
+      "balanced": "平衡",
+      "surprising": "惊喜"
+    }
+  }
+}

@@ -76,22 +76,22 @@ export default function GeneratorFormCard({
   errorMessage,
   onRandomize,
 }: GeneratorFormCardProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('generator');
 
   const modeGroupByName = useMemo(
-    () => buildTranslatedGroupMap(MODE_CATEGORY_KEY_BY_VALUE, t),
+    () => buildTranslatedGroupMap(MODE_CATEGORY_KEY_BY_VALUE, (key) => t(key)),
     [t],
   );
   const genreGroupByName = useMemo(
-    () => buildTranslatedGroupMap(GENRE_CATEGORY_KEY_BY_VALUE, t),
+    () => buildTranslatedGroupMap(GENRE_CATEGORY_KEY_BY_VALUE, (key) => t(key)),
     [t],
   );
   const adventurousnessGroupByName = useMemo(
-    () => buildTranslatedGroupMap(ADVENTUROUSNESS_CATEGORY_KEY_BY_VALUE, t),
+    () => buildTranslatedGroupMap(ADVENTUROUSNESS_CATEGORY_KEY_BY_VALUE, (key) => t(key)),
     [t],
   );
   const styleReferenceGroupByName = useMemo(
-    () => buildTranslatedGroupMap(STYLE_REFERENCE_CATEGORY_KEY_BY_VALUE, t),
+    () => buildTranslatedGroupMap(STYLE_REFERENCE_CATEGORY_KEY_BY_VALUE, (key) => t(key)),
     [t],
   );
 
@@ -114,9 +114,9 @@ export default function GeneratorFormCard({
           name="seedChords"
           control={control}
           rules={{
-            required: t('generator.form.seedChords.required'),
+            required: t('form.seedChords.required'),
             validate: (value) => {
-              return value.trim().length > 0 || t('generator.form.seedChords.atLeastOne');
+              return value.trim().length > 0 || t('form.seedChords.atLeastOne');
             },
           }}
           render={({ field: { value, onChange }, fieldState: { error } }) => {
@@ -151,10 +151,8 @@ export default function GeneratorFormCard({
                 renderInput={(params) => (
                   <MuiTextField
                     {...params}
-                    label={t('generator.form.seedChords.label')}
-                    placeholder={
-                      chordArray.length > 0 ? '' : t('generator.form.seedChords.placeholder')
-                    }
+                    label={t('form.seedChords.label')}
+                    placeholder={chordArray.length > 0 ? '' : t('form.seedChords.placeholder')}
                     fullWidth
                     variant="outlined"
                     InputLabelProps={{ shrink: true }}
@@ -171,7 +169,7 @@ export default function GeneratorFormCard({
           name="mood"
           control={control}
           rules={{
-            required: t('generator.form.mood.required'),
+            required: t('form.mood.required'),
           }}
           render={({ field: { value, onChange }, fieldState: { error } }) => {
             const moodArray = value
@@ -205,8 +203,8 @@ export default function GeneratorFormCard({
                 renderInput={(params) => (
                   <MuiTextField
                     {...params}
-                    label={t('generator.form.mood.label')}
-                    placeholder={moodArray.length > 0 ? '' : t('generator.form.mood.placeholder')}
+                    label={t('form.mood.label')}
+                    placeholder={moodArray.length > 0 ? '' : t('form.mood.placeholder')}
                     fullWidth
                     variant="outlined"
                     InputLabelProps={{ shrink: true }}
@@ -223,12 +221,12 @@ export default function GeneratorFormCard({
           name="mode"
           control={control}
           rules={{
-            required: t('generator.form.mode.required'),
-            validate: (value) => value.trim().length > 0 || t('generator.form.mode.required'),
+            required: t('form.mode.required'),
+            validate: (value) => value.trim().length > 0 || t('form.mode.required'),
           }}
           render={({ field: { value, onChange }, fieldState: { error } }) => (
             <GroupedAutocompleteField
-              label={t('generator.form.mode.label')}
+              label={t('form.mode.label')}
               value={value}
               onChange={onChange}
               options={MODE_INPUT_OPTIONS}
@@ -236,7 +234,7 @@ export default function GeneratorFormCard({
               getOptionLabel={(option) => t(MODE_LABEL_KEY_BY_VALUE[option] ?? option)}
               freeSolo
               disabled={isSubmitting || loading}
-              placeholder={t('generator.form.mode.placeholder')}
+              placeholder={t('form.mode.placeholder')}
               helperText={error?.message}
               error={!!error}
             />
@@ -247,12 +245,12 @@ export default function GeneratorFormCard({
           name="genre"
           control={control}
           rules={{
-            required: t('generator.form.genre.required'),
-            validate: (value) => value.trim().length > 0 || t('generator.form.genre.required'),
+            required: t('form.genre.required'),
+            validate: (value) => value.trim().length > 0 || t('form.genre.required'),
           }}
           render={({ field: { value, onChange }, fieldState: { error } }) => (
             <GroupedAutocompleteField
-              label={t('generator.form.genre.label')}
+              label={t('form.genre.label')}
               value={value}
               onChange={onChange}
               options={GENRE_INPUT_OPTIONS}
@@ -260,7 +258,7 @@ export default function GeneratorFormCard({
               getOptionLabel={(option) => t(GENRE_LABEL_KEY_BY_VALUE[option] ?? option)}
               freeSolo
               disabled={isSubmitting || loading}
-              placeholder={t('generator.form.genre.placeholder')}
+              placeholder={t('form.genre.placeholder')}
               helperText={error?.message}
               error={!!error}
             />
@@ -272,15 +270,15 @@ export default function GeneratorFormCard({
           control={control}
           render={({ field: { value, onChange } }) => (
             <GroupedAutocompleteField
-              label={t('generator.form.styleReference.label')}
+              label={t('form.styleReference.label')}
               value={value}
               onChange={onChange}
               freeSolo
               options={STYLE_REFERENCE_OPTIONS}
               groupByName={styleReferenceGroupByName}
               disabled={isSubmitting || loading}
-              placeholder={t('generator.form.styleReference.placeholder')}
-              helperText={t('generator.form.styleReference.helperText')}
+              placeholder={t('form.styleReference.placeholder')}
+              helperText={t('form.styleReference.helperText')}
             />
           )}
         />
@@ -290,14 +288,14 @@ export default function GeneratorFormCard({
           control={control}
           render={({ field: { value, onChange } }) => (
             <GroupedAutocompleteField
-              label={t('generator.form.adventurousness.label')}
+              label={t('form.adventurousness.label')}
               value={value}
               onChange={onChange}
               options={ADVENTUROUSNESS_OPTIONS.map((option) => option)}
               groupByName={adventurousnessGroupByName}
               getOptionLabel={(option) => t(ADVENTUROUSNESS_LABEL_KEY_BY_VALUE[option] ?? option)}
               disabled={isSubmitting || loading}
-              placeholder={t('generator.form.adventurousness.placeholder')}
+              placeholder={t('form.adventurousness.placeholder')}
             />
           )}
         />
@@ -312,7 +310,7 @@ export default function GeneratorFormCard({
             disabled={isSubmitting || loading}
             fullWidth
           >
-            {t('generator.form.actions.randomizeInputs')}
+            {t('form.actions.randomizeInputs')}
           </Button>
           <Button
             variant="contained"
@@ -321,9 +319,7 @@ export default function GeneratorFormCard({
             disabled={isSubmitting || loading || Object.keys(errors).length > 0}
             fullWidth
           >
-            {loading
-              ? t('generator.form.actions.generating')
-              : t('generator.form.actions.generateIdeas')}
+            {loading ? t('form.actions.generating') : t('form.actions.generateIdeas')}
           </Button>
         </Stack>
 

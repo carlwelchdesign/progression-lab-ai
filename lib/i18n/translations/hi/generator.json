@@ -1,0 +1,124 @@
+{
+  "header": {
+    "description": "कुछ कॉर्ड, एक मूड और एक मोड दर्ज करें। प्रोग्रेशन आइडिया, संरचना सुझाव और सरल गिटार/पियानो डायग्राम प्राप्त करें।"
+  },
+  "status": {
+    "loadingSuggestions": "सुझाव लोड हो रहे हैं..."
+  },
+  "errors": {
+    "selectMode": "कृपया कोई मोड / स्केल चुनें या दर्ज करें।",
+    "selectGenre": "कृपया कोई शैली चुनें या दर्ज करें।",
+    "requestFailed": "सुझाव उत्पन्न नहीं किए जा सके।"
+  },
+  "form": {
+    "seedChords": {
+      "label": "प्रारंभिक कॉर्ड",
+      "placeholder": "Fmaj7, F#m7",
+      "required": "प्रारंभिक कॉर्ड आवश्यक हैं",
+      "atLeastOne": "कृपया कम से कम एक कॉर्ड दर्ज करें"
+    },
+    "mood": {
+      "label": "मूड",
+      "placeholder": "स्वप्निल, गहरा, आशावान",
+      "required": "मूड आवश्यक है"
+    },
+    "mode": {
+      "label": "मोड / स्केल",
+      "placeholder": "आयोनियन, डोरियन, हार्मोनिक माइनर",
+      "required": "मोड / स्केल आवश्यक है"
+    },
+    "genre": {
+      "label": "शैली",
+      "placeholder": "piano house, jazz, indie pop",
+      "required": "शैली आवश्यक है"
+    },
+    "styleReference": {
+      "label": "स्टाइल संदर्भ (वैकल्पिक)",
+      "placeholder": "Barry Harris, Bill Evans, आदि",
+      "helperText": "शैलीगत मार्गदर्शन के लिए किसी कलाकार, शिक्षक या हार्मनी स्कूल का उपयोग करें।"
+    },
+    "adventurousness": {
+      "label": "साहसिकता",
+      "placeholder": "सुरक्षित, संतुलित, आश्चर्यजनक"
+    },
+    "actions": {
+      "randomizeInputs": "इनपुट यादृच्छिक करें",
+      "generateIdeas": "आइडिया उत्पन्न करें",
+      "generating": "उत्पन्न किया जा रहा है..."
+    }
+  },
+  "optionGroups": {
+    "mode": {
+      "majorDiatonic": "मेजर / डायटोनिक",
+      "minorModal": "माइनर / मोडल",
+      "pentatonicBlues": "पेंटाटोनिक / ब्लूज़",
+      "extendedColors": "विस्तारित रंग",
+      "symmetricAdvanced": "सममित / उन्नत",
+      "other": "अन्य"
+    },
+    "genre": {
+      "danceClub": "डांस / क्लब",
+      "popSongwriter": "पॉप / गीतकार",
+      "urbanGroove": "अर्बन / Groove",
+      "jazzHarmony": "जैज़ / हार्मनी",
+      "atmosphericCinematic": "वातावरणीय / सिनेमैटिक",
+      "bandAcoustic": "बैंड / अकूस्टिक",
+      "other": "अन्य"
+    },
+    "adventurousness": {
+      "riskProfile": "जोखिम प्रोफ़ाइल"
+    }
+  },
+  "styleReferenceGroups": {
+    "jazzPianoIcons": "जैज़ पियानो आइकन",
+    "modernHarmonyVoices": "आधुनिक हार्मनी आवाज़ें",
+    "educatorsAndMethods": "शिक्षक और विधियाँ"
+  },
+  "options": {
+    "mode": {
+      "ionian": "आयोनियन (मेजर)",
+      "dorian": "डोरियन",
+      "phrygian": "फ्रिजियन",
+      "lydian": "लिडियन",
+      "mixolydian": "मिक्सोलिडियन",
+      "aeolian": "एओलियन (नेचुरल माइनर)",
+      "locrian": "लोक्रियन",
+      "majorPentatonic": "मेजर पेंटाटोनिक",
+      "minorPentatonic": "माइनर पेंटाटोनिक",
+      "harmonicMinor": "हार्मोनिक माइनर",
+      "melodicMinor": "मेलोडिक माइनर",
+      "blues": "ब्लूज़",
+      "wholeTone": "होल टोन",
+      "diminished": "डिमिनिश्ड",
+      "chromatic": "क्रोमैटिक",
+      "custom": "कस्टम"
+    },
+    "genre": {
+      "house": "हाउस",
+      "pianoHouse": "पियानो हाउस",
+      "deepHouse": "डीप हाउस",
+      "discoHouse": "डिस्को हाउस",
+      "techHouse": "टेक हाउस",
+      "funkDisco": "फंक / डिस्को",
+      "pop": "पॉप",
+      "indiePop": "इंडी पॉप",
+      "rnbNeoSoul": "R&B / नियो सोल",
+      "jazz": "जैज़",
+      "loFi": "लो-फाइ",
+      "ambient": "एंबिएंट",
+      "cinematic": "सिनेमैटिक",
+      "edm": "EDM",
+      "afroHouse": "अफ्रो हाउस",
+      "progressiveHouse": "प्रोग्रेसिव हाउस",
+      "hipHop": "हिप-हॉप",
+      "rock": "रॉक",
+      "folk": "फोक",
+      "custom": "कस्टम"
+    },
+    "adventurousness": {
+      "safe": "सुरक्षित",
+      "balanced": "संतुलित",
+      "surprising": "आश्चर्यजनक"
+    }
+  }
+}

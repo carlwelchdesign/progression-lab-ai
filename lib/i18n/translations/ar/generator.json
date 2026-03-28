@@ -1,0 +1,124 @@
+{
+  "header": {
+    "description": "أدخل بعض الأوتار، وحالة مزاجية، ومقامًا. واحصل على أفكار للتتابعات، واقتراحات للبنية، ومخططات بسيطة للغيتار والبيانو."
+  },
+  "status": {
+    "loadingSuggestions": "جارٍ تحميل الاقتراحات..."
+  },
+  "errors": {
+    "selectMode": "يرجى اختيار أو إدخال مقام / سلم.",
+    "selectGenre": "يرجى اختيار أو إدخال نوع موسيقي.",
+    "requestFailed": "تعذر إنشاء الاقتراحات."
+  },
+  "form": {
+    "seedChords": {
+      "label": "الأوتار الأساسية",
+      "placeholder": "Fmaj7, F#m7",
+      "required": "الأوتار الأساسية مطلوبة",
+      "atLeastOne": "يرجى إدخال وتر واحد على الأقل"
+    },
+    "mood": {
+      "label": "الحالة المزاجية",
+      "placeholder": "حالم، داكن، مفعم بالأمل",
+      "required": "الحالة المزاجية مطلوبة"
+    },
+    "mode": {
+      "label": "المقام / السلم",
+      "placeholder": "أيوني، دوري، صغير هارموني",
+      "required": "المقام / السلم مطلوب"
+    },
+    "genre": {
+      "label": "النوع",
+      "placeholder": "piano house, jazz, indie pop",
+      "required": "النوع مطلوب"
+    },
+    "styleReference": {
+      "label": "مرجع أسلوبي (اختياري)",
+      "placeholder": "Barry Harris, Bill Evans, إلخ",
+      "helperText": "استخدم عازفًا أو معلّمًا أو مدرسة هارمونية كمرجع أسلوبي."
+    },
+    "adventurousness": {
+      "label": "الجرأة",
+      "placeholder": "آمن، متوازن، مفاجئ"
+    },
+    "actions": {
+      "randomizeInputs": "عشوائية المدخلات",
+      "generateIdeas": "إنشاء أفكار",
+      "generating": "جارٍ الإنشاء..."
+    }
+  },
+  "optionGroups": {
+    "mode": {
+      "majorDiatonic": "كبير / دياتوني",
+      "minorModal": "صغير / مقامي",
+      "pentatonicBlues": "خماسي / بلوز",
+      "extendedColors": "ألوان موسعة",
+      "symmetricAdvanced": "متماثل / متقدم",
+      "other": "أخرى"
+    },
+    "genre": {
+      "danceClub": "رقص / نادٍ",
+      "popSongwriter": "بوب / كاتب أغانٍ",
+      "urbanGroove": "حضري / Groove",
+      "jazzHarmony": "جاز / هارموني",
+      "atmosphericCinematic": "جوي / سينمائي",
+      "bandAcoustic": "فرقة / أكوستيك",
+      "other": "أخرى"
+    },
+    "adventurousness": {
+      "riskProfile": "ملف المخاطرة"
+    }
+  },
+  "styleReferenceGroups": {
+    "jazzPianoIcons": "أيقونات بيانو الجاز",
+    "modernHarmonyVoices": "أصوات الهارموني الحديثة",
+    "educatorsAndMethods": "المعلمون والمناهج"
+  },
+  "options": {
+    "mode": {
+      "ionian": "أيوني (كبير)",
+      "dorian": "دوري",
+      "phrygian": "فريجي",
+      "lydian": "ليدي",
+      "mixolydian": "ميكسوليدي",
+      "aeolian": "أيولي (صغير طبيعي)",
+      "locrian": "لوكري",
+      "majorPentatonic": "خماسي كبير",
+      "minorPentatonic": "خماسي صغير",
+      "harmonicMinor": "صغير هارموني",
+      "melodicMinor": "صغير ميلودي",
+      "blues": "بلوز",
+      "wholeTone": "كامل النغمات",
+      "diminished": "مخفض",
+      "chromatic": "كروماتي",
+      "custom": "مخصص"
+    },
+    "genre": {
+      "house": "هاوس",
+      "pianoHouse": "بيانو هاوس",
+      "deepHouse": "ديب هاوس",
+      "discoHouse": "ديسكو هاوس",
+      "techHouse": "تيك هاوس",
+      "funkDisco": "فانك / ديسكو",
+      "pop": "بوب",
+      "indiePop": "إندي بوب",
+      "rnbNeoSoul": "R&B / نيو سول",
+      "jazz": "جاز",
+      "loFi": "لو-فاي",
+      "ambient": "أمبينت",
+      "cinematic": "سينمائي",
+      "edm": "EDM",
+      "afroHouse": "أفرو هاوس",
+      "progressiveHouse": "بروغريسيف هاوس",
+      "hipHop": "هيب هوب",
+      "rock": "روك",
+      "folk": "فولك",
+      "custom": "مخصص"
+    },
+    "adventurousness": {
+      "safe": "آمن",
+      "balanced": "متوازن",
+      "surprising": "مفاجئ"
+    }
+  }
+}

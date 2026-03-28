@@ -1,0 +1,124 @@
+{
+  "header": {
+    "description": "הזן כמה אקורדים, אווירה ומודוס. קבל רעיונות למהלכים, הצעות למבנה ותרשימים פשוטים לגיטרה ולפסנתר."
+  },
+  "status": {
+    "loadingSuggestions": "טוען הצעות..."
+  },
+  "errors": {
+    "selectMode": "בחר או הזן מודוס / סולם.",
+    "selectGenre": "בחר או הזן סגנון.",
+    "requestFailed": "לא ניתן היה ליצור הצעות."
+  },
+  "form": {
+    "seedChords": {
+      "label": "אקורדי פתיחה",
+      "placeholder": "Fmaj7, F#m7",
+      "required": "אקורדי פתיחה הם שדה חובה",
+      "atLeastOne": "יש להזין לפחות אקורד אחד"
+    },
+    "mood": {
+      "label": "אווירה",
+      "placeholder": "חלומי, אפל, מלא תקווה",
+      "required": "אווירה היא שדה חובה"
+    },
+    "mode": {
+      "label": "מודוס / סולם",
+      "placeholder": "יוני, דורי, מינור הרמוני",
+      "required": "מודוס / סולם הוא שדה חובה"
+    },
+    "genre": {
+      "label": "סגנון",
+      "placeholder": "piano house, jazz, indie pop",
+      "required": "סגנון הוא שדה חובה"
+    },
+    "styleReference": {
+      "label": "רפרנס סגנוני (אופציונלי)",
+      "placeholder": "Barry Harris, Bill Evans וכו'",
+      "helperText": "השתמש בנגן, מורה או אסכולה הרמונית כהכוונה סגנונית."
+    },
+    "adventurousness": {
+      "label": "רמת העזה",
+      "placeholder": "בטוח, מאוזן, מפתיע"
+    },
+    "actions": {
+      "randomizeInputs": "אקרא את הקלטים",
+      "generateIdeas": "צור רעיונות",
+      "generating": "יוצר..."
+    }
+  },
+  "optionGroups": {
+    "mode": {
+      "majorDiatonic": "מז'ור / דיאטוני",
+      "minorModal": "מינור / מודאלי",
+      "pentatonicBlues": "פנטטוני / בלוז",
+      "extendedColors": "צבעים מורחבים",
+      "symmetricAdvanced": "סימטרי / מתקדם",
+      "other": "אחר"
+    },
+    "genre": {
+      "danceClub": "דאנס / מועדון",
+      "popSongwriter": "פופ / יוצר-מבצע",
+      "urbanGroove": "אורבני / Groove",
+      "jazzHarmony": "ג'אז / הרמוניה",
+      "atmosphericCinematic": "אווירה / קולנועי",
+      "bandAcoustic": "להקה / אקוסטי",
+      "other": "אחר"
+    },
+    "adventurousness": {
+      "riskProfile": "פרופיל סיכון"
+    }
+  },
+  "styleReferenceGroups": {
+    "jazzPianoIcons": "אייקוני פסנתר ג'אז",
+    "modernHarmonyVoices": "קולות הרמוניים מודרניים",
+    "educatorsAndMethods": "מחנכים ושיטות"
+  },
+  "options": {
+    "mode": {
+      "ionian": "יוני (מז'ור)",
+      "dorian": "דורי",
+      "phrygian": "פריגי",
+      "lydian": "לידי",
+      "mixolydian": "מיקסולידי",
+      "aeolian": "אאולי (מינור טבעי)",
+      "locrian": "לוקרי",
+      "majorPentatonic": "פנטטוני מז'ורי",
+      "minorPentatonic": "פנטטוני מינורי",
+      "harmonicMinor": "מינור הרמוני",
+      "melodicMinor": "מינור מלודי",
+      "blues": "בלוז",
+      "wholeTone": "טון שלם",
+      "diminished": "מוקטן",
+      "chromatic": "כרומטי",
+      "custom": "מותאם אישית"
+    },
+    "genre": {
+      "house": "האוס",
+      "pianoHouse": "פיאנו האוס",
+      "deepHouse": "דיפ האוס",
+      "discoHouse": "דיסקו האוס",
+      "techHouse": "טק האוס",
+      "funkDisco": "פאנק / דיסקו",
+      "pop": "פופ",
+      "indiePop": "אינדי פופ",
+      "rnbNeoSoul": "R&B / ניאו סול",
+      "jazz": "ג'אז",
+      "loFi": "לו-פיי",
+      "ambient": "אמביינט",
+      "cinematic": "קולנועי",
+      "edm": "EDM",
+      "afroHouse": "אפרו האוס",
+      "progressiveHouse": "פרוגרסיב האוס",
+      "hipHop": "היפ-הופ",
+      "rock": "רוק",
+      "folk": "פולק",
+      "custom": "מותאם אישית"
+    },
+    "adventurousness": {
+      "safe": "בטוח",
+      "balanced": "מאוזן",
+      "surprising": "מפתיע"
+    }
+  }
+}

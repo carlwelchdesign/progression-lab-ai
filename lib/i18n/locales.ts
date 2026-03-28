@@ -1,6 +1,6 @@
 export type AppTextDirection = 'ltr' | 'rtl';
 
-export type LocaleDefinition = {
+type LocaleDefinitionShape = {
   code: string;
   baseLanguage: string;
   nativeLabel: string;
@@ -35,6 +35,14 @@ export const SUPPORTED_LOCALES = [
     englishLabel: 'French',
     direction: 'ltr',
     modelLanguage: 'French',
+  },
+  {
+    code: 'el',
+    baseLanguage: 'el',
+    nativeLabel: 'Ellinika',
+    englishLabel: 'Greek',
+    direction: 'ltr',
+    modelLanguage: 'Greek',
   },
   {
     code: 'de',
@@ -140,9 +148,11 @@ export const SUPPORTED_LOCALES = [
     direction: 'rtl',
     modelLanguage: 'Hebrew',
   },
-] as const satisfies readonly LocaleDefinition[];
+] as const satisfies readonly LocaleDefinitionShape[];
 
-export type AppLocaleCode = (typeof SUPPORTED_LOCALES)[number]['code'];
+export type LocaleDefinition = (typeof SUPPORTED_LOCALES)[number];
+
+export type AppLocaleCode = LocaleDefinition['code'];
 
 const localeByNormalizedCode = new Map<string, LocaleDefinition>(
   SUPPORTED_LOCALES.map((locale) => [locale.code.toLowerCase(), locale]),

@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
  * Top-of-page branding and short generator description.
  */
 export default function GeneratorHeader() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('generator');
 
   return (
     <Box id="generator">
@@ -19,7 +19,7 @@ export default function GeneratorHeader() {
         </Typography>
       </Box>
       <Typography variant="body1" color="text.secondary">
-        {t('generator.header.description')}
+        {t('header.description')}
       </Typography>
     </Box>
   );

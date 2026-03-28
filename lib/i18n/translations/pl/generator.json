@@ -1,0 +1,124 @@
+{
+	"header": {
+		"description": "Wprowadź kilka akordów, nastrój i tryb. Otrzymasz pomysły na progresje, sugestie struktury oraz proste diagramy gitarowe i fortepianowe."
+	},
+	"status": {
+		"loadingSuggestions": "Wczytywanie sugestii..."
+	},
+	"errors": {
+		"selectMode": "Wybierz lub wpisz tryb / skalę.",
+		"selectGenre": "Wybierz lub wpisz gatunek.",
+		"requestFailed": "Nie udało się wygenerować sugestii."
+	},
+	"form": {
+		"seedChords": {
+			"label": "Akordy początkowe",
+			"placeholder": "Fmaj7, F#m7",
+			"required": "Akordy początkowe są wymagane",
+			"atLeastOne": "Wpisz co najmniej jeden akord"
+		},
+		"mood": {
+			"label": "Nastrój",
+			"placeholder": "marzycielski, mroczny, pełen nadziei",
+			"required": "Nastrój jest wymagany"
+		},
+		"mode": {
+			"label": "Tryb / skala",
+			"placeholder": "joński, dorycki, mol harmoniczny",
+			"required": "Tryb / skala jest wymagany"
+		},
+		"genre": {
+			"label": "Gatunek",
+			"placeholder": "piano house, jazz, indie pop",
+			"required": "Gatunek jest wymagany"
+		},
+		"styleReference": {
+			"label": "Odniesienie stylistyczne (opcjonalnie)",
+			"placeholder": "Barry Harris, Bill Evans itd.",
+			"helperText": "Użyj wykonawcy, nauczyciela lub szkoły harmonii jako przewodnika stylistycznego."
+		},
+		"adventurousness": {
+			"label": "Śmiałość",
+			"placeholder": "bezpieczna, zrównoważona, zaskakująca"
+		},
+		"actions": {
+			"randomizeInputs": "Losuj dane wejściowe",
+			"generateIdeas": "Generuj pomysły",
+			"generating": "Generowanie..."
+		}
+	},
+	"optionGroups": {
+		"mode": {
+			"majorDiatonic": "Durowe / Diatoniczne",
+			"minorModal": "Molowe / Modalne",
+			"pentatonicBlues": "Pentatonika / Blues",
+			"extendedColors": "Rozszerzone barwy",
+			"symmetricAdvanced": "Symetryczne / Zaawansowane",
+			"other": "Inne"
+		},
+		"genre": {
+			"danceClub": "Dance / Club",
+			"popSongwriter": "Pop / Songwriter",
+			"urbanGroove": "Urban / Groove",
+			"jazzHarmony": "Jazz / Harmonia",
+			"atmosphericCinematic": "Atmosferyczne / Filmowe",
+			"bandAcoustic": "Zespół / Akustyczne",
+			"other": "Inne"
+		},
+		"adventurousness": {
+			"riskProfile": "Profil ryzyka"
+		}
+	},
+	"styleReferenceGroups": {
+		"jazzPianoIcons": "Ikony fortepianu jazzowego",
+		"modernHarmonyVoices": "Nowoczesne głosy harmoniczne",
+		"educatorsAndMethods": "Edukatorzy i metody"
+	},
+	"options": {
+		"mode": {
+			"ionian": "Joński (Durowy)",
+			"dorian": "Dorycki",
+			"phrygian": "Frygijski",
+			"lydian": "Lidyjski",
+			"mixolydian": "Miksolidyjski",
+			"aeolian": "Eolski (Mol naturalny)",
+			"locrian": "Lokrycki",
+			"majorPentatonic": "Pentatonika durowa",
+			"minorPentatonic": "Pentatonika molowa",
+			"harmonicMinor": "Mol harmoniczny",
+			"melodicMinor": "Mol melodyczny",
+			"blues": "Blues",
+			"wholeTone": "Całotonowa",
+			"diminished": "Zmniejszona",
+			"chromatic": "Chromatyczna",
+			"custom": "Własna"
+		},
+		"genre": {
+			"house": "House",
+			"pianoHouse": "Piano House",
+			"deepHouse": "Deep House",
+			"discoHouse": "Disco House",
+			"techHouse": "Tech House",
+			"funkDisco": "Funk / Disco",
+			"pop": "Pop",
+			"indiePop": "Indie Pop",
+			"rnbNeoSoul": "R&B / Neo Soul",
+			"jazz": "Jazz",
+			"loFi": "Lo-fi",
+			"ambient": "Ambient",
+			"cinematic": "Filmowy",
+			"edm": "EDM",
+			"afroHouse": "Afro House",
+			"progressiveHouse": "Progressive House",
+			"hipHop": "Hip-Hop",
+			"rock": "Rock",
+			"folk": "Folk",
+			"custom": "Własny"
+		},
+		"adventurousness": {
+			"safe": "Bezpieczna",
+			"balanced": "Zrównoważona",
+			"surprising": "Zaskakująca"
+		}
+	}
+}

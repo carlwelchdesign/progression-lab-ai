@@ -1,0 +1,124 @@
+{
+  "header": {
+    "description": "Εισαγάγετε μερικές συγχορδίες, μια διάθεση και έναν τρόπο. Λάβετε ιδέες για προόδους, προτάσεις δομής και απλά διαγράμματα κιθάρας/πιάνου."
+  },
+  "status": {
+    "loadingSuggestions": "Φόρτωση προτάσεων..."
+  },
+  "errors": {
+    "selectMode": "Παρακαλώ επιλέξτε ή εισαγάγετε έναν τρόπο / κλίμακα.",
+    "selectGenre": "Παρακαλώ επιλέξτε ή εισαγάγετε ένα είδος.",
+    "requestFailed": "Δεν ήταν δυνατή η δημιουργία προτάσεων."
+  },
+  "form": {
+    "seedChords": {
+      "label": "Αρχικές συγχορδίες",
+      "placeholder": "Fmaj7, F#m7",
+      "required": "Οι αρχικές συγχορδίες είναι υποχρεωτικές",
+      "atLeastOne": "Παρακαλώ εισαγάγετε τουλάχιστον μία συγχορδία"
+    },
+    "mood": {
+      "label": "Διάθεση",
+      "placeholder": "ονειρική, σκοτεινή, αισιόδοξη",
+      "required": "Η διάθεση είναι υποχρεωτική"
+    },
+    "mode": {
+      "label": "Τρόπος / κλίμακα",
+      "placeholder": "ιωνικός, δωρικός, αρμονικός ελάσσων",
+      "required": "Ο τρόπος / η κλίμακα είναι υποχρεωτικά"
+    },
+    "genre": {
+      "label": "Είδος",
+      "placeholder": "piano house, jazz, indie pop",
+      "required": "Το είδος είναι υποχρεωτικό"
+    },
+    "styleReference": {
+      "label": "Στιλιστική αναφορά (προαιρετικό)",
+      "placeholder": "Barry Harris, Bill Evans, κ.λπ.",
+      "helperText": "Χρησιμοποιήστε έναν μουσικό, δάσκαλο ή σχολή αρμονίας ως στιλιστικό οδηγό."
+    },
+    "adventurousness": {
+      "label": "Τολμηρότητα",
+      "placeholder": "ασφαλής, ισορροπημένη, απρόσμενη"
+    },
+    "actions": {
+      "randomizeInputs": "Τυχαιοποίηση εισόδων",
+      "generateIdeas": "Δημιουργία ιδεών",
+      "generating": "Δημιουργία..."
+    }
+  },
+  "optionGroups": {
+    "mode": {
+      "majorDiatonic": "Μείζονα / Διατονικά",
+      "minorModal": "Ελάσσονα / Τροπικά",
+      "pentatonicBlues": "Πεντατονικά / Blues",
+      "extendedColors": "Επεκταμένα χρώματα",
+      "symmetricAdvanced": "Συμμετρικά / Προχωρημένα",
+      "other": "Άλλο"
+    },
+    "genre": {
+      "danceClub": "Dance / Club",
+      "popSongwriter": "Pop / Τραγουδοποιός",
+      "urbanGroove": "Urban / Groove",
+      "jazzHarmony": "Jazz / Αρμονία",
+      "atmosphericCinematic": "Ατμοσφαιρικό / Κινηματογραφικό",
+      "bandAcoustic": "Συγκρότημα / Ακουστικό",
+      "other": "Άλλο"
+    },
+    "adventurousness": {
+      "riskProfile": "Προφίλ ρίσκου"
+    }
+  },
+  "styleReferenceGroups": {
+    "jazzPianoIcons": "Εμβληματικοί τζαζ πιανίστες",
+    "modernHarmonyVoices": "Σύγχρονες αρμονικές φωνές",
+    "educatorsAndMethods": "Εκπαιδευτικοί και μέθοδοι"
+  },
+  "options": {
+    "mode": {
+      "ionian": "Ιωνικός (Μείζονα)",
+      "dorian": "Δωρικός",
+      "phrygian": "Φρύγιος",
+      "lydian": "Λύδιος",
+      "mixolydian": "Μιξολύδιος",
+      "aeolian": "Αιολικός (Φυσικός ελάσσων)",
+      "locrian": "Λόκριος",
+      "majorPentatonic": "Μείζονα πεντατονική",
+      "minorPentatonic": "Ελάσσονα πεντατονική",
+      "harmonicMinor": "Αρμονικός ελάσσων",
+      "melodicMinor": "Μελωδικός ελάσσων",
+      "blues": "Blues",
+      "wholeTone": "Ολότονη",
+      "diminished": "Μειωμένη",
+      "chromatic": "Χρωματική",
+      "custom": "Προσαρμοσμένο"
+    },
+    "genre": {
+      "house": "House",
+      "pianoHouse": "Piano House",
+      "deepHouse": "Deep House",
+      "discoHouse": "Disco House",
+      "techHouse": "Tech House",
+      "funkDisco": "Funk / Disco",
+      "pop": "Pop",
+      "indiePop": "Indie Pop",
+      "rnbNeoSoul": "R&B / Neo Soul",
+      "jazz": "Jazz",
+      "loFi": "Lo-fi",
+      "ambient": "Ambient",
+      "cinematic": "Κινηματογραφικό",
+      "edm": "EDM",
+      "afroHouse": "Afro House",
+      "progressiveHouse": "Progressive House",
+      "hipHop": "Hip-Hop",
+      "rock": "Rock",
+      "folk": "Folk",
+      "custom": "Προσαρμοσμένο"
+    },
+    "adventurousness": {
+      "safe": "Ασφαλής",
+      "balanced": "Ισορροπημένη",
+      "surprising": "Απρόσμενη"
+    }
+  }
+}

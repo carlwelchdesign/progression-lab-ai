@@ -66,7 +66,7 @@ function StorybookIcon() {
 }
 
 export default function AppWrapper({ children }: Props) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'nav']);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [availableSections, setAvailableSections] = useState<ResultSectionId[]>([]);
   const { isAuthenticated, isLoading, logout } = useAuth();
@@ -75,10 +75,18 @@ export default function AppWrapper({ children }: Props) {
   const navItems = useMemo(
     () =>
       [
-        { label: t('nav.generator'), href: '/#generator' },
-        { label: t('nav.suggestions'), href: '/#suggestions', sectionId: 'suggestions' },
-        { label: t('nav.progressions'), href: '/#progressions', sectionId: 'progressions' },
-        { label: t('nav.structure'), href: '/#structure', sectionId: 'structure' },
+        { label: t('generator', { ns: 'nav' }), href: '/#generator' },
+        {
+          label: t('suggestions', { ns: 'nav' }),
+          href: '/#suggestions',
+          sectionId: 'suggestions',
+        },
+        {
+          label: t('progressions', { ns: 'nav' }),
+          href: '/#progressions',
+          sectionId: 'progressions',
+        },
+        { label: t('structure', { ns: 'nav' }), href: '/#structure', sectionId: 'structure' },
       ] satisfies NavItem[],
     [t],
   );
@@ -181,19 +189,19 @@ export default function AppWrapper({ children }: Props) {
                 </Button>
               ))}
               <Button component={Link} href="/progressions?view=public" color="inherit">
-                {t('nav.myProgressions')}
+                {t('myProgressions', { ns: 'nav' })}
               </Button>
               {isLoading ? (
                 <Button color="inherit" disabled sx={{ minWidth: 80 }}>
-                  {t('common.loadingEllipsis')}
+                  {t('loadingEllipsis', { ns: 'common' })}
                 </Button>
               ) : isAuthenticated ? (
                 <Button onClick={logout} color="inherit">
-                  {t('nav.logout')}
+                  {t('logout', { ns: 'nav' })}
                 </Button>
               ) : (
                 <Button component={Link} href="/auth" color="inherit">
-                  {t('nav.login')}
+                  {t('login', { ns: 'nav' })}
                 </Button>
               )}
               <LanguageSwitcher />
@@ -204,7 +212,7 @@ export default function AppWrapper({ children }: Props) {
               <ThemeModeToggle />
               <IconButton
                 color="inherit"
-                aria-label={t('common.openNavigationMenu')}
+                aria-label={t('openNavigationMenu', { ns: 'common' })}
                 onClick={() => setMobileOpen(true)}
               >
                 <MenuIcon />
@@ -235,11 +243,11 @@ export default function AppWrapper({ children }: Props) {
               href="/progressions?view=public"
               onClick={() => setMobileOpen(false)}
             >
-              <ListItemText primary={t('nav.myProgressions')} />
+              <ListItemText primary={t('myProgressions', { ns: 'nav' })} />
             </ListItemButton>
             {isLoading ? (
               <ListItemButton disabled>
-                <ListItemText primary={t('common.loadingEllipsis')} />
+                <ListItemText primary={t('loadingEllipsis', { ns: 'common' })} />
               </ListItemButton>
             ) : isAuthenticated ? (
               <ListItemButton
@@ -248,11 +256,11 @@ export default function AppWrapper({ children }: Props) {
                   void logout();
                 }}
               >
-                <ListItemText primary={t('nav.logout')} />
+                <ListItemText primary={t('logout', { ns: 'nav' })} />
               </ListItemButton>
             ) : (
               <ListItemButton component={Link} href="/auth" onClick={() => setMobileOpen(false)}>
-                <ListItemText primary={t('nav.login')} />
+                <ListItemText primary={t('login', { ns: 'nav' })} />
               </ListItemButton>
             )}
           </List>

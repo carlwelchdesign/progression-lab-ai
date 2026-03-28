@@ -1,0 +1,124 @@
+{
+	"header": {
+		"description": "輸入幾個和弦、一種情緒與一個調式。即可獲得和弦進行靈感、結構建議，以及簡單的吉他與鋼琴圖示。"
+	},
+	"status": {
+		"loadingSuggestions": "正在載入建議..."
+	},
+	"errors": {
+		"selectMode": "請選擇或輸入調式 / 音階。",
+		"selectGenre": "請選擇或輸入風格。",
+		"requestFailed": "無法產生建議。"
+	},
+	"form": {
+		"seedChords": {
+			"label": "起始和弦",
+			"placeholder": "Fmaj7, F#m7",
+			"required": "起始和弦為必填",
+			"atLeastOne": "請至少輸入一個和弦"
+		},
+		"mood": {
+			"label": "情緒",
+			"placeholder": "夢幻、陰暗、充滿希望",
+			"required": "情緒為必填"
+		},
+		"mode": {
+			"label": "調式 / 音階",
+			"placeholder": "ionian、dorian、和聲小調",
+			"required": "調式 / 音階為必填"
+		},
+		"genre": {
+			"label": "風格",
+			"placeholder": "piano house、jazz、indie pop",
+			"required": "風格為必填"
+		},
+		"styleReference": {
+			"label": "風格參考（選填）",
+			"placeholder": "Barry Harris、Bill Evans 等",
+			"helperText": "可使用演奏者、教師或和聲學派作為風格參考。"
+		},
+		"adventurousness": {
+			"label": "冒險程度",
+			"placeholder": "保守、平衡、驚喜"
+		},
+		"actions": {
+			"randomizeInputs": "隨機輸入",
+			"generateIdeas": "產生靈感",
+			"generating": "產生中..."
+		}
+	},
+	"optionGroups": {
+		"mode": {
+			"majorDiatonic": "大調 / 自然音階",
+			"minorModal": "小調 / 調式",
+			"pentatonicBlues": "五聲音階 / 藍調",
+			"extendedColors": "延伸色彩",
+			"symmetricAdvanced": "對稱 / 進階",
+			"other": "其他"
+		},
+		"genre": {
+			"danceClub": "舞曲 / 夜店",
+			"popSongwriter": "流行 / 創作歌手",
+			"urbanGroove": "都會 / Groove",
+			"jazzHarmony": "爵士 / 和聲",
+			"atmosphericCinematic": "氛圍 / 電影感",
+			"bandAcoustic": "樂團 / 原聲",
+			"other": "其他"
+		},
+		"adventurousness": {
+			"riskProfile": "風險輪廓"
+		}
+	},
+	"styleReferenceGroups": {
+		"jazzPianoIcons": "爵士鋼琴經典",
+		"modernHarmonyVoices": "現代和聲語彙",
+		"educatorsAndMethods": "教育者與方法"
+	},
+	"options": {
+		"mode": {
+			"ionian": "Ionian（大調）",
+			"dorian": "Dorian",
+			"phrygian": "Phrygian",
+			"lydian": "Lydian",
+			"mixolydian": "Mixolydian",
+			"aeolian": "Aeolian（自然小調）",
+			"locrian": "Locrian",
+			"majorPentatonic": "大調五聲音階",
+			"minorPentatonic": "小調五聲音階",
+			"harmonicMinor": "和聲小調",
+			"melodicMinor": "旋律小調",
+			"blues": "藍調",
+			"wholeTone": "全音音階",
+			"diminished": "減音音階",
+			"chromatic": "半音音階",
+			"custom": "自訂"
+		},
+		"genre": {
+			"house": "House",
+			"pianoHouse": "Piano House",
+			"deepHouse": "Deep House",
+			"discoHouse": "Disco House",
+			"techHouse": "Tech House",
+			"funkDisco": "Funk / Disco",
+			"pop": "Pop",
+			"indiePop": "Indie Pop",
+			"rnbNeoSoul": "R&B / Neo Soul",
+			"jazz": "Jazz",
+			"loFi": "Lo-fi",
+			"ambient": "Ambient",
+			"cinematic": "電影感",
+			"edm": "EDM",
+			"afroHouse": "Afro House",
+			"progressiveHouse": "Progressive House",
+			"hipHop": "Hip-Hop",
+			"rock": "Rock",
+			"folk": "Folk",
+			"custom": "自訂"
+		},
+		"adventurousness": {
+			"safe": "保守",
+			"balanced": "平衡",
+			"surprising": "驚喜"
+		}
+	}
+}

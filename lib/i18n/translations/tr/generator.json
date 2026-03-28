@@ -1,0 +1,124 @@
+{
+	"header": {
+		"description": "Birkaç akor, bir duygu ve bir mod girin. Progresyon fikirleri, yapı önerileri ve basit gitar/piyano diyagramları alın."
+	},
+	"status": {
+		"loadingSuggestions": "Öneriler yükleniyor..."
+	},
+	"errors": {
+		"selectMode": "Lütfen bir mod / dizi seçin veya girin.",
+		"selectGenre": "Lütfen bir tür seçin veya girin.",
+		"requestFailed": "Öneriler oluşturulamadı."
+	},
+	"form": {
+		"seedChords": {
+			"label": "Başlangıç akorları",
+			"placeholder": "Fmaj7, F#m7",
+			"required": "Başlangıç akorları zorunludur",
+			"atLeastOne": "Lütfen en az bir akor girin"
+		},
+		"mood": {
+			"label": "Duygu",
+			"placeholder": "rüya gibi, karanlık, umutlu",
+			"required": "Duygu zorunludur"
+		},
+		"mode": {
+			"label": "Mod / dizi",
+			"placeholder": "iyonian, dorian, armonik minör",
+			"required": "Mod / dizi zorunludur"
+		},
+		"genre": {
+			"label": "Tür",
+			"placeholder": "piano house, jazz, indie pop",
+			"required": "Tür zorunludur"
+		},
+		"styleReference": {
+			"label": "Stil referansı (isteğe bağlı)",
+			"placeholder": "Barry Harris, Bill Evans vb.",
+			"helperText": "Stil rehberi olarak bir icracı, eğitmen veya armoni ekolü kullanın."
+		},
+		"adventurousness": {
+			"label": "Cesaret seviyesi",
+			"placeholder": "güvenli, dengeli, şaşırtıcı"
+		},
+		"actions": {
+			"randomizeInputs": "Girdileri rastgeleleştir",
+			"generateIdeas": "Fikir üret",
+			"generating": "Üretiliyor..."
+		}
+	},
+	"optionGroups": {
+		"mode": {
+			"majorDiatonic": "Majör / Diyatonik",
+			"minorModal": "Minör / Modal",
+			"pentatonicBlues": "Pentatonik / Blues",
+			"extendedColors": "Genişletilmiş renkler",
+			"symmetricAdvanced": "Simetrik / İleri",
+			"other": "Diğer"
+		},
+		"genre": {
+			"danceClub": "Dans / Kulüp",
+			"popSongwriter": "Pop / Şarkı Yazarı",
+			"urbanGroove": "Urban / Groove",
+			"jazzHarmony": "Caz / Armoni",
+			"atmosphericCinematic": "Atmosferik / Sinematik",
+			"bandAcoustic": "Grup / Akustik",
+			"other": "Diğer"
+		},
+		"adventurousness": {
+			"riskProfile": "Risk profili"
+		}
+	},
+	"styleReferenceGroups": {
+		"jazzPianoIcons": "Caz piyano ikonları",
+		"modernHarmonyVoices": "Modern armoni sesleri",
+		"educatorsAndMethods": "Eğitmenler ve yöntemler"
+	},
+	"options": {
+		"mode": {
+			"ionian": "İyonian (Majör)",
+			"dorian": "Dorian",
+			"phrygian": "Phrygian",
+			"lydian": "Lydian",
+			"mixolydian": "Mixolydian",
+			"aeolian": "Aeolian (Doğal minör)",
+			"locrian": "Locrian",
+			"majorPentatonic": "Majör pentatonik",
+			"minorPentatonic": "Minör pentatonik",
+			"harmonicMinor": "Armonik minör",
+			"melodicMinor": "Melodik minör",
+			"blues": "Blues",
+			"wholeTone": "Tam ton",
+			"diminished": "Eksilmiş",
+			"chromatic": "Kromatik",
+			"custom": "Özel"
+		},
+		"genre": {
+			"house": "House",
+			"pianoHouse": "Piano House",
+			"deepHouse": "Deep House",
+			"discoHouse": "Disco House",
+			"techHouse": "Tech House",
+			"funkDisco": "Funk / Disco",
+			"pop": "Pop",
+			"indiePop": "Indie Pop",
+			"rnbNeoSoul": "R&B / Neo Soul",
+			"jazz": "Caz",
+			"loFi": "Lo-fi",
+			"ambient": "Ambient",
+			"cinematic": "Sinematik",
+			"edm": "EDM",
+			"afroHouse": "Afro House",
+			"progressiveHouse": "Progressive House",
+			"hipHop": "Hip-Hop",
+			"rock": "Rock",
+			"folk": "Folk",
+			"custom": "Özel"
+		},
+		"adventurousness": {
+			"safe": "Güvenli",
+			"balanced": "Dengeli",
+			"surprising": "Şaşırtıcı"
+		}
+	}
+}

@@ -7,6 +7,8 @@ import { translationResources } from './resources';
 if (!i18n.isInitialized) {
   void i18n.use(initReactI18next).init({
     resources: translationResources,
+    ns: ['common', 'nav', 'generator'],
+    defaultNS: 'common',
     lng: DEFAULT_APP_LOCALE,
     fallbackLng: DEFAULT_APP_LOCALE,
     supportedLngs: SUPPORTED_LOCALES.map((locale) => locale.code),

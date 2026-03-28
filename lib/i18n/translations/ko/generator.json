@@ -1,0 +1,124 @@
+{
+	"header": {
+		"description": "몇 개의 코드, 분위기, 모드를 입력하세요. 진행 아이디어, 구조 제안, 간단한 기타/피아노 다이어그램을 받아볼 수 있습니다."
+	},
+	"status": {
+		"loadingSuggestions": "제안을 불러오는 중..."
+	},
+	"errors": {
+		"selectMode": "모드 / 스케일을 선택하거나 입력해 주세요.",
+		"selectGenre": "장르를 선택하거나 입력해 주세요.",
+		"requestFailed": "제안을 생성할 수 없습니다."
+	},
+	"form": {
+		"seedChords": {
+			"label": "시드 코드",
+			"placeholder": "Fmaj7, F#m7",
+			"required": "시드 코드는 필수입니다",
+			"atLeastOne": "최소 한 개의 코드를 입력해 주세요"
+		},
+		"mood": {
+			"label": "분위기",
+			"placeholder": "몽환적인, 어두운, 희망적인",
+			"required": "분위기는 필수입니다"
+		},
+		"mode": {
+			"label": "모드 / 스케일",
+			"placeholder": "아이오니안, 도리안, 화성 단음계",
+			"required": "모드 / 스케일은 필수입니다"
+		},
+		"genre": {
+			"label": "장르",
+			"placeholder": "piano house, jazz, indie pop",
+			"required": "장르는 필수입니다"
+		},
+		"styleReference": {
+			"label": "스타일 참고 (선택 사항)",
+			"placeholder": "Barry Harris, Bill Evans 등",
+			"helperText": "연주자, 교사 또는 화성학 계보를 스타일 가이드로 활용하세요."
+		},
+		"adventurousness": {
+			"label": "도전성",
+			"placeholder": "안전한, 균형 잡힌, 놀라운"
+		},
+		"actions": {
+			"randomizeInputs": "입력값 무작위화",
+			"generateIdeas": "아이디어 생성",
+			"generating": "생성 중..."
+		}
+	},
+	"optionGroups": {
+		"mode": {
+			"majorDiatonic": "장조 / 디아토닉",
+			"minorModal": "단조 / 모달",
+			"pentatonicBlues": "펜타토닉 / 블루스",
+			"extendedColors": "확장 색채",
+			"symmetricAdvanced": "대칭 / 고급",
+			"other": "기타"
+		},
+		"genre": {
+			"danceClub": "댄스 / 클럽",
+			"popSongwriter": "팝 / 싱어송라이터",
+			"urbanGroove": "어반 / 그루브",
+			"jazzHarmony": "재즈 / 화성",
+			"atmosphericCinematic": "앰비언트 / 시네마틱",
+			"bandAcoustic": "밴드 / 어쿠스틱",
+			"other": "기타"
+		},
+		"adventurousness": {
+			"riskProfile": "리스크 프로필"
+		}
+	},
+	"styleReferenceGroups": {
+		"jazzPianoIcons": "재즈 피아노 아이콘",
+		"modernHarmonyVoices": "현대 화성 보이스",
+		"educatorsAndMethods": "교육자와 방법론"
+	},
+	"options": {
+		"mode": {
+			"ionian": "아이오니안 (장조)",
+			"dorian": "도리안",
+			"phrygian": "프리지안",
+			"lydian": "리디안",
+			"mixolydian": "믹솔리디안",
+			"aeolian": "에올리안 (자연 단음계)",
+			"locrian": "로크리안",
+			"majorPentatonic": "장조 펜타토닉",
+			"minorPentatonic": "단조 펜타토닉",
+			"harmonicMinor": "화성 단음계",
+			"melodicMinor": "가락 단음계",
+			"blues": "블루스",
+			"wholeTone": "온음음계",
+			"diminished": "감음계",
+			"chromatic": "반음계",
+			"custom": "사용자 지정"
+		},
+		"genre": {
+			"house": "하우스",
+			"pianoHouse": "피아노 하우스",
+			"deepHouse": "딥 하우스",
+			"discoHouse": "디스코 하우스",
+			"techHouse": "테크 하우스",
+			"funkDisco": "펑크 / 디스코",
+			"pop": "팝",
+			"indiePop": "인디 팝",
+			"rnbNeoSoul": "R&B / 네오 소울",
+			"jazz": "재즈",
+			"loFi": "로파이",
+			"ambient": "앰비언트",
+			"cinematic": "시네마틱",
+			"edm": "EDM",
+			"afroHouse": "아프로 하우스",
+			"progressiveHouse": "프로그레시브 하우스",
+			"hipHop": "힙합",
+			"rock": "록",
+			"folk": "포크",
+			"custom": "사용자 지정"
+		},
+		"adventurousness": {
+			"safe": "안전한",
+			"balanced": "균형 잡힌",
+			"surprising": "놀라운"
+		}
+	}
+}

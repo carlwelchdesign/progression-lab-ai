@@ -1,0 +1,124 @@
+{
+  "header": {
+    "description": "Informe alguns acordes, um clima e um modo. Receba ideias de progressao, sugestoes de estrutura e diagramas simples de guitarra e piano."
+  },
+  "status": {
+    "loadingSuggestions": "Carregando sugestoes..."
+  },
+  "errors": {
+    "selectMode": "Selecione ou digite um modo / escala.",
+    "selectGenre": "Selecione ou digite um genero.",
+    "requestFailed": "Nao foi possivel gerar sugestoes."
+  },
+  "form": {
+    "seedChords": {
+      "label": "Acordes base",
+      "placeholder": "Fmaj7, F#m7",
+      "required": "Os acordes base sao obrigatorios",
+      "atLeastOne": "Digite pelo menos um acorde"
+    },
+    "mood": {
+      "label": "Clima",
+      "placeholder": "sonhador, escuro, esperancoso",
+      "required": "O clima e obrigatorio"
+    },
+    "mode": {
+      "label": "Modo / escala",
+      "placeholder": "jonico, dorico, menor harmonica",
+      "required": "O modo / escala e obrigatorio"
+    },
+    "genre": {
+      "label": "Genero",
+      "placeholder": "piano house, jazz, indie pop",
+      "required": "O genero e obrigatorio"
+    },
+    "styleReference": {
+      "label": "Referencia de estilo (opcional)",
+      "placeholder": "Barry Harris, Bill Evans, etc.",
+      "helperText": "Use um artista, professor ou escola harmonica como guia estilistica."
+    },
+    "adventurousness": {
+      "label": "Ousadia",
+      "placeholder": "seguro, equilibrado, surpreendente"
+    },
+    "actions": {
+      "randomizeInputs": "Aleatorizar entradas",
+      "generateIdeas": "Gerar ideias",
+      "generating": "Gerando..."
+    }
+  },
+  "optionGroups": {
+    "mode": {
+      "majorDiatonic": "Maior / Diatonico",
+      "minorModal": "Menor / Modal",
+      "pentatonicBlues": "Pentatonico / Blues",
+      "extendedColors": "Cores estendidas",
+      "symmetricAdvanced": "Simetrico / Avancado",
+      "other": "Outro"
+    },
+    "genre": {
+      "danceClub": "Dance / Club",
+      "popSongwriter": "Pop / Cantautor",
+      "urbanGroove": "Urbano / Groove",
+      "jazzHarmony": "Jazz / Harmonia",
+      "atmosphericCinematic": "Atmosferico / Cinematico",
+      "bandAcoustic": "Banda / Acustico",
+      "other": "Outro"
+    },
+    "adventurousness": {
+      "riskProfile": "Perfil de risco"
+    }
+  },
+  "styleReferenceGroups": {
+    "jazzPianoIcons": "Icones do piano jazz",
+    "modernHarmonyVoices": "Vozes modernas de harmonia",
+    "educatorsAndMethods": "Educadores e metodos"
+  },
+  "options": {
+    "mode": {
+      "ionian": "Jonico (Maior)",
+      "dorian": "Dorico",
+      "phrygian": "Frigio",
+      "lydian": "Lidio",
+      "mixolydian": "Mixolidio",
+      "aeolian": "Eolio (Menor natural)",
+      "locrian": "Locrio",
+      "majorPentatonic": "Pentatonica maior",
+      "minorPentatonic": "Pentatonica menor",
+      "harmonicMinor": "Menor harmonica",
+      "melodicMinor": "Menor melodica",
+      "blues": "Blues",
+      "wholeTone": "Tons inteiros",
+      "diminished": "Diminuta",
+      "chromatic": "Cromatica",
+      "custom": "Personalizado"
+    },
+    "genre": {
+      "house": "House",
+      "pianoHouse": "Piano House",
+      "deepHouse": "Deep House",
+      "discoHouse": "Disco House",
+      "techHouse": "Tech House",
+      "funkDisco": "Funk / Disco",
+      "pop": "Pop",
+      "indiePop": "Indie Pop",
+      "rnbNeoSoul": "R&B / Neo Soul",
+      "jazz": "Jazz",
+      "loFi": "Lo-fi",
+      "ambient": "Ambient",
+      "cinematic": "Cinematico",
+      "edm": "EDM",
+      "afroHouse": "Afro House",
+      "progressiveHouse": "Progressive House",
+      "hipHop": "Hip-Hop",
+      "rock": "Rock",
+      "folk": "Folk",
+      "custom": "Personalizado"
+    },
+    "adventurousness": {
+      "safe": "Seguro",
+      "balanced": "Equilibrado",
+      "surprising": "Surpreendente"
+    }
+  }
+}

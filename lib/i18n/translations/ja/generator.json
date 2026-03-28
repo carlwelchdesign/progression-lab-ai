@@ -1,0 +1,124 @@
+{
+  "header": {
+    "description": "いくつかのコード、ムード、モードを入力してください。進行アイデア、構成の提案、シンプルなギター/ピアノ図を受け取れます。"
+  },
+  "status": {
+    "loadingSuggestions": "提案を読み込み中..."
+  },
+  "errors": {
+    "selectMode": "モード / スケールを選択または入力してください。",
+    "selectGenre": "ジャンルを選択または入力してください。",
+    "requestFailed": "提案を生成できませんでした。"
+  },
+  "form": {
+    "seedChords": {
+      "label": "シードコード",
+      "placeholder": "Fmaj7, F#m7",
+      "required": "シードコードは必須です",
+      "atLeastOne": "少なくとも1つのコードを入力してください"
+    },
+    "mood": {
+      "label": "ムード",
+      "placeholder": "dreamy, dark, hopeful",
+      "required": "ムードは必須です"
+    },
+    "mode": {
+      "label": "モード / スケール",
+      "placeholder": "ionian, dorian, harmonic minor",
+      "required": "モード / スケールは必須です"
+    },
+    "genre": {
+      "label": "ジャンル",
+      "placeholder": "piano house, jazz, indie pop",
+      "required": "ジャンルは必須です"
+    },
+    "styleReference": {
+      "label": "スタイル参照（任意）",
+      "placeholder": "Barry Harris, Bill Evans など",
+      "helperText": "演奏家、教師、またはハーモニーの流派をスタイルの指針として使います。"
+    },
+    "adventurousness": {
+      "label": "冒険度",
+      "placeholder": "安全、バランス、意外性"
+    },
+    "actions": {
+      "randomizeInputs": "入力をランダム化",
+      "generateIdeas": "アイデアを生成",
+      "generating": "生成中..."
+    }
+  },
+  "optionGroups": {
+    "mode": {
+      "majorDiatonic": "メジャー / ダイアトニック",
+      "minorModal": "マイナー / モーダル",
+      "pentatonicBlues": "ペンタトニック / ブルース",
+      "extendedColors": "拡張カラー",
+      "symmetricAdvanced": "対称 / 上級",
+      "other": "その他"
+    },
+    "genre": {
+      "danceClub": "ダンス / クラブ",
+      "popSongwriter": "ポップ / シンガーソングライター",
+      "urbanGroove": "アーバン / Groove",
+      "jazzHarmony": "ジャズ / ハーモニー",
+      "atmosphericCinematic": "アンビエント / シネマティック",
+      "bandAcoustic": "バンド / アコースティック",
+      "other": "その他"
+    },
+    "adventurousness": {
+      "riskProfile": "リスクプロファイル"
+    }
+  },
+  "styleReferenceGroups": {
+    "jazzPianoIcons": "ジャズピアノの名手",
+    "modernHarmonyVoices": "モダンハーモニーの声部",
+    "educatorsAndMethods": "教育者とメソッド"
+  },
+  "options": {
+    "mode": {
+      "ionian": "アイオニアン（メジャー）",
+      "dorian": "ドリアン",
+      "phrygian": "フリジアン",
+      "lydian": "リディアン",
+      "mixolydian": "ミクソリディアン",
+      "aeolian": "エオリアン（ナチュラルマイナー）",
+      "locrian": "ロクリアン",
+      "majorPentatonic": "メジャーペンタトニック",
+      "minorPentatonic": "マイナーペンタトニック",
+      "harmonicMinor": "ハーモニックマイナー",
+      "melodicMinor": "メロディックマイナー",
+      "blues": "ブルース",
+      "wholeTone": "ホールトーン",
+      "diminished": "ディミニッシュ",
+      "chromatic": "クロマチック",
+      "custom": "カスタム"
+    },
+    "genre": {
+      "house": "ハウス",
+      "pianoHouse": "ピアノハウス",
+      "deepHouse": "ディープハウス",
+      "discoHouse": "ディスコハウス",
+      "techHouse": "テックハウス",
+      "funkDisco": "ファンク / ディスコ",
+      "pop": "ポップ",
+      "indiePop": "インディーポップ",
+      "rnbNeoSoul": "R&B / ネオソウル",
+      "jazz": "ジャズ",
+      "loFi": "ローファイ",
+      "ambient": "アンビエント",
+      "cinematic": "シネマティック",
+      "edm": "EDM",
+      "afroHouse": "アフロハウス",
+      "progressiveHouse": "プログレッシブハウス",
+      "hipHop": "ヒップホップ",
+      "rock": "ロック",
+      "folk": "フォーク",
+      "custom": "カスタム"
+    },
+    "adventurousness": {
+      "safe": "安全",
+      "balanced": "バランス",
+      "surprising": "意外性"
+    }
+  }
+}
