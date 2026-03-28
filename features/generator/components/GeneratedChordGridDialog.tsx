@@ -878,7 +878,13 @@ export default function GeneratedChordGridDialog({
               <Button
                 key={entry.key}
                 variant="contained"
-                onMouseDown={() => onPadPress(entry)}
+                onPointerDown={(event) => {
+                  if (event.pointerType === 'touch') {
+                    event.preventDefault();
+                  }
+
+                  onPadPress(entry);
+                }}
                 sx={{
                   aspectRatio: '1 / 1',
                   minHeight: { xs: 82, sm: 108 },

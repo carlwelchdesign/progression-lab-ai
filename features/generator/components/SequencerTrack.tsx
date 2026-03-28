@@ -20,6 +20,7 @@ type SequencerTrackProps = {
 type RenderedClip = ArrangementEvent & {
   width: number;
   color: string;
+  label: string;
 };
 
 const LABEL_COLUMN_WIDTH = 112;
@@ -80,6 +81,11 @@ export default function SequencerTrack({
   const beatLineColor = alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.16);
   const stepLineColor = alpha(theme.palette.common.white, isDarkMode ? 0.035 : 0.08);
   const playheadColor = appColors.accent.chordPadActiveBorder;
+  const surfaceColor = isDarkMode ? '#1E2329' : '#D8DEE6';
+  const rulerColor = isDarkMode ? '#343A43' : '#C8D0DA';
+  const laneColor = isDarkMode ? '#242A31' : '#E7ECF2';
+  const labelColor = alpha(theme.palette.common.white, isDarkMode ? 0.92 : 0.5);
+  const metaColor = alpha(theme.palette.common.white, isDarkMode ? 0.45 : 0.4);
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -139,16 +145,36 @@ export default function SequencerTrack({
   );
 
   const clips = useMemo<RenderedClip[]>(() => {
-    const sortedEvents = [...events].sort((left, right) => left.stepIndex - right.stepIndex);
+    const groupedEvents = new Map<number, ArrangementEvent[]>();
 
-    return sortedEvents.map((event, index) => {
-      const nextStepIndex = sortedEvents[index + 1]?.stepIndex ?? totalSteps;
-      const spanSteps = Math.max(1, nextStepIndex - event.stepIndex);
+    events.forEach((event) => {
+      const bucket = groupedEvents.get(event.stepIndex);
+      if (bucket) {
+        bucket.push(event);
+        return;
+      }
+
+      groupedEvents.set(event.stepIndex, [event]);
+    });
+
+    const sortedEntries = [...groupedEvents.entries()].sort((left, right) => left[0] - right[0]);
+
+    return sortedEntries.map(([stepIndex, stepEvents], index) => {
+      const nextStepIndex = sortedEntries[index + 1]?.[0] ?? totalSteps;
+      const spanSteps = Math.max(1, nextStepIndex - stepIndex);
+      const [firstEvent] = stepEvents;
+      const uniqueChordNames = [...new Set(stepEvents.map((stepEvent) => stepEvent.chord))];
+      const label =
+        uniqueChordNames.length <= 2
+          ? uniqueChordNames.join(' / ')
+          : `${uniqueChordNames[0]} +${uniqueChordNames.length - 1}`;
 
       return {
-        ...event,
-        width: Math.max(spanSteps * PIXELS_PER_STEP - 6, PIXELS_PER_STEP * 1.6),
-        color: getClipTone(event.chord, appColors.accent.chordSuggestionBorders),
+        ...firstEvent,
+        stepIndex,
+        label,
+        width: Math.max(spanSteps * PIXELS_PER_STEP - 2, PIXELS_PER_STEP * 1.5),
+        color: getClipTone(firstEvent.chord, appColors.accent.chordSuggestionBorders),
       };
     });
   }, [appColors.accent.chordSuggestionBorders, events, totalSteps]);
@@ -160,12 +186,10 @@ export default function SequencerTrack({
         overflow: 'hidden',
         borderRadius: 1.5,
         border: `1px solid ${frameBorder}`,
-        background: isDarkMode
-          ? `linear-gradient(180deg, ${alpha('#171A1F', 0.98)} 0%, ${alpha('#0F1216', 0.98)} 100%)`
-          : `linear-gradient(180deg, ${alpha('#F8FAFC', 0.98)} 0%, ${alpha('#E2E8F0', 0.98)} 100%)`,
+        backgroundColor: surfaceColor,
         boxShadow: isDarkMode
-          ? `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.04)}, 0 18px 34px ${alpha('#000000', 0.28)}`
-          : `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.6)}, 0 12px 24px ${alpha('#0F172A', 0.1)}`,
+          ? `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.04)}`
+          : `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.45)}`,
       }}
     >
       <Box
@@ -178,9 +202,7 @@ export default function SequencerTrack({
         <Box
           sx={{
             borderRight: `1px solid ${rulerBorder}`,
-            background: isDarkMode
-              ? `linear-gradient(180deg, ${alpha('#21262D', 0.92)} 0%, ${alpha('#161A20', 0.92)} 100%)`
-              : `linear-gradient(180deg, ${alpha('#E5E7EB', 0.95)} 0%, ${alpha('#CBD5E1', 0.9)} 100%)`,
+            backgroundColor: isDarkMode ? '#2B3139' : '#D0D7E0',
           }}
         >
           <Box
@@ -198,7 +220,7 @@ export default function SequencerTrack({
                 fontWeight: 700,
                 letterSpacing: 1,
                 textTransform: 'uppercase',
-                color: alpha(theme.palette.common.white, isDarkMode ? 0.52 : 0.42),
+                color: metaColor,
               }}
             >
               Arrange
@@ -214,14 +236,16 @@ export default function SequencerTrack({
               gap: 0.5,
             }}
           >
-            <Typography sx={{ fontWeight: 700, fontSize: '0.93rem', lineHeight: 1.1 }}>
+            <Typography
+              sx={{ fontWeight: 700, fontSize: '0.93rem', lineHeight: 1.1, color: labelColor }}
+            >
               Chord Track
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.15 }}>
               <Typography
                 variant="caption"
                 sx={{
-                  color: alpha(theme.palette.common.white, isDarkMode ? 0.48 : 0.45),
+                  color: metaColor,
                   lineHeight: 1.2,
                 }}
               >
@@ -230,7 +254,7 @@ export default function SequencerTrack({
               <Typography
                 variant="caption"
                 sx={{
-                  color: alpha(theme.palette.common.white, isDarkMode ? 0.36 : 0.38),
+                  color: metaColor,
                   lineHeight: 1.2,
                 }}
               >
@@ -266,32 +290,9 @@ export default function SequencerTrack({
                 position: 'relative',
                 height: RULER_HEIGHT,
                 borderBottom: `1px solid ${rulerBorder}`,
-                background: isDarkMode
-                  ? `linear-gradient(180deg, ${alpha('#242A32', 0.94)} 0%, ${alpha('#171C22', 0.96)} 100%)`
-                  : `linear-gradient(180deg, ${alpha('#F1F5F9', 0.96)} 0%, ${alpha('#CBD5E1', 0.92)} 100%)`,
+                backgroundColor: rulerColor,
               }}
             >
-              {bars.map((bar) => {
-                const barLeft = bar.startStep * PIXELS_PER_STEP;
-
-                return (
-                  <Box
-                    key={`bar-ruler-fill-${bar.index}`}
-                    sx={{
-                      position: 'absolute',
-                      left: barLeft,
-                      top: 0,
-                      width: stepsPerBar * PIXELS_PER_STEP,
-                      height: '100%',
-                      backgroundColor:
-                        bar.index % 2 === 0
-                          ? alpha(theme.palette.common.white, isDarkMode ? 0.018 : 0.2)
-                          : 'transparent',
-                    }}
-                  />
-                );
-              })}
-
               {bars.map((bar) => {
                 const barLeft = bar.startStep * PIXELS_PER_STEP;
 
@@ -315,7 +316,7 @@ export default function SequencerTrack({
                         top: 7,
                         fontWeight: 700,
                         letterSpacing: 0.35,
-                        color: alpha(theme.palette.common.white, isDarkMode ? 0.72 : 0.52),
+                        color: labelColor,
                       }}
                     >
                       {bar.index + 1}
@@ -331,8 +332,8 @@ export default function SequencerTrack({
                     position: 'absolute',
                     left: marker.left,
                     bottom: 0,
-                    width: 1,
-                    height: 10,
+                    width: '1px',
+                    height: '10px',
                     backgroundColor: beatLineColor,
                   }}
                 />
@@ -343,21 +344,9 @@ export default function SequencerTrack({
               sx={{
                 position: 'relative',
                 height: LANE_HEIGHT,
-                background: isDarkMode
-                  ? `linear-gradient(180deg, ${alpha('#11161B', 0.98)} 0%, ${alpha('#0B0E12', 0.98)} 100%)`
-                  : `linear-gradient(180deg, ${alpha('#E2E8F0', 0.92)} 0%, ${alpha('#CBD5E1', 0.82)} 100%)`,
+                backgroundColor: laneColor,
               }}
             >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  backgroundImage: isDarkMode
-                    ? `linear-gradient(180deg, transparent 0%, ${alpha('#000000', 0.16)} 100%)`
-                    : `linear-gradient(180deg, ${alpha('#FFFFFF', 0.18)} 0%, transparent 100%)`,
-                }}
-              />
-
               {bars.map((bar) => {
                 const barLeft = bar.startStep * PIXELS_PER_STEP;
 
@@ -382,7 +371,7 @@ export default function SequencerTrack({
                         height: '100%',
                         backgroundColor:
                           bar.index % 2 === 0
-                            ? alpha(theme.palette.common.white, isDarkMode ? 0.02 : 0.16)
+                            ? alpha(theme.palette.common.white, isDarkMode ? 0.025 : 0.14)
                             : 'transparent',
                       }}
                     />
@@ -397,7 +386,7 @@ export default function SequencerTrack({
                     position: 'absolute',
                     left: marker.left,
                     top: 0,
-                    width: 1,
+                    width: '1px',
                     height: '100%',
                     backgroundColor: beatLineColor,
                   }}
@@ -411,69 +400,35 @@ export default function SequencerTrack({
                     position: 'absolute',
                     left: marker.left,
                     top: 0,
-                    width: 1,
+                    width: '1px',
                     height: '100%',
                     backgroundColor: stepLineColor,
                   }}
                 />
               ))}
 
-              <Box
-                sx={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  top: laneTop - 8,
-                  height: 1,
-                  backgroundColor: alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.15),
-                }}
-              />
-
-              <Box
-                sx={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  bottom: laneTop - 8,
-                  height: 1,
-                  backgroundColor: alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.15),
-                }}
-              />
-
               {clips.map((clip, index) => (
                 <Box
                   key={`${clip.padKey}-${clip.stepIndex}-${index}`}
-                  title={`${clip.chord} at step ${clip.stepIndex + 1}`}
+                  title={`${clip.label} at step ${clip.stepIndex + 1}`}
                   sx={{
                     position: 'absolute',
                     left: clip.stepIndex * PIXELS_PER_STEP + 1,
                     top: laneTop,
-                    width: clip.width,
+                    width: Math.min(clip.width, totalWidth - clip.stepIndex * PIXELS_PER_STEP - 2),
                     minWidth: 28,
                     height: CLIP_HEIGHT,
                     px: 1.1,
                     overflow: 'hidden',
                     display: 'flex',
                     alignItems: 'center',
-                    borderRadius: 0.75,
+                    borderRadius: 0.5,
                     border: `1px solid ${alpha(clip.color, 0.84)}`,
-                    background: isDarkMode
-                      ? `linear-gradient(180deg, ${alpha(clip.color, 0.38)} 0%, ${alpha('#15191D', 0.92)} 100%)`
-                      : `linear-gradient(180deg, ${alpha(clip.color, 0.36)} 0%, ${alpha('#F8FAFC', 0.88)} 100%)`,
-                    boxShadow: `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.14)}, inset 4px 0 0 ${clip.color}`,
+                    backgroundColor: isDarkMode ? alpha(clip.color, 0.24) : alpha(clip.color, 0.2),
+                    boxShadow: `inset 4px 0 0 ${clip.color}, inset 0 1px 0 ${alpha(theme.palette.common.white, 0.1)}`,
                     zIndex: 3,
                   }}
                 >
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      left: 0,
-                      right: 0,
-                      top: 0,
-                      height: 1,
-                      backgroundColor: alpha(theme.palette.common.white, 0.24),
-                    }}
-                  />
                   <Typography
                     variant="caption"
                     sx={{
@@ -486,7 +441,7 @@ export default function SequencerTrack({
                       color: theme.palette.common.white,
                     }}
                   >
-                    {clip.chord}
+                    {clip.label}
                   </Typography>
                 </Box>
               ))}
