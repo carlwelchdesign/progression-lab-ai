@@ -137,6 +137,7 @@ export default function PlaybackSettingsButton({
   const canPreview = Boolean(previewVoicing);
   const [drumOptions, setDrumOptions] = useState<MetronomeDrumOption[]>([]);
   const [isDrumOptionsLoading, setIsDrumOptionsLoading] = useState(false);
+  const [hasFetchedDrumOptions, setHasFetchedDrumOptions] = useState(false);
   const toggleAdvanced = useCallback((effectId: EffectId) => {
     setAdvancedOpenByEffect((previousState) => ({
       ...previousState,
@@ -169,6 +170,7 @@ export default function PlaybackSettingsButton({
           return;
         }
         setIsDrumOptionsLoading(false);
+        setHasFetchedDrumOptions(true);
       });
 
     return () => {
@@ -186,7 +188,7 @@ export default function PlaybackSettingsButton({
       return;
     }
 
-    if (isDrumOptionsLoading) {
+    if (isDrumOptionsLoading || !hasFetchedDrumOptions) {
       return;
     }
 
@@ -205,6 +207,7 @@ export default function PlaybackSettingsButton({
     }
   }, [
     compatibleDrumOptions,
+    hasFetchedDrumOptions,
     isDrumOptionsLoading,
     metronomeDrumPath,
     metronomeSource,
