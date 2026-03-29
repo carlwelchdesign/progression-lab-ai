@@ -32,6 +32,8 @@ describe('playbackSettingsModel', () => {
         'tremoloEnabled',
         'vibratoEnabled',
         'phaserEnabled',
+        'metronomeSource',
+        'metronomeDrumPath',
       ];
 
       requiredKeys.forEach((key) => {
@@ -78,6 +80,26 @@ describe('playbackSettingsModel', () => {
       expect(result.instrument).toBe('piano');
       expect(result.attack).toBe(0.5);
       expect(result.decay).toBe(PLAYBACK_SETTINGS_DEFAULTS.decay);
+    });
+
+    it('should sanitize metronome source and drum path', () => {
+      const result = sanitizePlaybackSettings({
+        metronomeSource: 'drum',
+        metronomeDrumPath: ' /midi/drums/Rock/Rock13.mid ',
+      });
+
+      expect(result.metronomeSource).toBe('drum');
+      expect(result.metronomeDrumPath).toBe('/midi/drums/Rock/Rock13.mid');
+    });
+
+    it('should clear drum path when source is click', () => {
+      const result = sanitizePlaybackSettings({
+        metronomeSource: 'click',
+        metronomeDrumPath: '/midi/drums/Rock/Rock13.mid',
+      });
+
+      expect(result.metronomeSource).toBe('click');
+      expect(result.metronomeDrumPath).toBeNull();
     });
 
     it('should validate and coerce instrument to rhodes by default', () => {
@@ -248,6 +270,8 @@ describe('playbackSettingsModel', () => {
         setInversionRegister: jest.fn(),
         setMetronomeEnabled: jest.fn(),
         setMetronomeVolume: jest.fn(),
+        setMetronomeSource: jest.fn(),
+        setMetronomeDrumPath: jest.fn(),
       };
 
       const settings = PLAYBACK_SETTINGS_DEFAULTS;
@@ -259,6 +283,8 @@ describe('playbackSettingsModel', () => {
       expect(setters.setInstrument).toHaveBeenCalledWith(settings.instrument);
       expect(setters.setOctaveShift).toHaveBeenCalledWith(settings.octaveShift);
       expect(setters.setReverb).toHaveBeenCalledWith(settings.reverb);
+      expect(setters.setMetronomeSource).toHaveBeenCalledWith(settings.metronomeSource);
+      expect(setters.setMetronomeDrumPath).toHaveBeenCalledWith(settings.metronomeDrumPath);
     });
 
     it('should apply all settings from a custom object', () => {
@@ -287,6 +313,8 @@ describe('playbackSettingsModel', () => {
         setInversionRegister: jest.fn(),
         setMetronomeEnabled: jest.fn(),
         setMetronomeVolume: jest.fn(),
+        setMetronomeSource: jest.fn(),
+        setMetronomeDrumPath: jest.fn(),
         setReverbEnabled: jest.fn(),
         setChorusEnabled: jest.fn(),
         setChorus: jest.fn(),
@@ -366,6 +394,8 @@ describe('playbackSettingsModel', () => {
         onRoomSizeChange: jest.fn(),
         onMetronomeEnabledChange: jest.fn(),
         onMetronomeVolumeChange: jest.fn(),
+        onMetronomeSourceChange: jest.fn(),
+        onMetronomeDrumPathChange: jest.fn(),
       };
 
       expect(handlers).toBeDefined();
@@ -413,6 +443,8 @@ describe('playbackSettingsModel', () => {
         setRoomSize: jest.fn(),
         setMetronomeEnabled: jest.fn(),
         setMetronomeVolume: jest.fn(),
+        setMetronomeSource: jest.fn(),
+        setMetronomeDrumPath: jest.fn(),
       };
 
       expect(setters).toBeDefined();

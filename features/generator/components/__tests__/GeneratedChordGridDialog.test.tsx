@@ -16,7 +16,7 @@ let mockIsAuthenticated = true;
 jest.mock('../../../../domain/audio/audio', () => ({
   getAudioClockSeconds: jest.fn(() => 0),
   playChordPattern: jest.fn(() => Promise.resolve()),
-  playMetronomeClick: jest.fn(() => Promise.resolve()),
+  playMetronomePulse: jest.fn(() => Promise.resolve()),
   startAudio: jest.fn(() => Promise.resolve()),
   stopAllAudio: jest.fn(),
 }));

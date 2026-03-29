@@ -107,7 +107,7 @@ describe('progressionDownloadUtils', () => {
     it('should handle string chords format', () => {
       const progressionStringChords: Progression = {
         ...mockProgression,
-        chords: ['Cmaj7', 'G7', 'Am7'] as string[],
+        chords: ['Cmaj7', 'G7', 'Am7'] as unknown as Progression['chords'],
       };
 
       const options = progressionToPdfOptions(progressionStringChords);

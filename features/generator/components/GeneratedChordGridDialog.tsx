@@ -34,7 +34,7 @@ import { useTranslation } from 'react-i18next';
 import {
   getAudioClockSeconds,
   playChordPattern,
-  playMetronomeClick,
+  playMetronomePulse,
   startAudio,
   stopAllAudio,
 } from '../../../domain/audio/audio';
@@ -269,6 +269,8 @@ export default function GeneratedChordGridDialog({
     padLatchMode,
     metronomeEnabled,
     metronomeVolume,
+    metronomeSource,
+    metronomeDrumPath,
   } = settings;
 
   const [activePadKey, setActivePadKey] = useState<string | null>(null);
@@ -304,6 +306,8 @@ export default function GeneratedChordGridDialog({
   const totalStepsRef = useRef(0);
   const isLoopEnabledRef = useRef(isLoopEnabled);
   const metronomeEnabledRef = useRef(metronomeEnabled);
+  const metronomeSourceRef = useRef(metronomeSource);
+  const metronomeDrumPathRef = useRef(metronomeDrumPath);
   const beatsPerBarRef = useRef(4);
   const beatPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isBeatPulseVisible, setIsBeatPulseVisible] = useState(false);
@@ -448,6 +452,14 @@ export default function GeneratedChordGridDialog({
   }, [metronomeEnabled]);
 
   useEffect(() => {
+    metronomeSourceRef.current = metronomeSource;
+  }, [metronomeSource]);
+
+  useEffect(() => {
+    metronomeDrumPathRef.current = metronomeDrumPath;
+  }, [metronomeDrumPath]);
+
+  useEffect(() => {
     beatsPerBarRef.current = beatsPerBar;
   }, [beatsPerBar]);
 
@@ -483,33 +495,10 @@ export default function GeneratedChordGridDialog({
 
   const playbackSnapshot = useMemo<ArrangementPlaybackSnapshot>(
     () => ({
+      ...settings,
       tempoBpm,
-      timeSignature,
-      padPattern,
-      playbackStyle,
-      instrument,
-      octaveShift,
-      attack,
-      decay,
-      padVelocity,
-      humanize,
-      gate,
-      inversionRegister,
     }),
-    [
-      attack,
-      decay,
-      gate,
-      humanize,
-      instrument,
-      inversionRegister,
-      octaveShift,
-      padPattern,
-      padVelocity,
-      playbackStyle,
-      tempoBpm,
-      timeSignature,
-    ],
+    [settings, tempoBpm],
   );
 
   const playEntry = (
@@ -621,11 +610,18 @@ export default function GeneratedChordGridDialog({
       setCurrentStep(stepIndex);
 
       if (metronomeEnabledRef.current && stepIndex % STEPS_PER_BEAT === 0) {
-        const beatInBar = Math.floor(stepIndex / STEPS_PER_BEAT) % beatsPerBarRef.current;
+        const absoluteBeatIndex = Math.floor(stepIndex / STEPS_PER_BEAT);
+        const beatInBar = absoluteBeatIndex % beatsPerBarRef.current;
         const isDownbeat = beatInBar === 0;
 
         pulseBeatIndicator(beatInBar + 1, isDownbeat);
-        void playMetronomeClick(metronomeVolume, isDownbeat);
+        void playMetronomePulse(metronomeVolume, isDownbeat, {
+          source: metronomeSourceRef.current,
+          drumPath: metronomeDrumPathRef.current,
+          timeSignature,
+          tempoBpm,
+          beatIndex: absoluteBeatIndex,
+        });
       }
 
       const events = eventsByStepRef.current.get(stepIndex) ?? [];
@@ -717,7 +713,13 @@ export default function GeneratedChordGridDialog({
         if (stepIndex % STEPS_PER_BEAT === 0) {
           pulseBeatIndicator(beatNumber, isDownbeat);
           if (isAudibleCountInBeat) {
-            void playMetronomeClick(metronomeVolume, isDownbeat);
+            void playMetronomePulse(metronomeVolume, isDownbeat, {
+              source: metronomeSourceRef.current,
+              drumPath: metronomeDrumPathRef.current,
+              timeSignature,
+              tempoBpm,
+              beatIndex,
+            });
           }
         }
 

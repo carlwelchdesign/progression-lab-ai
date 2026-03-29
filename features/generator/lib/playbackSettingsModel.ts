@@ -50,6 +50,8 @@ export type PlaybackSettings = {
   roomSize: number;
   metronomeEnabled: boolean;
   metronomeVolume: number;
+  metronomeSource: 'click' | 'drum';
+  metronomeDrumPath: string | null;
 };
 
 type PlaybackSettingsKey = keyof PlaybackSettings & string;
@@ -115,6 +117,8 @@ export const PLAYBACK_SETTINGS_DEFAULTS: PlaybackSettings = {
   roomSize: 0.25,
   metronomeEnabled: false,
   metronomeVolume: 0.7,
+  metronomeSource: 'click',
+  metronomeDrumPath: null,
 };
 
 const PLAYBACK_STYLE_OPTIONS: PlaybackStyle[] = ['strum', 'block'];
@@ -128,6 +132,7 @@ const PAD_PATTERN_OPTIONS: PadPattern[] = [
   'syncopated-stab',
 ];
 const TIME_SIGNATURE_OPTIONS: TimeSignature[] = ['4/4', '3/4', '6/8'];
+const METRONOME_SOURCE_OPTIONS: Array<PlaybackSettings['metronomeSource']> = ['click', 'drum'];
 
 /**
  * Clamps a numeric value to an inclusive [min, max] range.
@@ -145,6 +150,13 @@ const clamp = (value: number, min: number, max: number): number =>
 export const sanitizePlaybackSettings = (input?: Partial<PlaybackSettings>): PlaybackSettings => {
   const raw = { ...PLAYBACK_SETTINGS_DEFAULTS, ...(input ?? {}) };
   const instrument = INSTRUMENT_OPTIONS.includes(raw.instrument) ? raw.instrument : 'rhodes';
+  const metronomeSource = METRONOME_SOURCE_OPTIONS.includes(raw.metronomeSource)
+    ? raw.metronomeSource
+    : 'click';
+  const metronomeDrumPath =
+    metronomeSource === 'drum' && typeof raw.metronomeDrumPath === 'string'
+      ? raw.metronomeDrumPath.trim() || null
+      : null;
   const octaveShiftDefault =
     input?.octaveShift === undefined
       ? DEFAULT_OCTAVE_SHIFT_BY_INSTRUMENT[instrument]
@@ -193,6 +205,8 @@ export const sanitizePlaybackSettings = (input?: Partial<PlaybackSettings>): Pla
     roomSize: clamp(raw.roomSize, 0, 1),
     metronomeEnabled: Boolean(raw.metronomeEnabled),
     metronomeVolume: clamp(raw.metronomeVolume, 0, 1),
+    metronomeSource,
+    metronomeDrumPath,
   };
 };
 
@@ -243,4 +257,6 @@ export const applyPlaybackSettings = (
   setters.setRoomSize(settings.roomSize);
   setters.setMetronomeEnabled(settings.metronomeEnabled);
   setters.setMetronomeVolume(settings.metronomeVolume);
+  setters.setMetronomeSource(settings.metronomeSource);
+  setters.setMetronomeDrumPath(settings.metronomeDrumPath);
 };

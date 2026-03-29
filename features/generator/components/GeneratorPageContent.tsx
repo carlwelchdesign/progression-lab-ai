@@ -33,6 +33,7 @@ import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvide
 import { useAuth } from '../../../components/providers/AuthProvider';
 import usePlaybackSettings from '../hooks/usePlaybackSettings';
 import useGeneratorSessionCache from '../hooks/useGeneratorSessionCache';
+import { applyPlaybackSettings, sanitizePlaybackSettings } from '../lib/playbackSettingsModel';
 import type { GeneratorFormData, ProgressionDiagramInstrument } from '../types';
 import {
   ADVENTUROUSNESS_OPTIONS,
@@ -164,6 +165,8 @@ export default function GeneratorPageContent() {
     timeSignature,
     metronomeEnabled,
     metronomeVolume,
+    metronomeSource,
+    metronomeDrumPath,
   } = playbackSettings;
 
   const [isGeneratedChordGridOpen, setIsGeneratedChordGridOpen] = useState(false);
@@ -187,17 +190,8 @@ export default function GeneratorPageContent() {
     (arrangement: Arrangement) => {
       const snap = arrangement.playbackSnapshot;
       handleTempoBpmChange(snap.tempoBpm);
-      playbackSettingsSetters.setTimeSignature(snap.timeSignature);
-      playbackSettingsSetters.setPadPattern(snap.padPattern);
-      playbackSettingsSetters.setPlaybackStyle(snap.playbackStyle);
-      playbackSettingsSetters.setInstrument(snap.instrument);
-      playbackSettingsSetters.setOctaveShift(snap.octaveShift);
-      playbackSettingsSetters.setAttack(snap.attack);
-      playbackSettingsSetters.setDecay(snap.decay);
-      playbackSettingsSetters.setPadVelocity(snap.padVelocity);
-      playbackSettingsSetters.setHumanize(snap.humanize);
-      playbackSettingsSetters.setGate(snap.gate);
-      playbackSettingsSetters.setInversionRegister(snap.inversionRegister);
+      const sanitizedSettings = sanitizePlaybackSettings(snap);
+      applyPlaybackSettings(playbackSettingsSetters, sanitizedSettings);
 
       setPendingArrangementLoad({
         key: arrangement.id,
@@ -596,6 +590,8 @@ export default function GeneratorPageContent() {
           timeSignature={timeSignature}
           metronomeEnabled={metronomeEnabled}
           metronomeVolume={metronomeVolume}
+          metronomeSource={metronomeSource}
+          metronomeDrumPath={metronomeDrumPath}
           scale={resolvedScale}
           resolvedGenreForSave={resolvedGenre}
           guitarVoicingByChord={guitarVoicingByChord}
@@ -626,6 +622,8 @@ export default function GeneratorPageContent() {
           timeSignature={timeSignature}
           metronomeEnabled={metronomeEnabled}
           metronomeVolume={metronomeVolume}
+          metronomeSource={metronomeSource}
+          metronomeDrumPath={metronomeDrumPath}
         />
       ),
     },

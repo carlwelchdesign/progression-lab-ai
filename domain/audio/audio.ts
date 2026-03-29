@@ -1,8 +1,11 @@
 import * as Tone from 'tone';
+import { Midi } from '@tonejs/midi';
 import type {
   AudioEngine,
+  MetronomeSource,
   PlayChordVoicingParams,
   PlayChordPatternParams,
+  PlayMetronomePulseOptions,
   PlaybackRegister,
   PlaybackStyle,
   PlayProgressionOptions,
@@ -18,8 +21,10 @@ import type { TimeSignature } from '../music/padPattern';
 export type {
   AudioEngine,
   AudioInstrument,
+  MetronomeSource,
   PlayChordVoicingParams,
   PlayChordPatternParams,
+  PlayMetronomePulseOptions,
   PlaybackRegister,
   PlaybackStyle,
   PlayProgressionOptions,
@@ -37,6 +42,117 @@ const REVERB_MIN_DECAY_SECONDS = 0.8;
 const REVERB_MAX_DECAY_SECONDS = 10;
 const MAX_HUMANIZE_TIMING_S = 0.05;
 const MAX_HUMANIZE_VELOCITY = 12;
+
+type DrumPatternEvent = {
+  beat: number;
+  durationBeats: number;
+  midi: number;
+  velocity: number;
+};
+
+type DrumPattern = {
+  path: string;
+  events: DrumPatternEvent[];
+  durationBeats: number;
+};
+
+const DRUM_PATTERN_CACHE = new Map<string, DrumPattern>();
+const DRUM_PATTERN_PROMISE_CACHE = new Map<string, Promise<DrumPattern | null>>();
+
+const getBeatDurationSeconds = (tempoBpm: number): number => 60 / normalizeTempoBpm(tempoBpm);
+
+const inferFallbackDrumDurationBeats = (timeSignature: TimeSignature): number => {
+  if (timeSignature === '6/8') {
+    return 6;
+  }
+  if (timeSignature === '3/4') {
+    return 3;
+  }
+  return 4;
+};
+
+const normalizeDrumPatternPath = (path: string | null | undefined): string | null => {
+  if (!path || typeof path !== 'string') {
+    return null;
+  }
+
+  const trimmed = path.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  return `/${trimmed}`;
+};
+
+const loadDrumPattern = async (path: string): Promise<DrumPattern | null> => {
+  const normalizedPath = normalizeDrumPatternPath(path);
+  if (!normalizedPath) {
+    return null;
+  }
+
+  const cached = DRUM_PATTERN_CACHE.get(normalizedPath);
+  if (cached) {
+    return cached;
+  }
+
+  const pending = DRUM_PATTERN_PROMISE_CACHE.get(normalizedPath);
+  if (pending) {
+    return pending;
+  }
+
+  const request = fetch(normalizedPath, { cache: 'force-cache' })
+    .then(async (response) => {
+      if (!response.ok) {
+        return null;
+      }
+
+      const midiBytes = await response.arrayBuffer();
+      const midi = new Midi(midiBytes);
+      const ppq = midi.header.ppq || 480;
+      const events: DrumPatternEvent[] = [];
+      let maxEndBeat = 0;
+
+      midi.tracks.forEach((track) => {
+        track.notes.forEach((note) => {
+          const beat = note.ticks / ppq;
+          const durationBeats = Math.max(0.05, note.durationTicks / ppq);
+          const endBeat = beat + durationBeats;
+
+          maxEndBeat = Math.max(maxEndBeat, endBeat);
+          events.push({
+            beat,
+            durationBeats,
+            midi: note.midi,
+            velocity: note.velocity,
+          });
+        });
+      });
+
+      if (events.length === 0) {
+        return null;
+      }
+
+      const pattern: DrumPattern = {
+        path: normalizedPath,
+        events,
+        durationBeats: Math.max(1, maxEndBeat),
+      };
+
+      DRUM_PATTERN_CACHE.set(normalizedPath, pattern);
+      return pattern;
+    })
+    .catch(() => null)
+    .finally(() => {
+      DRUM_PATTERN_PROMISE_CACHE.delete(normalizedPath);
+    });
+
+  DRUM_PATTERN_PROMISE_CACHE.set(normalizedPath, request);
+  return request;
+};
 
 const REGISTER_MIDI_RANGES: Record<
   Exclude<PlaybackRegister, 'off'>,
@@ -147,6 +263,12 @@ export const createToneAudioEngine = (): AudioEngine => {
   let metronomeLoop: Tone.Loop | null = null;
   let metronomeSynth: Tone.Synth | null = null;
   let metronomeClickBeat = 0;
+  let metronomeKickSynth: Tone.MembraneSynth | null = null;
+  let metronomeSnareSynth: Tone.NoiseSynth | null = null;
+  let metronomeHatSynth: Tone.MetalSynth | null = null;
+  let metronomeTomSynth: Tone.MembraneSynth | null = null;
+  let metronomeCrashSynth: Tone.MetalSynth | null = null;
+  let activeMetronomePulseTimeouts: ReturnType<typeof setTimeout>[] = [];
 
   let reverbEnabled = false;
   let reverbWet = 0;
@@ -889,17 +1011,11 @@ export const createToneAudioEngine = (): AudioEngine => {
     }
   };
 
-  const playMetronomeClick = async (volume: number, isDownbeat: boolean): Promise<void> => {
-    await startAudio();
-
-    const synth = getMetronomeSynth();
-    synth.volume.value = volume > 0 ? Tone.gainToDb(volume * 0.45) : -Infinity;
-    synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
-  };
-
   const stopAllAudio = (): void => {
     scheduledPlaybackTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
     scheduledPlaybackTimeouts = [];
+    activeMetronomePulseTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+    activeMetronomePulseTimeouts = [];
 
     Tone.Transport.stop();
     Tone.Transport.cancel();
@@ -922,6 +1038,12 @@ export const createToneAudioEngine = (): AudioEngine => {
     if (rhodesSampler) {
       rhodesSampler.releaseAll();
     }
+
+    metronomeKickSynth?.triggerRelease();
+    metronomeTomSynth?.triggerRelease();
+    metronomeSnareSynth?.triggerRelease();
+    metronomeHatSynth?.triggerRelease();
+    metronomeCrashSynth?.triggerRelease();
   };
 
   const playChordVoicing = async ({
@@ -992,25 +1114,231 @@ export const createToneAudioEngine = (): AudioEngine => {
     return metronomeSynth;
   };
 
+  const getMetronomeKickSynth = (): Tone.MembraneSynth => {
+    if (!metronomeKickSynth) {
+      metronomeKickSynth = new Tone.MembraneSynth({
+        pitchDecay: 0.03,
+        octaves: 8,
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.001, decay: 0.18, sustain: 0, release: 0.08 },
+      }).toDestination();
+    }
+
+    return metronomeKickSynth;
+  };
+
+  const getMetronomeTomSynth = (): Tone.MembraneSynth => {
+    if (!metronomeTomSynth) {
+      metronomeTomSynth = new Tone.MembraneSynth({
+        pitchDecay: 0.04,
+        octaves: 5,
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.08 },
+      }).toDestination();
+    }
+
+    return metronomeTomSynth;
+  };
+
+  const getMetronomeSnareSynth = (): Tone.NoiseSynth => {
+    if (!metronomeSnareSynth) {
+      metronomeSnareSynth = new Tone.NoiseSynth({
+        noise: { type: 'white' },
+        envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.03 },
+      }).toDestination();
+    }
+
+    return metronomeSnareSynth;
+  };
+
+  const getMetronomeHatSynth = (): Tone.MetalSynth => {
+    if (!metronomeHatSynth) {
+      metronomeHatSynth = new Tone.MetalSynth({
+        envelope: { attack: 0.001, decay: 0.05, release: 0.02 },
+        harmonicity: 5.1,
+        modulationIndex: 18,
+        resonance: 3000,
+        octaves: 1.5,
+      }).toDestination();
+    }
+
+    return metronomeHatSynth;
+  };
+
+  const getMetronomeCrashSynth = (): Tone.MetalSynth => {
+    if (!metronomeCrashSynth) {
+      metronomeCrashSynth = new Tone.MetalSynth({
+        envelope: { attack: 0.001, decay: 0.3, release: 0.18 },
+        harmonicity: 4.3,
+        modulationIndex: 20,
+        resonance: 2200,
+        octaves: 1.7,
+      }).toDestination();
+    }
+
+    return metronomeCrashSynth;
+  };
+
+  const triggerDrumHit = (
+    midi: number,
+    time: number,
+    durationSeconds: number,
+    velocity: number,
+  ) => {
+    const normalizedVelocity = Math.min(1, Math.max(0.05, velocity));
+
+    if (midi <= 36) {
+      const kick = getMetronomeKickSynth();
+      kick.volume.value = Tone.gainToDb(Math.max(0.0001, normalizedVelocity * 0.7));
+      kick.triggerAttackRelease('C1', Math.max(0.03, durationSeconds * 0.8), time);
+      return;
+    }
+
+    if (midi === 38 || midi === 40) {
+      const snare = getMetronomeSnareSynth();
+      snare.volume.value = Tone.gainToDb(Math.max(0.0001, normalizedVelocity * 0.6));
+      snare.triggerAttackRelease(Math.max(0.05, durationSeconds * 0.5), time, normalizedVelocity);
+      return;
+    }
+
+    if (midi === 49 || midi === 57) {
+      const crash = getMetronomeCrashSynth();
+      crash.volume.value = Tone.gainToDb(Math.max(0.0001, normalizedVelocity * 0.45));
+      crash.triggerAttackRelease('16n', time, normalizedVelocity);
+      return;
+    }
+
+    if (midi === 42 || midi === 44 || midi === 46) {
+      const hat = getMetronomeHatSynth();
+      hat.volume.value = Tone.gainToDb(Math.max(0.0001, normalizedVelocity * 0.38));
+      hat.triggerAttackRelease('32n', time, normalizedVelocity);
+      return;
+    }
+
+    if (midi >= 41 && midi <= 48) {
+      const tom = getMetronomeTomSynth();
+      tom.volume.value = Tone.gainToDb(Math.max(0.0001, normalizedVelocity * 0.45));
+      tom.triggerAttackRelease('G2', Math.max(0.04, durationSeconds * 0.7), time);
+      return;
+    }
+
+    const hat = getMetronomeHatSynth();
+    hat.volume.value = Tone.gainToDb(Math.max(0.0001, normalizedVelocity * 0.35));
+    hat.triggerAttackRelease('32n', time, normalizedVelocity);
+  };
+
+  const playMetronomePulse = async (
+    volume: number,
+    isDownbeat: boolean,
+    opts?: PlayMetronomePulseOptions,
+  ): Promise<void> => {
+    await startAudio();
+
+    const source: MetronomeSource = opts?.source ?? 'click';
+    const normalizedVolume = clampUnitValue(volume);
+    if (normalizedVolume <= 0) {
+      return;
+    }
+
+    if (source === 'click') {
+      const synth = getMetronomeSynth();
+      synth.volume.value = Tone.gainToDb(normalizedVolume * 0.45);
+      synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
+      return;
+    }
+
+    const drumPath = normalizeDrumPatternPath(opts?.drumPath);
+    if (!drumPath) {
+      const synth = getMetronomeSynth();
+      synth.volume.value = Tone.gainToDb(normalizedVolume * 0.45);
+      synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
+      return;
+    }
+
+    const pattern = await loadDrumPattern(drumPath);
+    if (!pattern) {
+      const synth = getMetronomeSynth();
+      synth.volume.value = Tone.gainToDb(normalizedVolume * 0.45);
+      synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
+      return;
+    }
+
+    const tempo = normalizeTempoBpm(opts?.tempoBpm);
+    const beatDurationSeconds = getBeatDurationSeconds(tempo);
+    const beatIndex = Math.max(0, opts?.beatIndex ?? 0);
+    const patternDuration = Math.max(
+      pattern.durationBeats,
+      inferFallbackDrumDurationBeats(opts?.timeSignature ?? '4/4'),
+    );
+    const beatStartInPattern = beatIndex % patternDuration;
+    const now = Tone.now();
+
+    pattern.events.forEach((event) => {
+      const eventBeatInPattern =
+        ((event.beat % patternDuration) + patternDuration) % patternDuration;
+      if (eventBeatInPattern < beatStartInPattern || eventBeatInPattern >= beatStartInPattern + 1) {
+        return;
+      }
+
+      const offsetBeats = eventBeatInPattern - beatStartInPattern;
+      const eventTime = now + offsetBeats * beatDurationSeconds;
+      const eventDurationSeconds = Math.max(0.02, event.durationBeats * beatDurationSeconds);
+      triggerDrumHit(
+        event.midi,
+        eventTime,
+        eventDurationSeconds,
+        event.velocity * normalizedVolume,
+      );
+    });
+  };
+
+  const playMetronomeClick = async (volume: number, isDownbeat: boolean): Promise<void> => {
+    await playMetronomePulse(volume, isDownbeat, { source: 'click' });
+  };
+
   const startMetronomeLoop = (
     tempoBpm: number,
     timeSignature: TimeSignature,
     volume: number,
     totalDurationSeconds: number,
+    source: MetronomeSource,
+    drumPath: string | null,
   ): void => {
-    const synth = getMetronomeSynth();
-    synth.volume.value = volume > 0 ? Tone.gainToDb(volume * 0.45) : -Infinity;
-    const singleBeatSeconds = 60 / tempoBpm;
+    const singleBeatSeconds = getBeatDurationSeconds(tempoBpm);
     const beatsPerBar = TIME_SIGNATURE_BEATS_PER_BAR[timeSignature];
     const totalBeats = Math.ceil(totalDurationSeconds / singleBeatSeconds);
     metronomeClickBeat = 0;
+
+    if (source === 'drum' && drumPath) {
+      void loadDrumPattern(drumPath);
+    }
 
     metronomeLoop = new Tone.Loop((time) => {
       if (metronomeClickBeat >= totalBeats) {
         return;
       }
       const isDownbeat = metronomeClickBeat % beatsPerBar === 0;
-      synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', time);
+      if (source === 'click') {
+        const synth = getMetronomeSynth();
+        synth.volume.value = volume > 0 ? Tone.gainToDb(volume * 0.45) : -Infinity;
+        synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', time);
+      } else {
+        const beatIndex = metronomeClickBeat;
+        const delayMs = Math.max(0, (time - Tone.now()) * 1000);
+        const timeoutId = setTimeout(() => {
+          activeMetronomePulseTimeouts = activeMetronomePulseTimeouts.filter(
+            (id) => id !== timeoutId,
+          );
+          void playMetronomePulse(volume, isDownbeat, {
+            source,
+            drumPath,
+            timeSignature,
+            tempoBpm,
+            beatIndex,
+          });
+        }, delayMs);
+        activeMetronomePulseTimeouts.push(timeoutId);
+      }
       metronomeClickBeat += 1;
     }, singleBeatSeconds);
 
@@ -1039,6 +1367,8 @@ export const createToneAudioEngine = (): AudioEngine => {
       timeSignature = '4/4',
       metronomeEnabled = false,
       metronomeVolume = 0.7,
+      metronomeSource = 'click',
+      metronomeDrumPath = null,
     } = opts ?? {};
 
     let audioInstrument: Tone.Sampler;
@@ -1110,7 +1440,14 @@ export const createToneAudioEngine = (): AudioEngine => {
     part.start(0);
 
     if (metronomeEnabled) {
-      startMetronomeLoop(normalizedTempo, timeSignature, metronomeVolume, totalDurationSeconds);
+      startMetronomeLoop(
+        normalizedTempo,
+        timeSignature,
+        metronomeVolume,
+        totalDurationSeconds,
+        metronomeSource,
+        metronomeDrumPath,
+      );
     }
 
     Tone.Transport.start();
@@ -1256,6 +1593,7 @@ export const createToneAudioEngine = (): AudioEngine => {
     setPhaserQ,
     startAudio,
     playMetronomeClick,
+    playMetronomePulse,
     stopAllAudio,
     playChordVoicing,
     playProgression,
@@ -1455,6 +1793,14 @@ export const isAudioInitialized = (): boolean => Tone.context.state === 'running
 
 export const playMetronomeClick = async (volume: number, isDownbeat: boolean): Promise<void> => {
   await getAudioEngine().playMetronomeClick(volume, isDownbeat);
+};
+
+export const playMetronomePulse = async (
+  volume: number,
+  isDownbeat: boolean,
+  opts?: PlayMetronomePulseOptions,
+): Promise<void> => {
+  await getAudioEngine().playMetronomePulse(volume, isDownbeat, opts);
 };
 
 export const stopAllAudio = (): void => {

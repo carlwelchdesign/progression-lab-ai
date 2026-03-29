@@ -42,6 +42,8 @@ const createMockAudioEngine = (): jest.Mocked<AudioEngine> => ({
   setPhaserOctaves: jest.fn(),
   setPhaserQ: jest.fn(),
   startAudio: jest.fn().mockResolvedValue(undefined),
+  playMetronomeClick: jest.fn().mockResolvedValue(undefined),
+  playMetronomePulse: jest.fn().mockResolvedValue(undefined),
   stopAllAudio: jest.fn(),
   playChordVoicing: jest.fn().mockResolvedValue(undefined),
   playProgression: jest.fn().mockResolvedValue(undefined),

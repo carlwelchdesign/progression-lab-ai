@@ -47,6 +47,8 @@ type ProgressionIdeasSectionProps = {
   timeSignature?: TimeSignature;
   metronomeEnabled?: boolean;
   metronomeVolume?: number;
+  metronomeSource?: 'click' | 'drum';
+  metronomeDrumPath?: string | null;
   showTitle?: boolean;
   resolvedGenreForSave: string;
   scale?: string;
@@ -143,6 +145,8 @@ export default function ProgressionIdeasSection({
   timeSignature,
   metronomeEnabled,
   metronomeVolume,
+  metronomeSource,
+  metronomeDrumPath,
   showTitle = true,
   resolvedGenreForSave,
   scale,
@@ -231,6 +235,8 @@ export default function ProgressionIdeasSection({
                                 timeSignature,
                                 metronomeEnabled,
                                 metronomeVolume,
+                                metronomeSource,
+                                metronomeDrumPath,
                               },
                             ),
                           getProgressionAutoResetMs(idea.pianoVoicings.length, tempoBpm),
