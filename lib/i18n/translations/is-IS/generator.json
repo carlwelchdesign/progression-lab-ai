@@ -211,6 +211,14 @@
       "eventSingular": "{{count}} atburdur",
       "eventPlural": "{{count}} atburdir",
       "keyboardHelp": "Lykilbord: pads nota 1-0 svo A-Z, bilslatti spilar/stoppar track, Shift skiptir upptoku.",
+      "keyboardShortcutsLabel": "Flytilyklar a lykilbordi",
+      "keyboardShortcutPads": "Podd: 1-0, svo A-Z.",
+      "keyboardShortcutTransport": "Bil: spila eda stodva spor.",
+      "keyboardShortcutRecord": "Shift: kveikja eda slokkva a upptoeku.",
+      "keyboardShortcutDesktopTitle": "Klippavinnsla a bordtolvu",
+      "keyboardShortcutDelete": "Delete / Backspace: fjarlaoegja oll atvik a voldu skrefi.",
+      "keyboardShortcutEscape": "Escape: haetta vid val.",
+      "keyboardShortcutNudge": "Vinstri / hoegri or: hreyfa valda klippu innan lykkjunnar.",
       "noPianoVoicings": "Engar bunnar piano-rodanir tiltakar."
     }
   }

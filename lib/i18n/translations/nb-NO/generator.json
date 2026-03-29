@@ -211,6 +211,14 @@
       "eventSingular": "{{count}} hendelse",
       "eventPlural": "{{count}} hendelser",
       "keyboardHelp": "Tastatur: pads bruker 1-0 og deretter A-Z, Mellomrom spiller/stopper sporet, Shift veksler opptak.",
+      "keyboardShortcutsLabel": "Tastatursnarveier",
+      "keyboardShortcutPads": "Pads: 1-0, deretter A-Z.",
+      "keyboardShortcutTransport": "Mellomrom: spill av eller stopp sporet.",
+      "keyboardShortcutRecord": "Shift: aktiver eller deaktiver opptak.",
+      "keyboardShortcutDesktopTitle": "Klippredigering pa skrivebordet",
+      "keyboardShortcutDelete": "Delete / Backspace: fjern alle hendelser pa det valgte trinnet.",
+      "keyboardShortcutEscape": "Escape: opphev valget.",
+      "keyboardShortcutNudge": "Pil venstre / hoyre: flytt den valgte klippen innenfor loopen.",
       "noPianoVoicings": "Ingen genererte pianostemmer tilgjengelig."
     }
   }

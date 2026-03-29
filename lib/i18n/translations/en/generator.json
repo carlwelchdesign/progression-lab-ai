@@ -189,7 +189,7 @@
       "title": "Playback Settings"
     },
     "chordGrid": {
-      "title": "Chord Playground",
+      "title": "Composer",
       "closeAriaLabel": "Close chord playground",
       "selectPadThenChord": "Select a pad, then pick a chord",
       "padChordLabel": "Pad chord",
@@ -211,6 +211,14 @@
       "eventSingular": "{{count}} event",
       "eventPlural": "{{count}} events",
       "keyboardHelp": "Keyboard: pads use 1-0 then A-Z, Space plays/stops the track, Shift toggles record.",
+      "keyboardShortcutsLabel": "Keyboard shortcuts",
+      "keyboardShortcutPads": "Pads: 1-0, then A-Z.",
+      "keyboardShortcutTransport": "Space: play or stop the track.",
+      "keyboardShortcutRecord": "Shift: toggle recording.",
+      "keyboardShortcutDesktopTitle": "Desktop clip editing",
+      "keyboardShortcutDelete": "Delete / Backspace: remove all events at the selected step.",
+      "keyboardShortcutEscape": "Escape: clear the current selection.",
+      "keyboardShortcutNudge": "Left / Right arrows: nudge the selected clip within the loop.",
       "noPianoVoicings": "No generated piano voicings available."
     }
   }

@@ -211,6 +211,14 @@
       "eventSingular": "{{count}} handelse",
       "eventPlural": "{{count}} handelser",
       "keyboardHelp": "Tangentbord: pads anvander 1-0 och sedan A-Z, Mellanslag spelar/stoppar sparet, Shift vaxlar inspelning.",
+      "keyboardShortcutsLabel": "Tangentbordsgenvasar",
+      "keyboardShortcutPads": "Pads: 1-0, sedan A-Z.",
+      "keyboardShortcutTransport": "Mellanslag: spela eller stoppa sparet.",
+      "keyboardShortcutRecord": "Skift: aktivera eller inaktivera inspelning.",
+      "keyboardShortcutDesktopTitle": "Klippredigering pa dator",
+      "keyboardShortcutDelete": "Delete / Backsteg: ta bort alla handelser vid det valda steget.",
+      "keyboardShortcutEscape": "Escape: avmarkera.",
+      "keyboardShortcutNudge": "Vanster / hoger pil: forskyut valt klipp inom loopen.",
       "noPianoVoicings": "Inga genererade pianostammor tillgangliga."
     }
   }

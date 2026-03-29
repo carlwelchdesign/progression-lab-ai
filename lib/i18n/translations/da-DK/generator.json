@@ -211,6 +211,14 @@
       "eventSingular": "{{count}} haendelse",
       "eventPlural": "{{count}} haendelser",
       "keyboardHelp": "Tastatur: pads bruger 1-0 og derefter A-Z, mellemrum afspiller/stopper sporet, Shift skifter optagelse.",
+      "keyboardShortcutsLabel": "Tastaturgenveje",
+      "keyboardShortcutPads": "Pads: 1-0, derefter A-Z.",
+      "keyboardShortcutTransport": "Mellemrum: afspil eller stop sporet.",
+      "keyboardShortcutRecord": "Shift: sla optagelse til eller fra.",
+      "keyboardShortcutDesktopTitle": "Klipedigering pa computer",
+      "keyboardShortcutDelete": "Delete / Backspace: fjern alle begivenheder ved det valgte trin.",
+      "keyboardShortcutEscape": "Escape: fjern markeringen.",
+      "keyboardShortcutNudge": "Venstre / hojre pil: flyt det valgte klip inden for loopet.",
       "noPianoVoicings": "Ingen genererede klaverstemmer tilgaengelige."
     }
   }

@@ -211,6 +211,14 @@
       "eventSingular": "{{count}} tapahtuma",
       "eventPlural": "{{count}} tapahtumaa",
       "keyboardHelp": "Nappaimisto: padit kayttavat 1-0 ja sitten A-Z, valilyonti soittaa/pysayttaa raidan, Shift vaihtaa nauhoituksen.",
+      "keyboardShortcutsLabel": "Nakppainpikavalinnat",
+      "keyboardShortcutPads": "Padit: 1-0, sitten A-Z.",
+      "keyboardShortcutTransport": "Valilyonti: soita tai pysayta raita.",
+      "keyboardShortcutRecord": "Vaihto: kytkee aanityksen paalle tai pois.",
+      "keyboardShortcutDesktopTitle": "Leikkeiden muokkaus tyopoydalla",
+      "keyboardShortcutDelete": "Delete / Askelpalautin: poistaa kaikki tapahtumat valitusta askeleesta.",
+      "keyboardShortcutEscape": "Escape: poista valinta.",
+      "keyboardShortcutNudge": "Vasen / oikea nuoli: siirtaa valittua leiketta loopin sisalla.",
       "noPianoVoicings": "Generoituja pianosoinnutuksia ei ole saatavilla."
     }
   }
