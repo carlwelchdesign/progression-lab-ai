@@ -119,8 +119,6 @@ export type Progression = {
 };
 
 export type ArrangementEvent = {
-  /** Stable identifier assigned at record-time; backfilled when loading older saved arrangements. */
-  id?: string;
   padKey: string;
   chord: string;
   source: string;

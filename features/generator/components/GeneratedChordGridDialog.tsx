@@ -16,8 +16,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import AvTimerIcon from '@mui/icons-material/AvTimer';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
-import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import LoopIcon from '@mui/icons-material/Loop';
 import SaveIcon from '@mui/icons-material/Save';
 import { alpha, type Theme, useTheme } from '@mui/material/styles';
@@ -65,19 +63,7 @@ type ChordGridEntry = {
   rightHand: string[];
 };
 
-const generateId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  // Fallback for older mobile browsers (pre-iOS 15.4, older Android WebView)
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-  });
-};
-
 const STEPS_PER_BEAT = 4;
-const RECORDING_LEAD_IN_BARS = 1;
 const LOOP_LENGTH_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 const PAD_TRIGGER_KEYS = [
   '1',
@@ -270,10 +256,8 @@ export default function GeneratedChordGridDialog({
   const [isLoopEnabled, setIsLoopEnabled] = useState(true);
   const [loopLengthBars, setLoopLengthBars] = useState<(typeof LOOP_LENGTH_OPTIONS)[number]>(1);
   const [currentStep, setCurrentStep] = useState(0);
-  const [trackScrollRequestKey, setTrackScrollRequestKey] = useState(0);
   const [arrangementEvents, setArrangementEvents] = useState<ArrangementEvent[]>([]);
   const [saveArrangementDialogOpen, setSaveArrangementDialogOpen] = useState(false);
-  const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null);
   const activePadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sequencerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -350,10 +334,7 @@ export default function GeneratedChordGridDialog({
       ),
     ) as (typeof LOOP_LENGTH_OPTIONS)[number];
 
-    setArrangementEvents(
-      pendingLoad.events.map((event) => ({ ...event, id: event.id ?? generateId() })),
-    );
-    setSelectedStepIndex(null);
+    setArrangementEvents(pendingLoad.events);
     setLoopLengthBars(clampedBars);
     setCurrentStep(0);
     currentStepRef.current = 0;
@@ -385,7 +366,6 @@ export default function GeneratedChordGridDialog({
       setIsCountInActive(false);
       setCurrentStep(0);
       currentStepRef.current = 0;
-      setSelectedStepIndex(null);
       setCofFocusPadKey(null);
     }
   }, [open]);
@@ -435,7 +415,6 @@ export default function GeneratedChordGridDialog({
     }),
     [arrangementEvents, loopLengthBars, stepsPerBar, totalSteps],
   );
-  const showRecordingLeadIn = isCountInActive || isRecording;
 
   const padHotkeyBindings = useMemo(
     () =>
@@ -658,63 +637,51 @@ export default function GeneratedChordGridDialog({
     stopSequencer();
     setCurrentBeatInBar(1);
     setIsCountInActive(true);
-    setTrackScrollRequestKey((previous) => previous + 1);
 
     void startAudio().then(() => {
-      let stepIndex = 0;
-      const stepDurationMs = 60_000 / tempoBpm / STEPS_PER_BEAT;
-      const totalPreRollBeats = beatsPerBar;
-      const totalPreRollSteps = totalPreRollBeats * STEPS_PER_BEAT;
-      const leadInSteps = RECORDING_LEAD_IN_BARS * stepsPerBar;
+      let beatIndex = 0;
+      const beatDurationMs = 60_000 / tempoBpm;
       let expectedNextTick = getSchedulerNowMs();
 
-      setCurrentStep(-leadInSteps);
-
-      const scheduleNextCountInStep = () => {
-        expectedNextTick += stepDurationMs;
+      const scheduleNextCountInBeat = () => {
+        expectedNextTick += beatDurationMs;
         const delayMs = Math.max(0, expectedNextTick - getSchedulerNowMs());
 
         countInTimerRef.current = setTimeout(() => {
-          runCountInStep();
+          runCountInBeat();
         }, delayMs);
       };
 
-      const runCountInStep = () => {
-        const beatIndex = Math.floor(stepIndex / STEPS_PER_BEAT);
-        const beatNumber = (beatIndex % beatsPerBar) + 1;
-        const isDownbeat = beatNumber === 1;
-        const isAudibleCountInBeat = beatIndex < beatsPerBar;
+      const runCountInBeat = () => {
+        const beatNumber = beatIndex + 1;
+        const isDownbeat = beatIndex === 0;
 
-        if (stepIndex % STEPS_PER_BEAT === 0) {
-          pulseBeatIndicator(beatNumber, isDownbeat);
-          if (isAudibleCountInBeat) {
-            void playMetronomeClick(metronomeVolume, isDownbeat);
-          }
-        }
+        pulseBeatIndicator(beatNumber, isDownbeat);
+        void playMetronomeClick(metronomeVolume, isDownbeat);
 
-        const completedPreRollSteps = stepIndex + 1;
-        setCurrentStep(completedPreRollSteps - leadInSteps);
+        beatIndex += 1;
 
-        stepIndex += 1;
-
-        if (stepIndex >= totalPreRollSteps) {
+        if (beatIndex >= beatsPerBar) {
           if (countInTimerRef.current) {
             clearTimeout(countInTimerRef.current);
             countInTimerRef.current = null;
           }
 
-          setIsCountInActive(false);
-          setCurrentBeatInBar(1);
-          startSequencer();
-          setIsRecording(true);
+          countInStartTimeoutRef.current = setTimeout(() => {
+            countInStartTimeoutRef.current = null;
+            setIsCountInActive(false);
+            setCurrentBeatInBar(1);
+            startSequencer();
+            setIsRecording(true);
+          }, beatDurationMs);
 
           return;
         }
 
-        scheduleNextCountInStep();
+        scheduleNextCountInBeat();
       };
 
-      runCountInStep();
+      runCountInBeat();
     });
   };
 
@@ -722,40 +689,6 @@ export default function GeneratedChordGridDialog({
     setArrangementEvents([]);
     setCurrentStep(0);
     currentStepRef.current = 0;
-    setSelectedStepIndex(null);
-  };
-
-  const deleteSelectedClip = () => {
-    if (selectedStepIndex === null) {
-      return;
-    }
-
-    setArrangementEvents((prev) => prev.filter((event) => event.stepIndex !== selectedStepIndex));
-    setSelectedStepIndex(null);
-  };
-
-  const moveClipStep = (sourceStepIndex: number, newStepIndex: number) => {
-    setArrangementEvents((prev) =>
-      prev
-        .map((event) =>
-          event.stepIndex === sourceStepIndex ? { ...event, stepIndex: newStepIndex } : event,
-        )
-        .sort((a, b) => a.stepIndex - b.stepIndex),
-    );
-    setSelectedStepIndex(newStepIndex);
-  };
-
-  const nudgeSelectedClip = (delta: number) => {
-    if (selectedStepIndex === null) {
-      return;
-    }
-
-    const next = Math.max(0, Math.min(totalSteps - 1, selectedStepIndex + delta));
-    if (next === selectedStepIndex) {
-      return;
-    }
-
-    moveClipStep(selectedStepIndex, next);
   };
 
   const triggerPad = (entry: ChordGridEntry) => {
@@ -789,7 +722,6 @@ export default function GeneratedChordGridDialog({
     if (isRecording) {
       const stepIndex = Math.min(currentStepRef.current, Math.max(0, totalSteps - 1));
       const event: ArrangementEvent = {
-        id: generateId(),
         padKey: entry.key,
         chord: entry.chord,
         source: entry.source,
@@ -841,23 +773,6 @@ export default function GeneratedChordGridDialog({
         return;
       }
 
-      if ((key === 'delete' || key === 'backspace') && selectedStepIndex !== null) {
-        event.preventDefault();
-        deleteSelectedClip();
-        return;
-      }
-
-      if (key === 'escape') {
-        setSelectedStepIndex(null);
-        return;
-      }
-
-      if ((key === 'arrowleft' || key === 'arrowright') && selectedStepIndex !== null) {
-        event.preventDefault();
-        nudgeSelectedClip(key === 'arrowleft' ? -1 : 1);
-        return;
-      }
-
       const matchedEntry = padHotkeyMap.get(key);
       if (!matchedEntry) {
         return;
@@ -881,8 +796,6 @@ export default function GeneratedChordGridDialog({
     open,
     padHotkeyMap,
     saveArrangementDialogOpen,
-    selectedStepIndex,
-    totalSteps,
   ]);
 
   const onPadChordChange = (padKey: string, chord: string) => {
@@ -946,8 +859,6 @@ export default function GeneratedChordGridDialog({
   const editingEntry = editingPadKey
     ? editableChords.find((entry) => entry.key === editingPadKey)
     : undefined;
-  const selectedStepEventCount =
-    selectedStepIndex === null ? 0 : (eventsByStep.get(selectedStepIndex)?.length ?? 0);
 
   const handleStartEditing = () => {
     setIsEditMode(true);
@@ -1022,23 +933,29 @@ export default function GeneratedChordGridDialog({
             alignItems: 'center',
           }}
         >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              flexWrap: 'wrap',
-              mb: { xs: 0.75, sm: 0 },
-            }}
+          <PlaybackToggleButton
+            isPlaying={isSequencerPlaying}
+            onClick={handleSequencerPlayToggle}
+            playTitle={t('ui.buttons.playArrangement')}
+            stopTitle={t('ui.buttons.stopArrangement')}
+          />
+          <Tooltip
+            title={
+              isCountInActive
+                ? t('ui.chordGrid.countInTooltip', {
+                    current: currentBeatInBar,
+                    total: beatsPerBar,
+                  })
+                : isRecording
+                  ? t('ui.chordGrid.stopRecording')
+                  : t('ui.chordGrid.recordArrangement')
+            }
           >
-            <PlaybackToggleButton
-              isPlaying={isSequencerPlaying}
-              onClick={handleSequencerPlayToggle}
-            />
-            <Tooltip
-              title={
+            <IconButton
+              size="small"
+              aria-label={
                 isCountInActive
-                  ? t('ui.chordGrid.countInTooltip', {
+                  ? t('ui.chordGrid.countInAriaLabel', {
                       current: currentBeatInBar,
                       total: beatsPerBar,
                     })
@@ -1046,95 +963,81 @@ export default function GeneratedChordGridDialog({
                     ? t('ui.chordGrid.stopRecording')
                     : t('ui.chordGrid.recordArrangement')
               }
+              onClick={handleRecordToggle}
+              sx={getTransportIconButtonSx(isRecording || isCountInActive, 'error')}
             >
-              <IconButton
-                size="small"
-                aria-label={
-                  isCountInActive
-                    ? t('ui.chordGrid.countInAriaLabel', {
-                        current: currentBeatInBar,
-                        total: beatsPerBar,
-                      })
-                    : isRecording
-                      ? t('ui.chordGrid.stopRecording')
-                      : t('ui.chordGrid.recordArrangement')
-                }
-                onClick={handleRecordToggle}
-                sx={getTransportIconButtonSx(isRecording || isCountInActive, 'error')}
-              >
-                <FiberManualRecordIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip
-              title={isLoopEnabled ? t('ui.chordGrid.disableLoop') : t('ui.chordGrid.enableLoop')}
+              <FiberManualRecordIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title={isLoopEnabled ? t('ui.chordGrid.disableLoop') : t('ui.chordGrid.enableLoop')}
+          >
+            <IconButton
+              size="small"
+              aria-label={
+                isLoopEnabled ? t('ui.chordGrid.disableLoop') : t('ui.chordGrid.enableLoop')
+              }
+              onClick={() => setIsLoopEnabled((previous) => !previous)}
+              sx={getTransportIconButtonSx(isLoopEnabled)}
             >
-              <IconButton
-                size="small"
-                aria-label={
-                  isLoopEnabled ? t('ui.chordGrid.disableLoop') : t('ui.chordGrid.enableLoop')
-                }
-                onClick={() => setIsLoopEnabled((previous) => !previous)}
-                sx={getTransportIconButtonSx(isLoopEnabled)}
-              >
-                <LoopIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip
-              title={
+              <LoopIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title={
+              metronomeEnabled
+                ? t('ui.chordGrid.disableMetronome')
+                : t('ui.chordGrid.enableMetronome')
+            }
+          >
+            <IconButton
+              size="small"
+              aria-label={
                 metronomeEnabled
                   ? t('ui.chordGrid.disableMetronome')
                   : t('ui.chordGrid.enableMetronome')
               }
+              onClick={() => onSettingsChange.onMetronomeEnabledChange(!metronomeEnabled)}
+              sx={getTransportIconButtonSx(metronomeEnabled)}
             >
-              <IconButton
-                size="small"
-                aria-label={
-                  metronomeEnabled
-                    ? t('ui.chordGrid.disableMetronome')
-                    : t('ui.chordGrid.enableMetronome')
-                }
-                onClick={() => onSettingsChange.onMetronomeEnabledChange(!metronomeEnabled)}
-                sx={getTransportIconButtonSx(metronomeEnabled)}
-              >
-                <AvTimerIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <Box
-                sx={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  backgroundColor: isDownbeatPulse
-                    ? theme.palette.error.main
-                    : theme.palette.primary.main,
-                  opacity: metronomeEnabled && isBeatPulseVisible ? 1 : 0.25,
-                  transform: metronomeEnabled && isBeatPulseVisible ? 'scale(1.35)' : 'scale(1)',
-                  boxShadow:
-                    metronomeEnabled && isBeatPulseVisible
-                      ? isDownbeatPulse
-                        ? `0 0 0 5px ${alpha(theme.palette.error.main, 0.24)}`
-                        : `0 0 0 5px ${alpha(theme.palette.primary.main, 0.24)}`
-                      : 'none',
-                  transition: 'opacity 90ms ease, transform 90ms ease, box-shadow 90ms ease',
-                }}
-              />
-              <Typography variant="caption" color="text.secondary" sx={{ minWidth: 50 }}>
-                {t('ui.chordGrid.beatCounter', {
-                  current: currentBeatInBar,
-                  total: beatsPerBar,
-                })}
-              </Typography>
-            </Box>
-            <IconButton
-              aria-label={t('ui.chordGrid.clearRecording')}
-              size="small"
-              onClick={clearRecordedEvents}
-              disabled={arrangementEvents.length === 0}
-            >
-              <DeleteOutlineIcon fontSize="small" />
+              <AvTimerIcon fontSize="small" />
             </IconButton>
+          </Tooltip>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                backgroundColor: isDownbeatPulse
+                  ? theme.palette.error.main
+                  : theme.palette.primary.main,
+                opacity: metronomeEnabled && isBeatPulseVisible ? 1 : 0.25,
+                transform: metronomeEnabled && isBeatPulseVisible ? 'scale(1.35)' : 'scale(1)',
+                boxShadow:
+                  metronomeEnabled && isBeatPulseVisible
+                    ? isDownbeatPulse
+                      ? `0 0 0 5px ${alpha(theme.palette.error.main, 0.24)}`
+                      : `0 0 0 5px ${alpha(theme.palette.primary.main, 0.24)}`
+                    : 'none',
+                transition: 'opacity 90ms ease, transform 90ms ease, box-shadow 90ms ease',
+              }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 50 }}>
+              {t('ui.chordGrid.beatCounter', {
+                current: currentBeatInBar,
+                total: beatsPerBar,
+              })}
+            </Typography>
           </Box>
+          <IconButton
+            aria-label={t('ui.chordGrid.clearRecording')}
+            size="small"
+            onClick={clearRecordedEvents}
+            disabled={arrangementEvents.length === 0}
+          >
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
           <Box
             sx={{
               ml: { xs: 0, sm: 'auto' },
@@ -1192,109 +1095,10 @@ export default function GeneratedChordGridDialog({
           stepsPerBar={stepsPerBar}
           beatsPerBar={beatsPerBar}
           tempoBpm={tempoBpm}
-          isPlaying={isSequencerPlaying || isCountInActive}
+          isPlaying={isSequencerPlaying}
           loopLengthBars={loopLengthBars}
-          leadInBars={showRecordingLeadIn ? RECORDING_LEAD_IN_BARS : 0}
-          scrollToStep={showRecordingLeadIn ? stepsPerBar * RECORDING_LEAD_IN_BARS : 0}
-          scrollRequestKey={trackScrollRequestKey}
           events={arrangementEvents}
-          selectedStepIndex={selectedStepIndex}
-          onClipClick={(sourceStepIndex) => {
-            setSelectedStepIndex((prev) => (prev === sourceStepIndex ? null : sourceStepIndex));
-          }}
-          onClipMove={moveClipStep}
         />
-
-        {selectedStepIndex !== null && isMobile ? (
-          <Box
-            sx={{
-              mb: 1.5,
-              p: 1.25,
-              borderRadius: 1.5,
-              bgcolor: appColors.surface.translucentPanel,
-              border: `1px solid ${appColors.surface.translucentPanelBorder}`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              flexWrap: 'wrap',
-            }}
-          >
-            <Box sx={{ flex: 1, minWidth: 160 }}>
-              <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
-                {t('ui.chordGrid.selectedClipTitle', {
-                  defaultValue: 'Selected clip',
-                })}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {t('ui.chordGrid.selectedClipMeta', {
-                  defaultValue:
-                    '{{count}} event at step {{step}}. Drag the clip or use the controls to move it.',
-                  count: selectedStepEventCount,
-                  step: selectedStepIndex + 1,
-                })}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
-              <Tooltip
-                title={t('ui.chordGrid.moveClipLeft', {
-                  defaultValue: 'Move clip left',
-                })}
-              >
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={() => nudgeSelectedClip(-1)}
-                    disabled={selectedStepIndex === 0}
-                    aria-label={t('ui.chordGrid.moveClipLeft', {
-                      defaultValue: 'Move clip left',
-                    })}
-                  >
-                    <KeyboardArrowLeftIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              <Tooltip
-                title={t('ui.chordGrid.moveClipRight', {
-                  defaultValue: 'Move clip right',
-                })}
-              >
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={() => nudgeSelectedClip(1)}
-                    disabled={selectedStepIndex >= totalSteps - 1}
-                    aria-label={t('ui.chordGrid.moveClipRight', {
-                      defaultValue: 'Move clip right',
-                    })}
-                  >
-                    <KeyboardArrowRightIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              <Tooltip
-                title={t('ui.chordGrid.deleteSelectedClip', { defaultValue: 'Delete clip' })}
-              >
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={deleteSelectedClip}
-                    aria-label={t('ui.chordGrid.deleteSelectedClip', {
-                      defaultValue: 'Delete clip',
-                    })}
-                    sx={{ color: theme.palette.error.main }}
-                  >
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ width: '100%' }}>
-              {t('ui.chordGrid.touchEditHint', {
-                defaultValue: 'Tap a clip to select it. Drag it horizontally to move it.',
-              })}
-            </Typography>
-          </Box>
-        ) : null}
 
         {isEditMode ? (
           <Box

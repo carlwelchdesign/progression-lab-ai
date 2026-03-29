@@ -1,7 +1,5 @@
 'use client';
 
-import type { PointerEvent as ReactPointerEvent } from 'react';
-
 import { Box, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -16,24 +14,13 @@ type SequencerTrackProps = {
   tempoBpm: number;
   isPlaying: boolean;
   loopLengthBars: number;
-  leadInBars?: number;
-  scrollToStep?: number;
-  scrollRequestKey?: number;
   events?: ArrangementEvent[];
-  /** The original (non-display-offset) stepIndex of the currently selected clip, or null. */
-  selectedStepIndex?: number | null;
-  /** Called when the user clicks a clip (sourceStepIndex) or the empty lane area (null). */
-  onClipClick?: (sourceStepIndex: number | null) => void;
-  /** Called when the user drag-moves a clip to a new quantized step. */
-  onClipMove?: (sourceStepIndex: number, newStepIndex: number) => void;
 };
 
 type RenderedClip = ArrangementEvent & {
   width: number;
   color: string;
   label: string;
-  /** Original stepIndex before lead-in offset is applied. Used as the clip's stable key. */
-  sourceStepIndex: number;
 };
 
 const LABEL_COLUMN_WIDTH = 112;
@@ -80,18 +67,11 @@ export default function SequencerTrack({
   tempoBpm,
   isPlaying,
   loopLengthBars,
-  leadInBars = 0,
-  scrollToStep,
-  scrollRequestKey,
   events = [],
-  selectedStepIndex = null,
-  onClipClick,
-  onClipMove,
 }: SequencerTrackProps) {
   const theme = useTheme();
   const { appColors } = theme.palette;
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const playheadRef = useRef<HTMLDivElement | null>(null);
   const scrollAnimationFrameRef = useRef<number | null>(null);
   const rulerCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const laneCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -100,18 +80,12 @@ export default function SequencerTrack({
   const stepTickStartedAtRef = useRef(performance.now());
   const previousStepRef = useRef(currentStep);
   const [viewportWidth, setViewportWidth] = useState(0);
-  const dragSourceStepRef = useRef<number | null>(null);
-  const [dragGhostStep, setDragGhostStep] = useState<number | null>(null);
   const stepsPerBeat = stepsPerBar / beatsPerBar;
-  const normalizedLeadInBars = Math.max(0, leadInBars);
-  const leadInSteps = normalizedLeadInBars * stepsPerBar;
-  const displayCurrentStep = !isPlaying && currentStep === 0 ? 0 : currentStep + leadInSteps;
-  const displayTotalSteps = totalSteps + leadInSteps;
   const stepDurationMs = Math.max(45, 60_000 / Math.max(tempoBpm, 1) / Math.max(stepsPerBeat, 1));
-  const totalWidth = Math.max(displayTotalSteps * PIXELS_PER_STEP, 360);
+  const totalWidth = Math.max(totalSteps * PIXELS_PER_STEP, 360);
   const playheadAnchorPx = viewportWidth * PLAYHEAD_ANCHOR_RATIO;
   const extendedTrackWidth = totalWidth + playheadAnchorPx;
-  const playheadCenterPx = displayCurrentStep * PIXELS_PER_STEP + PIXELS_PER_STEP / 2;
+  const playheadCenterPx = currentStep * PIXELS_PER_STEP + PIXELS_PER_STEP / 2;
   const maxScrollLeft = Math.max(0, extendedTrackWidth - viewportWidth);
   const centeredDesiredScroll = playheadCenterPx - playheadAnchorPx;
   const isCenteredOverlayActive =
@@ -130,30 +104,13 @@ export default function SequencerTrack({
   const labelColor = alpha(theme.palette.common.white, isDarkMode ? 0.92 : 0.5);
   const metaColor = alpha(theme.palette.common.white, isDarkMode ? 0.45 : 0.4);
 
-  const stepDelta = displayCurrentStep - previousStepRef.current;
-  const isLoopWrapJump = stepDelta < 0;
-  previousStepRef.current = displayCurrentStep;
-
-  const setPlayheadTransform = (step: number) => {
-    if (!playheadRef.current) {
-      return;
-    }
-
-    playheadRef.current.style.transform = `translate3d(${step * PIXELS_PER_STEP}px, 0, 0)`;
-  };
+  const isLoopWrapJump = currentStep < previousStepRef.current;
+  previousStepRef.current = currentStep;
 
   useEffect(() => {
-    currentStepRef.current = displayCurrentStep;
+    currentStepRef.current = currentStep;
     stepTickStartedAtRef.current = performance.now();
-  }, [displayCurrentStep]);
-
-  useEffect(() => {
-    if (isPlaying && !isLoopWrapJump) {
-      return;
-    }
-
-    setPlayheadTransform(displayCurrentStep);
-  }, [displayCurrentStep, isLoopWrapJump, isPlaying]);
+  }, [currentStep]);
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -186,34 +143,6 @@ export default function SequencerTrack({
   }, [centeredDesiredScroll, isPlaying, maxScrollLeft]);
 
   useEffect(() => {
-    if (!isLoopWrapJump) {
-      return;
-    }
-
-    const container = scrollRef.current;
-    if (!container) {
-      return;
-    }
-
-    const desiredScrollLeft = Math.max(0, Math.min(maxScrollLeft, centeredDesiredScroll));
-    container.scrollLeft = desiredScrollLeft;
-  }, [centeredDesiredScroll, isLoopWrapJump, maxScrollLeft]);
-
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || scrollToStep === undefined) {
-      return;
-    }
-
-    const step = Math.max(0, Math.min(displayTotalSteps, scrollToStep));
-    const desiredScrollLeft = Math.max(
-      0,
-      Math.min(maxScrollLeft, step * PIXELS_PER_STEP - playheadAnchorPx),
-    );
-    container.scrollLeft = desiredScrollLeft;
-  }, [displayTotalSteps, maxScrollLeft, playheadAnchorPx, scrollRequestKey, scrollToStep]);
-
-  useEffect(() => {
     const container = scrollRef.current;
     if (!container || !isPlaying) {
       if (scrollAnimationFrameRef.current !== null) {
@@ -234,7 +163,6 @@ export default function SequencerTrack({
       const elapsedSinceTickMs = performance.now() - stepTickStartedAtRef.current;
       const stepProgress = Math.min(1, Math.max(0, elapsedSinceTickMs / stepDurationMs));
       const interpolatedStep = currentStepRef.current + stepProgress;
-      setPlayheadTransform(interpolatedStep);
       const playheadCenterPx = interpolatedStep * PIXELS_PER_STEP + PIXELS_PER_STEP / 2;
       const desiredScrollLeft = Math.max(
         0,
@@ -267,11 +195,11 @@ export default function SequencerTrack({
 
   const bars = useMemo(
     () =>
-      Array.from({ length: normalizedLeadInBars + loopLengthBars }, (_, index) => ({
+      Array.from({ length: loopLengthBars }, (_, index) => ({
         index,
         startStep: index * stepsPerBar,
       })),
-    [loopLengthBars, normalizedLeadInBars, stepsPerBar],
+    [loopLengthBars, stepsPerBar],
   );
 
   useEffect(() => {
@@ -303,7 +231,7 @@ export default function SequencerTrack({
     drawCanvas(rulerCanvasRef.current, RULER_HEIGHT, (ctx, width, height) => {
       const beatTickHeight = 10;
 
-      for (let step = 1; step < displayTotalSteps; step += 1) {
+      for (let step = 1; step < totalSteps; step += 1) {
         if (step % stepsPerBeat !== 0) {
           continue;
         }
@@ -324,7 +252,7 @@ export default function SequencerTrack({
     });
 
     drawCanvas(laneCanvasRef.current, LANE_HEIGHT, (ctx, width, height) => {
-      for (let barIndex = 0; barIndex < normalizedLeadInBars + loopLengthBars; barIndex += 1) {
+      for (let barIndex = 0; barIndex < loopLengthBars; barIndex += 1) {
         if (barIndex % 2 !== 0) {
           continue;
         }
@@ -334,7 +262,7 @@ export default function SequencerTrack({
         ctx.fillRect(barStart, 0, stepsPerBar * PIXELS_PER_STEP, height);
       }
 
-      for (let step = 1; step < displayTotalSteps; step += 1) {
+      for (let step = 1; step < totalSteps; step += 1) {
         const x = step * PIXELS_PER_STEP;
         if (step % stepsPerBar === 0) {
           ctx.fillStyle = barLineColor;
@@ -361,13 +289,12 @@ export default function SequencerTrack({
     beatLineColor,
     extendedTrackWidth,
     isDarkMode,
-    displayTotalSteps,
     loopLengthBars,
-    normalizedLeadInBars,
     stepLineColor,
     stepsPerBar,
     stepsPerBeat,
     theme.palette.common.white,
+    totalSteps,
   ]);
 
   const clips = useMemo<RenderedClip[]>(() => {
@@ -394,18 +321,16 @@ export default function SequencerTrack({
         uniqueChordNames.length <= 2
           ? uniqueChordNames.join(' / ')
           : `${uniqueChordNames[0]} +${uniqueChordNames.length - 1}`;
-      const displayStepIndex = stepIndex + leadInSteps;
 
       return {
         ...firstEvent,
-        stepIndex: displayStepIndex,
-        sourceStepIndex: stepIndex,
+        stepIndex,
         label,
         width: Math.max(spanSteps * PIXELS_PER_STEP - 2, PIXELS_PER_STEP * 1.5),
         color: getClipTone(firstEvent.chord, appColors.accent.chordSuggestionBorders),
       };
     });
-  }, [appColors.accent.chordSuggestionBorders, events, leadInSteps, totalSteps]);
+  }, [appColors.accent.chordSuggestionBorders, events, totalSteps]);
 
   useEffect(() => {
     const canvas = clipCanvasRef.current;
@@ -509,43 +434,6 @@ export default function SequencerTrack({
     }
   }, [clips, extendedTrackWidth, isDarkMode, laneTop, theme.palette.common.white, totalWidth]);
 
-  const handleClipPointerDown = (clip: RenderedClip, event: ReactPointerEvent<HTMLElement>) => {
-    if (isPlaying) return;
-
-    if (event.pointerType === 'touch') {
-      event.preventDefault();
-    }
-
-    event.stopPropagation();
-    const sourceStep = clip.sourceStepIndex;
-    const startX = event.clientX;
-    onClipClick?.(sourceStep);
-    dragSourceStepRef.current = sourceStep;
-
-    const handleMove = (moveEvent: PointerEvent) => {
-      const delta = Math.round((moveEvent.clientX - startX) / PIXELS_PER_STEP);
-      const next = Math.max(0, Math.min(totalSteps - 1, sourceStep + delta));
-      setDragGhostStep(next);
-    };
-
-    const handleUp = (endEvent: PointerEvent) => {
-      window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleUp);
-      window.removeEventListener('pointercancel', handleUp);
-      dragSourceStepRef.current = null;
-      const delta = Math.round((endEvent.clientX - startX) / PIXELS_PER_STEP);
-      const next = Math.max(0, Math.min(totalSteps - 1, sourceStep + delta));
-      setDragGhostStep(null);
-      if (next !== sourceStep) {
-        onClipMove?.(sourceStep, next);
-      }
-    };
-
-    window.addEventListener('pointermove', handleMove, { passive: false });
-    window.addEventListener('pointerup', handleUp, { passive: false });
-    window.addEventListener('pointercancel', handleUp, { passive: false });
-  };
-
   return (
     <Box
       sx={{
@@ -627,17 +515,6 @@ export default function SequencerTrack({
               >
                 {loopLengthBars} bar{loopLengthBars === 1 ? '' : 's'}
               </Typography>
-              {normalizedLeadInBars > 0 ? (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: metaColor,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  +{normalizedLeadInBars} bar lead-in
-                </Typography>
-              ) : null}
             </Box>
           </Box>
         </Box>
@@ -686,10 +563,6 @@ export default function SequencerTrack({
 
                 {bars.map((bar) => {
                   const barLeft = bar.startStep * PIXELS_PER_STEP;
-                  const barLabel =
-                    bar.index < normalizedLeadInBars
-                      ? 'L'
-                      : String(bar.index - normalizedLeadInBars + 1);
                   return (
                     <Typography
                       key={`bar-ruler-label-${bar.index}`}
@@ -703,7 +576,7 @@ export default function SequencerTrack({
                         color: labelColor,
                       }}
                     >
-                      {barLabel}
+                      {bar.index + 1}
                     </Typography>
                   );
                 })}
@@ -714,11 +587,6 @@ export default function SequencerTrack({
                   position: 'relative',
                   height: LANE_HEIGHT,
                   backgroundColor: laneColor,
-                }}
-                onClick={(e) => {
-                  if (e.target === e.currentTarget) {
-                    onClipClick?.(null);
-                  }
                 }}
               >
                 <Box
@@ -746,70 +614,27 @@ export default function SequencerTrack({
                   }}
                 />
 
-                {clips.map((clip, index) => {
-                  const isSelected = selectedStepIndex === clip.sourceStepIndex;
-                  const isDraggingThis =
-                    dragSourceStepRef.current === clip.sourceStepIndex && dragGhostStep !== null;
-                  return (
-                    <Box
-                      key={`${clip.padKey}-${clip.sourceStepIndex}-${index}`}
-                      title={`${clip.label} at step ${clip.sourceStepIndex + 1}`}
-                      aria-label={`${clip.label} at step ${clip.sourceStepIndex + 1}`}
-                      onPointerDown={(event) => handleClipPointerDown(clip, event)}
-                      sx={{
-                        position: 'absolute',
-                        left: clip.stepIndex * PIXELS_PER_STEP + 1,
-                        top: laneTop,
-                        width: Math.min(
-                          clip.width,
-                          totalWidth - clip.stepIndex * PIXELS_PER_STEP - 2,
-                        ),
-                        minWidth: 28,
-                        height: CLIP_HEIGHT,
-                        borderRadius: 0.5,
-                        outline: isSelected ? `2px solid ${alpha(clip.color, 0.9)}` : 'none',
-                        outlineOffset: '-2px',
-                        backgroundColor: isSelected ? alpha(clip.color, 0.1) : 'transparent',
-                        cursor: isPlaying ? 'default' : 'grab',
-                        zIndex: 3,
-                        opacity: isDraggingThis ? 0.35 : 1,
-                        userSelect: 'none',
-                        WebkitUserSelect: 'none',
-                        touchAction: 'none',
-                      }}
-                    />
-                  );
-                })}
-                {/* Drag ghost – renders at the target position while the user is dragging */}
-                {dragGhostStep !== null &&
-                  dragSourceStepRef.current !== null &&
-                  (() => {
-                    const draggingClip = clips.find(
-                      (c) => c.sourceStepIndex === dragSourceStepRef.current,
-                    );
-                    if (!draggingClip) return null;
-                    const ghostDisplayStep = dragGhostStep + leadInSteps;
-                    return (
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          left: ghostDisplayStep * PIXELS_PER_STEP + 1,
-                          top: laneTop,
-                          width: Math.min(
-                            draggingClip.width,
-                            totalWidth - ghostDisplayStep * PIXELS_PER_STEP - 2,
-                          ),
-                          minWidth: 28,
-                          height: CLIP_HEIGHT,
-                          borderRadius: 0.5,
-                          border: `2px dashed ${alpha(draggingClip.color, 0.7)}`,
-                          backgroundColor: alpha(draggingClip.color, 0.12),
-                          zIndex: 5,
-                          pointerEvents: 'none',
-                        }}
-                      />
-                    );
-                  })()}
+                {clips.map((clip, index) => (
+                  <Box
+                    key={`${clip.padKey}-${clip.stepIndex}-${index}`}
+                    title={`${clip.label} at step ${clip.stepIndex + 1}`}
+                    aria-label={`${clip.label} at step ${clip.stepIndex + 1}`}
+                    sx={{
+                      position: 'absolute',
+                      left: clip.stepIndex * PIXELS_PER_STEP + 1,
+                      top: laneTop,
+                      width: Math.min(
+                        clip.width,
+                        totalWidth - clip.stepIndex * PIXELS_PER_STEP - 2,
+                      ),
+                      minWidth: 28,
+                      height: CLIP_HEIGHT,
+                      borderRadius: 0.5,
+                      backgroundColor: 'transparent',
+                      zIndex: 3,
+                    }}
+                  />
+                ))}
 
                 {clips.length === 0 ? (
                   <Box
@@ -843,21 +668,23 @@ export default function SequencerTrack({
                 ) : null}
 
                 <Box
-                  ref={playheadRef}
                   sx={{
                     position: 'absolute',
                     left: 0,
                     top: 0,
                     bottom: 0,
                     width: 2,
-                    transform: `translate3d(${displayCurrentStep * PIXELS_PER_STEP}px, 0, 0)`,
+                    transform: `translate3d(${currentStep * PIXELS_PER_STEP}px, 0, 0)`,
                     willChange: isPlaying ? 'transform' : 'auto',
                     backgroundColor: playheadColor,
                     boxShadow: `0 0 0 1px ${alpha(playheadColor, 0.28)}, 0 0 14px ${alpha(playheadColor, 0.36)}`,
                     zIndex: 5,
                     opacity: isCenteredOverlayActive ? 0 : 1,
                     pointerEvents: 'none',
-                    transition: 'none',
+                    transition:
+                      isPlaying && !isLoopWrapJump
+                        ? `transform ${stepDurationMs}ms linear`
+                        : 'none',
                   }}
                 >
                   <Box
