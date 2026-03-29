@@ -192,4 +192,72 @@ describe('GeneratedChordGridDialog', () => {
       screen.queryByText('Delete / Backspace: remove all events at the selected step.'),
     ).not.toBeInTheDocument();
   });
+
+  it('disables record until a chord pad is pressed', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <GeneratedChordGridDialog
+        open={true}
+        onClose={jest.fn()}
+        tempoBpm={120}
+        settings={PLAYBACK_SETTINGS_DEFAULTS}
+        onSettingsChange={mockHandlers}
+        onTempoBpmChange={jest.fn()}
+        chords={[mockChord]}
+      />,
+    );
+
+    const recordButton = screen.getByRole('button', { name: 'Record arrangement' });
+    expect(recordButton).toBeDisabled();
+
+    await user.pointer({
+      target: screen.getByRole('button', { name: mockChord.chord }),
+      keys: '[MouseLeft]',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Record arrangement' })).toBeEnabled();
+    });
+  });
+
+  it('re-disables record when the dialog is reopened', async () => {
+    const user = userEvent.setup();
+    const view = renderWithProviders(
+      <GeneratedChordGridDialog
+        open={true}
+        onClose={jest.fn()}
+        tempoBpm={120}
+        settings={PLAYBACK_SETTINGS_DEFAULTS}
+        onSettingsChange={mockHandlers}
+        onTempoBpmChange={jest.fn()}
+        chords={[mockChord]}
+      />,
+    );
+
+    await user.pointer({
+      target: screen.getByRole('button', { name: mockChord.chord }),
+      keys: '[MouseLeft]',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Record arrangement' })).toBeEnabled();
+    });
+
+    view.unmount();
+
+    renderWithProviders(
+      <GeneratedChordGridDialog
+        open={true}
+        onClose={jest.fn()}
+        tempoBpm={120}
+        settings={PLAYBACK_SETTINGS_DEFAULTS}
+        onSettingsChange={mockHandlers}
+        onTempoBpmChange={jest.fn()}
+        chords={[mockChord]}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Record arrangement' })).toBeDisabled();
+  });
 });

@@ -1451,6 +1451,8 @@ export const startAudio = async (): Promise<void> => {
   await getAudioEngine().startAudio();
 };
 
+export const isAudioInitialized = (): boolean => Tone.context.state === 'running';
+
 export const playMetronomeClick = async (volume: number, isDownbeat: boolean): Promise<void> => {
   await getAudioEngine().playMetronomeClick(volume, isDownbeat);
 };

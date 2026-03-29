@@ -267,6 +267,7 @@ export default function GeneratedChordGridDialog({
   const [editingPadKey, setEditingPadKey] = useState<string | null>(null);
   const [isSequencerPlaying, setIsSequencerPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [hasInitializedAudio, setHasInitializedAudio] = useState(false);
   const [isCountInActive, setIsCountInActive] = useState(false);
   const [isLoopEnabled, setIsLoopEnabled] = useState(true);
   const [loopLengthBars, setLoopLengthBars] = useState<(typeof LOOP_LENGTH_OPTIONS)[number]>(1);
@@ -365,30 +366,34 @@ export default function GeneratedChordGridDialog({
   }, [pendingLoad?.key]);
 
   useEffect(() => {
-    if (!open) {
-      if (sequencerTimerRef.current) {
-        clearTimeout(sequencerTimerRef.current);
-        sequencerTimerRef.current = null;
-      }
-
-      if (countInTimerRef.current) {
-        clearTimeout(countInTimerRef.current);
-        countInTimerRef.current = null;
-      }
-
-      if (countInStartTimeoutRef.current) {
-        clearTimeout(countInStartTimeoutRef.current);
-        countInStartTimeoutRef.current = null;
-      }
-
-      setIsSequencerPlaying(false);
-      setIsRecording(false);
-      setIsCountInActive(false);
-      setCurrentStep(0);
-      currentStepRef.current = 0;
-      setSelectedStepIndex(null);
-      setCofFocusPadKey(null);
+    if (open) {
+      setHasInitializedAudio(false);
+      return;
     }
+
+    if (sequencerTimerRef.current) {
+      clearTimeout(sequencerTimerRef.current);
+      sequencerTimerRef.current = null;
+    }
+
+    if (countInTimerRef.current) {
+      clearTimeout(countInTimerRef.current);
+      countInTimerRef.current = null;
+    }
+
+    if (countInStartTimeoutRef.current) {
+      clearTimeout(countInStartTimeoutRef.current);
+      countInStartTimeoutRef.current = null;
+    }
+
+    setIsSequencerPlaying(false);
+    setIsRecording(false);
+    setIsCountInActive(false);
+    setCurrentStep(0);
+    currentStepRef.current = 0;
+    setSelectedStepIndex(null);
+    setCofFocusPadKey(null);
+    setHasInitializedAudio(false);
   }, [open]);
 
   const beatsPerBar = useMemo(() => getBeatsPerBar(timeSignature), [timeSignature]);
@@ -646,6 +651,10 @@ export default function GeneratedChordGridDialog({
   };
 
   const handleRecordToggle = () => {
+    if (!hasInitializedAudio) {
+      return;
+    }
+
     if (isCountInActive) {
       stopSequencer();
       return;
@@ -779,6 +788,10 @@ export default function GeneratedChordGridDialog({
   };
 
   const onPadPress = (entry: ChordGridEntry) => {
+    if (!hasInitializedAudio) {
+      setHasInitializedAudio(true);
+    }
+
     if (isEditMode) {
       setEditingPadKey(entry.key);
     } else {
@@ -1070,23 +1083,26 @@ export default function GeneratedChordGridDialog({
                     : t('ui.chordGrid.recordArrangement')
               }
             >
-              <IconButton
-                size="small"
-                aria-label={
-                  isCountInActive
-                    ? t('ui.chordGrid.countInAriaLabel', {
-                        current: currentBeatInBar,
-                        total: beatsPerBar,
-                      })
-                    : isRecording
-                      ? t('ui.chordGrid.stopRecording')
-                      : t('ui.chordGrid.recordArrangement')
-                }
-                onClick={handleRecordToggle}
-                sx={getTransportIconButtonSx(isRecording || isCountInActive, 'error')}
-              >
-                <FiberManualRecordIcon fontSize="small" />
-              </IconButton>
+              <span>
+                <IconButton
+                  size="small"
+                  aria-label={
+                    isCountInActive
+                      ? t('ui.chordGrid.countInAriaLabel', {
+                          current: currentBeatInBar,
+                          total: beatsPerBar,
+                        })
+                      : isRecording
+                        ? t('ui.chordGrid.stopRecording')
+                        : t('ui.chordGrid.recordArrangement')
+                  }
+                  onClick={handleRecordToggle}
+                  disabled={!hasInitializedAudio}
+                  sx={getTransportIconButtonSx(isRecording || isCountInActive, 'error')}
+                >
+                  <FiberManualRecordIcon fontSize="small" />
+                </IconButton>
+              </span>
             </Tooltip>
             <Tooltip
               title={isLoopEnabled ? t('ui.chordGrid.disableLoop') : t('ui.chordGrid.enableLoop')}
