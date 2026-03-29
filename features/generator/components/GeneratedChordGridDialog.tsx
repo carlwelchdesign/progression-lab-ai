@@ -1022,29 +1022,23 @@ export default function GeneratedChordGridDialog({
             alignItems: 'center',
           }}
         >
-          <PlaybackToggleButton
-            isPlaying={isSequencerPlaying}
-            onClick={handleSequencerPlayToggle}
-            playTitle={t('ui.buttons.playArrangement')}
-            stopTitle={t('ui.buttons.stopArrangement')}
-          />
-          <Tooltip
-            title={
-              isCountInActive
-                ? t('ui.chordGrid.countInTooltip', {
-                    current: currentBeatInBar,
-                    total: beatsPerBar,
-                  })
-                : isRecording
-                  ? t('ui.chordGrid.stopRecording')
-                  : t('ui.chordGrid.recordArrangement')
-            }
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              flexWrap: 'wrap',
+              mb: { xs: 0.75, sm: 0 },
+            }}
           >
-            <IconButton
-              size="small"
-              aria-label={
+            <PlaybackToggleButton
+              isPlaying={isSequencerPlaying}
+              onClick={handleSequencerPlayToggle}
+            />
+            <Tooltip
+              title={
                 isCountInActive
-                  ? t('ui.chordGrid.countInAriaLabel', {
+                  ? t('ui.chordGrid.countInTooltip', {
                       current: currentBeatInBar,
                       total: beatsPerBar,
                     })
@@ -1052,81 +1046,95 @@ export default function GeneratedChordGridDialog({
                     ? t('ui.chordGrid.stopRecording')
                     : t('ui.chordGrid.recordArrangement')
               }
-              onClick={handleRecordToggle}
-              sx={getTransportIconButtonSx(isRecording || isCountInActive, 'error')}
             >
-              <FiberManualRecordIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title={isLoopEnabled ? t('ui.chordGrid.disableLoop') : t('ui.chordGrid.enableLoop')}
-          >
-            <IconButton
-              size="small"
-              aria-label={
-                isLoopEnabled ? t('ui.chordGrid.disableLoop') : t('ui.chordGrid.enableLoop')
-              }
-              onClick={() => setIsLoopEnabled((previous) => !previous)}
-              sx={getTransportIconButtonSx(isLoopEnabled)}
+              <IconButton
+                size="small"
+                aria-label={
+                  isCountInActive
+                    ? t('ui.chordGrid.countInAriaLabel', {
+                        current: currentBeatInBar,
+                        total: beatsPerBar,
+                      })
+                    : isRecording
+                      ? t('ui.chordGrid.stopRecording')
+                      : t('ui.chordGrid.recordArrangement')
+                }
+                onClick={handleRecordToggle}
+                sx={getTransportIconButtonSx(isRecording || isCountInActive, 'error')}
+              >
+                <FiberManualRecordIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip
+              title={isLoopEnabled ? t('ui.chordGrid.disableLoop') : t('ui.chordGrid.enableLoop')}
             >
-              <LoopIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title={
-              metronomeEnabled
-                ? t('ui.chordGrid.disableMetronome')
-                : t('ui.chordGrid.enableMetronome')
-            }
-          >
-            <IconButton
-              size="small"
-              aria-label={
+              <IconButton
+                size="small"
+                aria-label={
+                  isLoopEnabled ? t('ui.chordGrid.disableLoop') : t('ui.chordGrid.enableLoop')
+                }
+                onClick={() => setIsLoopEnabled((previous) => !previous)}
+                sx={getTransportIconButtonSx(isLoopEnabled)}
+              >
+                <LoopIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip
+              title={
                 metronomeEnabled
                   ? t('ui.chordGrid.disableMetronome')
                   : t('ui.chordGrid.enableMetronome')
               }
-              onClick={() => onSettingsChange.onMetronomeEnabledChange(!metronomeEnabled)}
-              sx={getTransportIconButtonSx(metronomeEnabled)}
             >
-              <AvTimerIcon fontSize="small" />
+              <IconButton
+                size="small"
+                aria-label={
+                  metronomeEnabled
+                    ? t('ui.chordGrid.disableMetronome')
+                    : t('ui.chordGrid.enableMetronome')
+                }
+                onClick={() => onSettingsChange.onMetronomeEnabledChange(!metronomeEnabled)}
+                sx={getTransportIconButtonSx(metronomeEnabled)}
+              >
+                <AvTimerIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  backgroundColor: isDownbeatPulse
+                    ? theme.palette.error.main
+                    : theme.palette.primary.main,
+                  opacity: metronomeEnabled && isBeatPulseVisible ? 1 : 0.25,
+                  transform: metronomeEnabled && isBeatPulseVisible ? 'scale(1.35)' : 'scale(1)',
+                  boxShadow:
+                    metronomeEnabled && isBeatPulseVisible
+                      ? isDownbeatPulse
+                        ? `0 0 0 5px ${alpha(theme.palette.error.main, 0.24)}`
+                        : `0 0 0 5px ${alpha(theme.palette.primary.main, 0.24)}`
+                      : 'none',
+                  transition: 'opacity 90ms ease, transform 90ms ease, box-shadow 90ms ease',
+                }}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ minWidth: 50 }}>
+                {t('ui.chordGrid.beatCounter', {
+                  current: currentBeatInBar,
+                  total: beatsPerBar,
+                })}
+              </Typography>
+            </Box>
+            <IconButton
+              aria-label={t('ui.chordGrid.clearRecording')}
+              size="small"
+              onClick={clearRecordedEvents}
+              disabled={arrangementEvents.length === 0}
+            >
+              <DeleteOutlineIcon fontSize="small" />
             </IconButton>
-          </Tooltip>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Box
-              sx={{
-                width: 10,
-                height: 10,
-                borderRadius: '50%',
-                backgroundColor: isDownbeatPulse
-                  ? theme.palette.error.main
-                  : theme.palette.primary.main,
-                opacity: metronomeEnabled && isBeatPulseVisible ? 1 : 0.25,
-                transform: metronomeEnabled && isBeatPulseVisible ? 'scale(1.35)' : 'scale(1)',
-                boxShadow:
-                  metronomeEnabled && isBeatPulseVisible
-                    ? isDownbeatPulse
-                      ? `0 0 0 5px ${alpha(theme.palette.error.main, 0.24)}`
-                      : `0 0 0 5px ${alpha(theme.palette.primary.main, 0.24)}`
-                    : 'none',
-                transition: 'opacity 90ms ease, transform 90ms ease, box-shadow 90ms ease',
-              }}
-            />
-            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 50 }}>
-              {t('ui.chordGrid.beatCounter', {
-                current: currentBeatInBar,
-                total: beatsPerBar,
-              })}
-            </Typography>
           </Box>
-          <IconButton
-            aria-label={t('ui.chordGrid.clearRecording')}
-            size="small"
-            onClick={clearRecordedEvents}
-            disabled={arrangementEvents.length === 0}
-          >
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
           <Box
             sx={{
               ml: { xs: 0, sm: 'auto' },
@@ -1197,7 +1205,7 @@ export default function GeneratedChordGridDialog({
           onClipMove={moveClipStep}
         />
 
-        {selectedStepIndex !== null ? (
+        {selectedStepIndex !== null && isMobile ? (
           <Box
             sx={{
               mb: 1.5,
@@ -1280,13 +1288,11 @@ export default function GeneratedChordGridDialog({
                 </span>
               </Tooltip>
             </Box>
-            {isMobile ? (
-              <Typography variant="caption" color="text.secondary" sx={{ width: '100%' }}>
-                {t('ui.chordGrid.touchEditHint', {
-                  defaultValue: 'Tap a clip to select it. Drag it horizontally to move it.',
-                })}
-              </Typography>
-            ) : null}
+            <Typography variant="caption" color="text.secondary" sx={{ width: '100%' }}>
+              {t('ui.chordGrid.touchEditHint', {
+                defaultValue: 'Tap a clip to select it. Drag it horizontally to move it.',
+              })}
+            </Typography>
           </Box>
         ) : null}
 
