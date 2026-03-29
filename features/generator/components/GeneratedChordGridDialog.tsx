@@ -63,6 +63,17 @@ type ChordGridEntry = {
   rightHand: string[];
 };
 
+const generateId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // Fallback for older mobile browsers (pre-iOS 15.4, older Android WebView)
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+};
+
 const STEPS_PER_BEAT = 4;
 const RECORDING_LEAD_IN_BARS = 1;
 const LOOP_LENGTH_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
@@ -260,6 +271,7 @@ export default function GeneratedChordGridDialog({
   const [trackScrollRequestKey, setTrackScrollRequestKey] = useState(0);
   const [arrangementEvents, setArrangementEvents] = useState<ArrangementEvent[]>([]);
   const [saveArrangementDialogOpen, setSaveArrangementDialogOpen] = useState(false);
+  const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null);
   const activePadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sequencerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -336,7 +348,10 @@ export default function GeneratedChordGridDialog({
       ),
     ) as (typeof LOOP_LENGTH_OPTIONS)[number];
 
-    setArrangementEvents(pendingLoad.events);
+    setArrangementEvents(
+      pendingLoad.events.map((event) => ({ ...event, id: event.id ?? generateId() })),
+    );
+    setSelectedStepIndex(null);
     setLoopLengthBars(clampedBars);
     setCurrentStep(0);
     currentStepRef.current = 0;
@@ -368,6 +383,7 @@ export default function GeneratedChordGridDialog({
       setIsCountInActive(false);
       setCurrentStep(0);
       currentStepRef.current = 0;
+      setSelectedStepIndex(null);
       setCofFocusPadKey(null);
     }
   }, [open]);
@@ -704,6 +720,18 @@ export default function GeneratedChordGridDialog({
     setArrangementEvents([]);
     setCurrentStep(0);
     currentStepRef.current = 0;
+    setSelectedStepIndex(null);
+  };
+
+  const moveClipStep = (sourceStepIndex: number, newStepIndex: number) => {
+    setArrangementEvents((prev) =>
+      prev
+        .map((event) =>
+          event.stepIndex === sourceStepIndex ? { ...event, stepIndex: newStepIndex } : event,
+        )
+        .sort((a, b) => a.stepIndex - b.stepIndex),
+    );
+    setSelectedStepIndex(newStepIndex);
   };
 
   const triggerPad = (entry: ChordGridEntry) => {
@@ -737,6 +765,7 @@ export default function GeneratedChordGridDialog({
     if (isRecording) {
       const stepIndex = Math.min(currentStepRef.current, Math.max(0, totalSteps - 1));
       const event: ArrangementEvent = {
+        id: generateId(),
         padKey: entry.key,
         chord: entry.chord,
         source: entry.source,
@@ -788,6 +817,33 @@ export default function GeneratedChordGridDialog({
         return;
       }
 
+      if ((key === 'delete' || key === 'backspace') && selectedStepIndex !== null) {
+        event.preventDefault();
+        setArrangementEvents((prev) => prev.filter((e) => e.stepIndex !== selectedStepIndex));
+        setSelectedStepIndex(null);
+        return;
+      }
+
+      if (key === 'escape') {
+        setSelectedStepIndex(null);
+        return;
+      }
+
+      if ((key === 'arrowleft' || key === 'arrowright') && selectedStepIndex !== null) {
+        event.preventDefault();
+        const delta = key === 'arrowleft' ? -1 : 1;
+        const next = Math.max(0, Math.min(totalSteps - 1, selectedStepIndex + delta));
+        if (next !== selectedStepIndex) {
+          setArrangementEvents((prev) =>
+            prev
+              .map((e) => (e.stepIndex === selectedStepIndex ? { ...e, stepIndex: next } : e))
+              .sort((a, b) => a.stepIndex - b.stepIndex),
+          );
+          setSelectedStepIndex(next);
+        }
+        return;
+      }
+
       const matchedEntry = padHotkeyMap.get(key);
       if (!matchedEntry) {
         return;
@@ -811,6 +867,8 @@ export default function GeneratedChordGridDialog({
     open,
     padHotkeyMap,
     saveArrangementDialogOpen,
+    selectedStepIndex,
+    totalSteps,
   ]);
 
   const onPadChordChange = (padKey: string, chord: string) => {
@@ -1116,6 +1174,11 @@ export default function GeneratedChordGridDialog({
           scrollToStep={showRecordingLeadIn ? stepsPerBar * RECORDING_LEAD_IN_BARS : 0}
           scrollRequestKey={trackScrollRequestKey}
           events={arrangementEvents}
+          selectedStepIndex={selectedStepIndex}
+          onClipClick={(sourceStepIndex) => {
+            setSelectedStepIndex((prev) => (prev === sourceStepIndex ? null : sourceStepIndex));
+          }}
+          onClipMove={moveClipStep}
         />
 
         {isEditMode ? (

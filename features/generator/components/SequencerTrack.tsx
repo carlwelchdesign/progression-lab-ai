@@ -18,12 +18,20 @@ type SequencerTrackProps = {
   scrollToStep?: number;
   scrollRequestKey?: number;
   events?: ArrangementEvent[];
+  /** The original (non-display-offset) stepIndex of the currently selected clip, or null. */
+  selectedStepIndex?: number | null;
+  /** Called when the user clicks a clip (sourceStepIndex) or the empty lane area (null). */
+  onClipClick?: (sourceStepIndex: number | null) => void;
+  /** Called when the user drag-moves a clip to a new quantized step. */
+  onClipMove?: (sourceStepIndex: number, newStepIndex: number) => void;
 };
 
 type RenderedClip = ArrangementEvent & {
   width: number;
   color: string;
   label: string;
+  /** Original stepIndex before lead-in offset is applied. Used as the clip's stable key. */
+  sourceStepIndex: number;
 };
 
 const LABEL_COLUMN_WIDTH = 112;
@@ -74,6 +82,9 @@ export default function SequencerTrack({
   scrollToStep,
   scrollRequestKey,
   events = [],
+  selectedStepIndex = null,
+  onClipClick,
+  onClipMove,
 }: SequencerTrackProps) {
   const theme = useTheme();
   const { appColors } = theme.palette;
@@ -87,6 +98,8 @@ export default function SequencerTrack({
   const stepTickStartedAtRef = useRef(performance.now());
   const previousStepRef = useRef(currentStep);
   const [viewportWidth, setViewportWidth] = useState(0);
+  const dragSourceStepRef = useRef<number | null>(null);
+  const [dragGhostStep, setDragGhostStep] = useState<number | null>(null);
   const stepsPerBeat = stepsPerBar / beatsPerBar;
   const normalizedLeadInBars = Math.max(0, leadInBars);
   const leadInSteps = normalizedLeadInBars * stepsPerBar;
@@ -384,6 +397,7 @@ export default function SequencerTrack({
       return {
         ...firstEvent,
         stepIndex: displayStepIndex,
+        sourceStepIndex: stepIndex,
         label,
         width: Math.max(spanSteps * PIXELS_PER_STEP - 2, PIXELS_PER_STEP * 1.5),
         color: getClipTone(firstEvent.chord, appColors.accent.chordSuggestionBorders),
@@ -492,6 +506,40 @@ export default function SequencerTrack({
       }
     }
   }, [clips, extendedTrackWidth, isDarkMode, laneTop, theme.palette.common.white, totalWidth]);
+
+  const handleClipMouseDown = (
+    clip: RenderedClip,
+    e: { preventDefault: () => void; stopPropagation: () => void; clientX: number },
+  ) => {
+    if (isPlaying) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const sourceStep = clip.sourceStepIndex;
+    const startX = e.clientX;
+    onClipClick?.(sourceStep);
+    dragSourceStepRef.current = sourceStep;
+
+    const handleMove = (me: MouseEvent) => {
+      const delta = Math.round((me.clientX - startX) / PIXELS_PER_STEP);
+      const next = Math.max(0, Math.min(totalSteps - 1, sourceStep + delta));
+      setDragGhostStep(next);
+    };
+
+    const handleUp = (ue: MouseEvent) => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+      dragSourceStepRef.current = null;
+      const delta = Math.round((ue.clientX - startX) / PIXELS_PER_STEP);
+      const next = Math.max(0, Math.min(totalSteps - 1, sourceStep + delta));
+      setDragGhostStep(null);
+      if (next !== sourceStep) {
+        onClipMove?.(sourceStep, next);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
 
   return (
     <Box
@@ -662,6 +710,11 @@ export default function SequencerTrack({
                   height: LANE_HEIGHT,
                   backgroundColor: laneColor,
                 }}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    onClipClick?.(null);
+                  }
+                }}
               >
                 <Box
                   component="canvas"
@@ -688,27 +741,68 @@ export default function SequencerTrack({
                   }}
                 />
 
-                {clips.map((clip, index) => (
-                  <Box
-                    key={`${clip.padKey}-${clip.stepIndex}-${index}`}
-                    title={`${clip.label} at step ${clip.stepIndex + 1}`}
-                    aria-label={`${clip.label} at step ${clip.stepIndex + 1}`}
-                    sx={{
-                      position: 'absolute',
-                      left: clip.stepIndex * PIXELS_PER_STEP + 1,
-                      top: laneTop,
-                      width: Math.min(
-                        clip.width,
-                        totalWidth - clip.stepIndex * PIXELS_PER_STEP - 2,
-                      ),
-                      minWidth: 28,
-                      height: CLIP_HEIGHT,
-                      borderRadius: 0.5,
-                      backgroundColor: 'transparent',
-                      zIndex: 3,
-                    }}
-                  />
-                ))}
+                {clips.map((clip, index) => {
+                  const isSelected = selectedStepIndex === clip.sourceStepIndex;
+                  const isDraggingThis =
+                    dragSourceStepRef.current === clip.sourceStepIndex && dragGhostStep !== null;
+                  return (
+                    <Box
+                      key={`${clip.padKey}-${clip.sourceStepIndex}-${index}`}
+                      title={`${clip.label} at step ${clip.sourceStepIndex + 1}`}
+                      aria-label={`${clip.label} at step ${clip.sourceStepIndex + 1}`}
+                      onMouseDown={(e) => handleClipMouseDown(clip, e)}
+                      sx={{
+                        position: 'absolute',
+                        left: clip.stepIndex * PIXELS_PER_STEP + 1,
+                        top: laneTop,
+                        width: Math.min(
+                          clip.width,
+                          totalWidth - clip.stepIndex * PIXELS_PER_STEP - 2,
+                        ),
+                        minWidth: 28,
+                        height: CLIP_HEIGHT,
+                        borderRadius: 0.5,
+                        outline: isSelected ? `2px solid ${alpha(clip.color, 0.9)}` : 'none',
+                        outlineOffset: '-2px',
+                        backgroundColor: isSelected ? alpha(clip.color, 0.1) : 'transparent',
+                        cursor: isPlaying ? 'default' : 'grab',
+                        zIndex: 3,
+                        opacity: isDraggingThis ? 0.35 : 1,
+                        userSelect: 'none',
+                      }}
+                    />
+                  );
+                })}
+                {/* Drag ghost – renders at the target position while the user is dragging */}
+                {dragGhostStep !== null &&
+                  dragSourceStepRef.current !== null &&
+                  (() => {
+                    const draggingClip = clips.find(
+                      (c) => c.sourceStepIndex === dragSourceStepRef.current,
+                    );
+                    if (!draggingClip) return null;
+                    const ghostDisplayStep = dragGhostStep + leadInSteps;
+                    return (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: ghostDisplayStep * PIXELS_PER_STEP + 1,
+                          top: laneTop,
+                          width: Math.min(
+                            draggingClip.width,
+                            totalWidth - ghostDisplayStep * PIXELS_PER_STEP - 2,
+                          ),
+                          minWidth: 28,
+                          height: CLIP_HEIGHT,
+                          borderRadius: 0.5,
+                          border: `2px dashed ${alpha(draggingClip.color, 0.7)}`,
+                          backgroundColor: alpha(draggingClip.color, 0.12),
+                          zIndex: 5,
+                          pointerEvents: 'none',
+                        }}
+                      />
+                    );
+                  })()}
 
                 {clips.length === 0 ? (
                   <Box

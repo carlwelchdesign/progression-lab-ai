@@ -74,7 +74,7 @@ export function getArrangementMidiEvents(arrangement: Arrangement): Array<{
   velocity?: number;
 }> {
   const TICKS_PER_QUARTER = 480;
-  const STEPS_PER_BEAT = 3; // From sequencer constants
+  const STEPS_PER_BEAT = 4; // Matches STEPS_PER_BEAT constant in GeneratedChordGridDialog
   const DEFAULT_VELOCITY = 84;
 
   // Calculate tick duration per step
