@@ -5,6 +5,7 @@ import {
   GATE_RANGE,
   INSTRUMENT_OPTIONS,
   INVERSION_OPTIONS,
+  METRONOME_SOURCE_OPTIONS,
   OCTAVE_SHIFT_MARKS,
   OCTAVE_SHIFT_RANGE,
   PLAYBACK_SETTINGS_COPY,
@@ -37,7 +38,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { playChordVoicing } from '../../../domain/audio/audio';
@@ -47,6 +48,12 @@ import SelectField from '../../../components/ui/SelectField';
 import EffectParamSlider from './EffectParamSlider';
 import EffectSettingsCard from './EffectSettingsCard';
 import { stopGlobalPlayback } from '../hooks/usePlaybackToggle';
+import {
+  buildGroupedDrumSelectOptions,
+  fetchMetronomeDrumOptions,
+  getCompatibleDrumOptions,
+  type MetronomeDrumOption,
+} from '../lib/metronomeDrumOptions';
 import type {
   PlaybackSettings,
   PlaybackSettingsChangeHandlers,
@@ -92,6 +99,8 @@ export default function PlaybackSettingsButton({
     timeSignature,
     metronomeEnabled,
     metronomeVolume,
+    metronomeSource,
+    metronomeDrumPath,
     humanize,
     gate,
     inversionRegister,
@@ -106,6 +115,8 @@ export default function PlaybackSettingsButton({
     onTimeSignatureChange,
     onMetronomeEnabledChange,
     onMetronomeVolumeChange,
+    onMetronomeSourceChange,
+    onMetronomeDrumPathChange,
     onGateChange,
     onInversionRegisterChange,
     onInstrumentChange,
@@ -124,12 +135,106 @@ export default function PlaybackSettingsButton({
 
   const closeDialog = () => setIsSettingsOpen(false);
   const canPreview = Boolean(previewVoicing);
+  const [drumOptions, setDrumOptions] = useState<MetronomeDrumOption[]>([]);
+  const [isDrumOptionsLoading, setIsDrumOptionsLoading] = useState(false);
   const toggleAdvanced = useCallback((effectId: EffectId) => {
     setAdvancedOpenByEffect((previousState) => ({
       ...previousState,
       [effectId]: !previousState[effectId],
     }));
   }, []);
+
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      return;
+    }
+
+    let isMounted = true;
+    setIsDrumOptionsLoading(true);
+    void fetchMetronomeDrumOptions()
+      .then((options) => {
+        if (!isMounted) {
+          return;
+        }
+        setDrumOptions(options);
+      })
+      .catch(() => {
+        if (!isMounted) {
+          return;
+        }
+        setDrumOptions([]);
+      })
+      .finally(() => {
+        if (!isMounted) {
+          return;
+        }
+        setIsDrumOptionsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isSettingsOpen]);
+
+  const compatibleDrumOptions = useMemo(
+    () => getCompatibleDrumOptions(drumOptions, timeSignature),
+    [drumOptions, timeSignature],
+  );
+
+  useEffect(() => {
+    if (metronomeSource !== 'drum') {
+      return;
+    }
+
+    if (isDrumOptionsLoading) {
+      return;
+    }
+
+    if (compatibleDrumOptions.length === 0) {
+      onMetronomeSourceChange('click');
+      onMetronomeDrumPathChange(null);
+      return;
+    }
+
+    const selectedOptionIsCompatible = compatibleDrumOptions.some(
+      (option) => option.value === metronomeDrumPath,
+    );
+
+    if (!selectedOptionIsCompatible) {
+      onMetronomeDrumPathChange(compatibleDrumOptions[0].value);
+    }
+  }, [
+    compatibleDrumOptions,
+    isDrumOptionsLoading,
+    metronomeDrumPath,
+    metronomeSource,
+    onMetronomeDrumPathChange,
+    onMetronomeSourceChange,
+  ]);
+
+  const metronomePatternSelectOptions = useMemo(() => {
+    if (isDrumOptionsLoading) {
+      return [
+        {
+          value: '',
+          label: PLAYBACK_SETTINGS_COPY.metronomePatternLoadingLabel,
+          disabled: true,
+        },
+      ];
+    }
+
+    if (compatibleDrumOptions.length === 0) {
+      return [
+        {
+          value: '',
+          label: PLAYBACK_SETTINGS_COPY.metronomePatternEmptyLabel,
+          disabled: true,
+        },
+      ];
+    }
+
+    return buildGroupedDrumSelectOptions(compatibleDrumOptions);
+  }, [compatibleDrumOptions, isDrumOptionsLoading]);
 
   const effectConfigs: EffectConfig[] = createEffectConfigs(settings, onChange);
   const envelopeSliderConfigs: SliderRowConfig[] = [
@@ -394,6 +499,49 @@ export default function PlaybackSettingsButton({
               />
               {metronomeEnabled ? (
                 <Box sx={{ mt: 0.5 }}>
+                  <SelectField
+                    label={PLAYBACK_SETTINGS_COPY.metronomeSourceLabel}
+                    value={metronomeSource}
+                    onChange={(event) => {
+                      const nextSource = event.target.value as PlaybackSettings['metronomeSource'];
+                      onMetronomeSourceChange(nextSource);
+
+                      if (nextSource === 'click') {
+                        onMetronomeDrumPathChange(null);
+                        return;
+                      }
+
+                      const firstCompatibleDrumPath = compatibleDrumOptions[0]?.value ?? null;
+                      onMetronomeDrumPathChange(firstCompatibleDrumPath);
+                    }}
+                    options={METRONOME_SOURCE_OPTIONS.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
+                    inputProps={{
+                      'aria-label': PLAYBACK_SETTINGS_COPY.metronomeSourceAriaLabel,
+                    }}
+                    margin="dense"
+                    fullWidth
+                  />
+
+                  {metronomeSource === 'drum' ? (
+                    <SelectField
+                      label={PLAYBACK_SETTINGS_COPY.metronomePatternLabel}
+                      value={metronomeDrumPath ?? ''}
+                      onChange={(event) => {
+                        const nextPath = event.target.value.trim();
+                        onMetronomeDrumPathChange(nextPath || null);
+                      }}
+                      options={metronomePatternSelectOptions}
+                      inputProps={{
+                        'aria-label': PLAYBACK_SETTINGS_COPY.metronomePatternAriaLabel,
+                      }}
+                      margin="dense"
+                      fullWidth
+                    />
+                  ) : null}
+
                   <EffectParamSlider
                     label={PLAYBACK_SETTINGS_COPY.metronomeVolumeLabel}
                     valueText={`${Math.round(metronomeVolume * 100)}%`}

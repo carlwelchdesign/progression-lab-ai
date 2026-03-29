@@ -38,6 +38,8 @@ type StructureSuggestionsSectionProps = {
   timeSignature?: TimeSignature;
   metronomeEnabled?: boolean;
   metronomeVolume?: number;
+  metronomeSource?: 'click' | 'drum';
+  metronomeDrumPath?: string | null;
   scale?: string;
   genre?: string;
   showTitle?: boolean;
@@ -154,6 +156,8 @@ export default function StructureSuggestionsSection({
   timeSignature,
   metronomeEnabled,
   metronomeVolume,
+  metronomeSource,
+  metronomeDrumPath,
   scale,
   genre,
   showTitle = true,
@@ -210,6 +214,8 @@ export default function StructureSuggestionsSection({
                       timeSignature,
                       metronomeEnabled,
                       metronomeVolume,
+                      metronomeSource,
+                      metronomeDrumPath,
                     }),
                   getProgressionAutoResetMs(arrangementVoicings.length, tempoBpm),
                 );
@@ -289,6 +295,8 @@ export default function StructureSuggestionsSection({
                             timeSignature,
                             metronomeEnabled,
                             metronomeVolume,
+                            metronomeSource,
+                            metronomeDrumPath,
                           }),
                         getProgressionAutoResetMs(sectionVoicings.length, tempoBpm),
                       );

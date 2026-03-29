@@ -121,6 +121,12 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
   const [metronomeVolume, setMetronomeVolume] = useState<number>(
     PLAYBACK_SETTINGS_DEFAULTS.metronomeVolume,
   );
+  const [metronomeSource, setMetronomeSource] = useState<PlaybackSettings['metronomeSource']>(
+    PLAYBACK_SETTINGS_DEFAULTS.metronomeSource,
+  );
+  const [metronomeDrumPath, setMetronomeDrumPath] = useState<PlaybackSettings['metronomeDrumPath']>(
+    PLAYBACK_SETTINGS_DEFAULTS.metronomeDrumPath,
+  );
 
   const handleReverbChange = useCallback((value: number) => {
     setReverb(value);
@@ -199,6 +205,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
       roomSize,
       metronomeEnabled,
       metronomeVolume,
+      metronomeSource,
+      metronomeDrumPath,
     }),
     [
       playbackStyle,
@@ -241,6 +249,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
       roomSize,
       metronomeEnabled,
       metronomeVolume,
+      metronomeSource,
+      metronomeDrumPath,
     ],
   );
 
@@ -286,6 +296,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
       onRoomSizeChange: handleRoomSizeChange,
       onMetronomeEnabledChange: setMetronomeEnabled,
       onMetronomeVolumeChange: setMetronomeVolume,
+      onMetronomeSourceChange: setMetronomeSource,
+      onMetronomeDrumPathChange: setMetronomeDrumPath,
     }),
     [
       handleChorusChange,
@@ -339,6 +351,8 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
       setRoomSize,
       setMetronomeEnabled,
       setMetronomeVolume,
+      setMetronomeSource,
+      setMetronomeDrumPath,
     }),
     [],
   );

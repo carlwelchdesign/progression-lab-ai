@@ -46,6 +46,7 @@
     "@prisma/client": "^5.10.0",
     "@sentry/nextjs": "^10.46.0",
     "@sentry/replay": "^7.116.0",
+    "@tonejs/midi": "^2.0.28",
     "i18next": "^26.0.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",

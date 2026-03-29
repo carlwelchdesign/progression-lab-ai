@@ -4,6 +4,7 @@ import type { PadPattern, TimeSignature } from '../music/padPattern';
 export type PlaybackStyle = 'strum' | 'block';
 export type PlaybackRegister = 'off' | 'low' | 'mid' | 'high';
 export type AudioInstrument = 'piano' | 'rhodes';
+export type MetronomeSource = 'click' | 'drum';
 
 export type ProgressionVoicing = {
   leftHand: string[];
@@ -37,6 +38,16 @@ export type PlayProgressionOptions = {
   timeSignature?: TimeSignature;
   metronomeEnabled?: boolean;
   metronomeVolume?: number;
+  metronomeSource?: MetronomeSource;
+  metronomeDrumPath?: string | null;
+};
+
+export type PlayMetronomePulseOptions = {
+  source?: MetronomeSource;
+  drumPath?: string | null;
+  timeSignature?: TimeSignature;
+  tempoBpm?: number;
+  beatIndex?: number;
 };
 
 export type PlayChordPatternParams = {
@@ -86,6 +97,11 @@ export interface AudioEngine {
   setPhaserQ: (value: number) => void;
   startAudio: () => Promise<void>;
   playMetronomeClick: (volume: number, isDownbeat: boolean) => Promise<void>;
+  playMetronomePulse: (
+    volume: number,
+    isDownbeat: boolean,
+    opts?: PlayMetronomePulseOptions,
+  ) => Promise<void>;
   stopAllAudio: () => void;
   playChordVoicing: (params: PlayChordVoicingParams) => Promise<void>;
   playProgression: (

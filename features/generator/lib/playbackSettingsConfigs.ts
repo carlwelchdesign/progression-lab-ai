@@ -94,12 +94,28 @@ export const PLAYBACK_SETTINGS_COPY = {
   timeSignatureLabel: 'Time signature',
   metronomeLabel: 'Metronome',
   metronomeAriaLabel: 'Enable metronome click',
+  metronomeSourceLabel: 'Metronome source',
+  metronomeSourceAriaLabel: 'Metronome source',
+  metronomeSourceClickLabel: 'Click',
+  metronomeSourceDrumLabel: 'Drum MIDI',
+  metronomePatternLabel: 'Drum pattern',
+  metronomePatternAriaLabel: 'Metronome drum pattern',
+  metronomePatternLoadingLabel: 'Loading drum patterns...',
+  metronomePatternEmptyLabel: 'No compatible drum patterns for this time signature',
   metronomeVolumeLabel: 'Click volume',
   metronomeVolumeAriaLabel: 'Metronome click volume',
   effectsLabel: 'Effects',
   closeButtonLabel: 'Close',
   testSoundButtonLabel: 'Test sound',
 } as const;
+
+export const METRONOME_SOURCE_OPTIONS: ReadonlyArray<{
+  value: 'click' | 'drum';
+  label: string;
+}> = [
+  { value: 'click', label: PLAYBACK_SETTINGS_COPY.metronomeSourceClickLabel },
+  { value: 'drum', label: PLAYBACK_SETTINGS_COPY.metronomeSourceDrumLabel },
+];
 
 /**
  * Formats the gate ratio into a user-facing label.

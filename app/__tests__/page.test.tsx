@@ -24,6 +24,23 @@ jest.mock('../../components/ui/ThemeModeToggle', () => {
   };
 });
 
+jest.mock('../../components/providers/AuthProvider', () => ({
+  useAuth: () => ({
+    isAuthenticated: false,
+    user: null,
+    isLoading: false,
+    logout: jest.fn(),
+    refresh: jest.fn(),
+  }),
+}));
+
+jest.mock('../../components/providers/AuthModalProvider', () => ({
+  useAuthModal: () => ({
+    openAuthModal: jest.fn(),
+    closeAuthModal: jest.fn(),
+  }),
+}));
+
 jest.mock('../../domain/audio/audio', () => ({
   PAD_PATTERN_LABELS: {
     single: 'Single',
