@@ -2,7 +2,7 @@
 
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, useMediaQuery } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -89,6 +89,7 @@ export default function SequencerTrack({
   onClipMove,
 }: SequencerTrackProps) {
   const theme = useTheme();
+  const isCompactLabels = useMediaQuery(theme.breakpoints.down('sm'));
   const { appColors } = theme.palette;
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const playheadRef = useRef<HTMLDivElement | null>(null);
@@ -129,6 +130,7 @@ export default function SequencerTrack({
   const laneColor = isDarkMode ? '#242A31' : '#E7ECF2';
   const labelColor = alpha(theme.palette.common.white, isDarkMode ? 0.92 : 0.5);
   const metaColor = alpha(theme.palette.common.white, isDarkMode ? 0.45 : 0.4);
+  const loopSummary = `${loopLengthBars} bar${loopLengthBars === 1 ? '' : 's'}`;
 
   const stepDelta = displayCurrentStep - previousStepRef.current;
   const isLoopWrapJump = stepDelta < 0;
@@ -559,75 +561,107 @@ export default function SequencerTrack({
           : `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.45)}`,
       }}
     >
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: `${LABEL_COLUMN_WIDTH}px minmax(0, 1fr)`,
-          alignItems: 'stretch',
-        }}
-      >
+      {isCompactLabels ? (
         <Box
           sx={{
-            borderRight: `1px solid ${rulerBorder}`,
+            px: 1.25,
+            py: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 1,
+            flexWrap: 'wrap',
+            borderBottom: `1px solid ${rulerBorder}`,
             backgroundColor: isDarkMode ? '#2B3139' : '#D0D7E0',
           }}
         >
+          <Typography
+            sx={{
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              lineHeight: 1.1,
+              color: labelColor,
+            }}
+          >
+            Chord Track
+          </Typography>
           <Box
             sx={{
-              height: RULER_HEIGHT,
-              px: 1.5,
               display: 'flex',
               alignItems: 'center',
-              borderBottom: `1px solid ${rulerBorder}`,
+              gap: 1,
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
             }}
           >
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 700,
-                letterSpacing: 1,
-                textTransform: 'uppercase',
-                color: metaColor,
-              }}
-            >
-              Arrange
+            <Typography variant="caption" sx={{ color: metaColor, lineHeight: 1.2 }}>
+              {tempoBpm} BPM
             </Typography>
+            <Typography variant="caption" sx={{ color: metaColor, lineHeight: 1.2 }}>
+              {loopSummary}
+            </Typography>
+            {normalizedLeadInBars > 0 ? (
+              <Typography variant="caption" sx={{ color: metaColor, lineHeight: 1.2 }}>
+                +{normalizedLeadInBars} bar lead-in
+              </Typography>
+            ) : null}
           </Box>
+        </Box>
+      ) : null}
+
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: isCompactLabels
+            ? 'minmax(0, 1fr)'
+            : `${LABEL_COLUMN_WIDTH}px minmax(0, 1fr)`,
+          alignItems: 'stretch',
+        }}
+      >
+        {isCompactLabels ? null : (
           <Box
             sx={{
-              height: LANE_HEIGHT,
-              px: 1.5,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              gap: 0.5,
+              borderRight: `1px solid ${rulerBorder}`,
+              backgroundColor: isDarkMode ? '#2B3139' : '#D0D7E0',
             }}
           >
-            <Typography
-              sx={{ fontWeight: 700, fontSize: '0.93rem', lineHeight: 1.1, color: labelColor }}
+            <Box
+              sx={{
+                height: RULER_HEIGHT,
+                px: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                borderBottom: `1px solid ${rulerBorder}`,
+              }}
             >
-              Chord Track
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.15 }}>
               <Typography
                 variant="caption"
                 sx={{
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
                   color: metaColor,
-                  lineHeight: 1.2,
                 }}
               >
-                {tempoBpm} BPM
+                Arrange
               </Typography>
+            </Box>
+            <Box
+              sx={{
+                height: LANE_HEIGHT,
+                px: 1.5,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: 0.5,
+              }}
+            >
               <Typography
-                variant="caption"
-                sx={{
-                  color: metaColor,
-                  lineHeight: 1.2,
-                }}
+                sx={{ fontWeight: 700, fontSize: '0.93rem', lineHeight: 1.1, color: labelColor }}
               >
-                {loopLengthBars} bar{loopLengthBars === 1 ? '' : 's'}
+                Chord Track
               </Typography>
-              {normalizedLeadInBars > 0 ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.15 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -635,12 +669,32 @@ export default function SequencerTrack({
                     lineHeight: 1.2,
                   }}
                 >
-                  +{normalizedLeadInBars} bar lead-in
+                  {tempoBpm} BPM
                 </Typography>
-              ) : null}
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: metaColor,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {loopSummary}
+                </Typography>
+                {normalizedLeadInBars > 0 ? (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: metaColor,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    +{normalizedLeadInBars} bar lead-in
+                  </Typography>
+                ) : null}
+              </Box>
             </Box>
           </Box>
-        </Box>
+        )}
 
         <Box sx={{ position: 'relative' }}>
           <Box
