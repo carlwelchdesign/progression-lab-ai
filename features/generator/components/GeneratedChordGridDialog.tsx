@@ -47,6 +47,8 @@ import { CHORD_OPTIONS } from '../../../lib/formOptions';
 import PlaybackSettingsButton from './PlaybackSettingsButton';
 import PlaybackToggleButton from './PlaybackToggleButton';
 import SelectField from '../../../components/ui/SelectField';
+import { useAuth } from '../../../components/providers/AuthProvider';
+import { useAuthModal } from '../../../components/providers/AuthModalProvider';
 import { stopGlobalPlayback } from '../hooks/usePlaybackToggle';
 import SaveArrangementDialog from '../../arrangements/components/SaveArrangementDialog';
 import SequencerTrack from './SequencerTrack';
@@ -247,6 +249,8 @@ export default function GeneratedChordGridDialog({
   onSaveSuccess,
 }: GeneratedChordGridDialogProps) {
   const { t } = useTranslation('generator');
+  const { isAuthenticated } = useAuth();
+  const { openAuthModal } = useAuthModal();
   const theme = useTheme();
   const { appColors } = theme.palette;
 
@@ -290,6 +294,11 @@ export default function GeneratedChordGridDialog({
   const sequencerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countInStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSequencerPlayToggleRef = useRef<() => void>(() => {});
+  const handleRecordToggleRef = useRef<() => void>(() => {});
+  const deleteSelectedClipRef = useRef<() => void>(() => {});
+  const nudgeSelectedClipRef = useRef<(delta: number) => void>(() => {});
+  const onPadPressRef = useRef<(entry: ChordGridEntry) => void>(() => {});
   const currentStepRef = useRef(0);
   const eventsByStepRef = useRef<Map<number, ArrangementEvent[]>>(new Map());
   const totalStepsRef = useRef(0);
@@ -833,6 +842,12 @@ export default function GeneratedChordGridDialog({
     }
   };
 
+  handleSequencerPlayToggleRef.current = handleSequencerPlayToggle;
+  handleRecordToggleRef.current = handleRecordToggle;
+  deleteSelectedClipRef.current = deleteSelectedClip;
+  nudgeSelectedClipRef.current = nudgeSelectedClip;
+  onPadPressRef.current = onPadPress;
+
   useEffect(() => {
     if (!open || saveArrangementDialogOpen) {
       return;
@@ -855,19 +870,19 @@ export default function GeneratedChordGridDialog({
 
       if (key === ' ') {
         event.preventDefault();
-        handleSequencerPlayToggle();
+        handleSequencerPlayToggleRef.current();
         return;
       }
 
       if (event.key === 'Shift') {
         event.preventDefault();
-        handleRecordToggle();
+        handleRecordToggleRef.current();
         return;
       }
 
       if ((key === 'delete' || key === 'backspace') && selectedStepIndex !== null) {
         event.preventDefault();
-        deleteSelectedClip();
+        deleteSelectedClipRef.current();
         return;
       }
 
@@ -878,7 +893,7 @@ export default function GeneratedChordGridDialog({
 
       if ((key === 'arrowleft' || key === 'arrowright') && selectedStepIndex !== null) {
         event.preventDefault();
-        nudgeSelectedClip(key === 'arrowleft' ? -1 : 1);
+        nudgeSelectedClipRef.current(key === 'arrowleft' ? -1 : 1);
         return;
       }
 
@@ -888,7 +903,7 @@ export default function GeneratedChordGridDialog({
       }
 
       event.preventDefault();
-      onPadPress(matchedEntry);
+      onPadPressRef.current(matchedEntry);
     };
 
     window.addEventListener('keydown', onWindowKeyDown);
@@ -897,11 +912,8 @@ export default function GeneratedChordGridDialog({
       window.removeEventListener('keydown', onWindowKeyDown);
     };
   }, [
-    handleRecordToggle,
-    handleSequencerPlayToggle,
     hasDetectedHardwareKeyboardInput,
     isDesktopKeyboardUi,
-    onPadPress,
     open,
     padHotkeyMap,
     saveArrangementDialogOpen,
@@ -1742,6 +1754,15 @@ export default function GeneratedChordGridDialog({
             variant="contained"
             onClick={() => {
               stopSequencer();
+              if (!isAuthenticated) {
+                openAuthModal({
+                  mode: 'login',
+                  reason: 'save-arrangement',
+                  onSuccess: () => setSaveArrangementDialogOpen(true),
+                });
+                return;
+              }
+
               setSaveArrangementDialogOpen(true);
             }}
             startIcon={<SaveIcon fontSize="small" />}

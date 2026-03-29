@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from 'react';
 import ThemeModeToggle from './ui/ThemeModeToggle';
 import LanguageSwitcher from './ui/LanguageSwitcher';
 import { useAuth } from './providers/AuthProvider';
+import { useAuthModal } from './providers/AuthModalProvider';
 
 type Props = {
   children: React.ReactNode;
@@ -39,6 +40,7 @@ type NavItem = {
 
 const RESULT_SECTION_IDS = ['suggestions', 'progressions', 'structure'] as const;
 type ResultSectionId = (typeof RESULT_SECTION_IDS)[number];
+const SHOW_THEME_SWITCHER = false;
 
 const getAvailableSections = (): ResultSectionId[] => {
   return RESULT_SECTION_IDS.filter((sectionId) => Boolean(document.getElementById(sectionId)));
@@ -70,6 +72,7 @@ export default function AppWrapper({ children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [availableSections, setAvailableSections] = useState<ResultSectionId[]>([]);
   const { isAuthenticated, isLoading, logout } = useAuth();
+  const { openAuthModal } = useAuthModal();
   const pathname = usePathname();
 
   const navItems = useMemo(
@@ -200,16 +203,21 @@ export default function AppWrapper({ children }: Props) {
                   {t('logout', { ns: 'nav' })}
                 </Button>
               ) : (
-                <Button component={Link} href="/auth" color="inherit">
+                <Button
+                  color="inherit"
+                  onClick={() => {
+                    openAuthModal({ mode: 'login' });
+                  }}
+                >
                   {t('login', { ns: 'nav' })}
                 </Button>
               )}
               <LanguageSwitcher />
-              <ThemeModeToggle />
+              {SHOW_THEME_SWITCHER ? <ThemeModeToggle /> : null}
             </Box>
 
             <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center' }}>
-              <ThemeModeToggle />
+              {SHOW_THEME_SWITCHER ? <ThemeModeToggle /> : null}
               <IconButton
                 color="inherit"
                 aria-label={t('openNavigationMenu', { ns: 'common' })}
@@ -259,7 +267,12 @@ export default function AppWrapper({ children }: Props) {
                 <ListItemText primary={t('logout', { ns: 'nav' })} />
               </ListItemButton>
             ) : (
-              <ListItemButton component={Link} href="/auth" onClick={() => setMobileOpen(false)}>
+              <ListItemButton
+                onClick={() => {
+                  setMobileOpen(false);
+                  openAuthModal({ mode: 'login' });
+                }}
+              >
                 <ListItemText primary={t('login', { ns: 'nav' })} />
               </ListItemButton>
             )}

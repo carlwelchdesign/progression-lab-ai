@@ -10,6 +10,9 @@ import {
   type PlaybackSettingsChangeHandlers,
 } from '../../lib/playbackSettingsModel';
 
+const mockOpenAuthModal = jest.fn();
+let mockIsAuthenticated = true;
+
 jest.mock('../../../../domain/audio/audio', () => ({
   getAudioClockSeconds: jest.fn(() => 0),
   playChordPattern: jest.fn(() => Promise.resolve()),
@@ -20,6 +23,29 @@ jest.mock('../../../../domain/audio/audio', () => ({
 
 jest.mock('../../hooks/usePlaybackToggle', () => ({
   stopGlobalPlayback: jest.fn(),
+}));
+
+jest.mock('../../../../components/providers/AuthProvider', () => ({
+  useAuth: () => ({
+    isAuthenticated: mockIsAuthenticated,
+    user: {
+      id: 'test-user',
+      email: 'test@example.com',
+      name: 'Test',
+      role: 'USER',
+      createdAt: new Date().toISOString(),
+    },
+    isLoading: false,
+    logout: jest.fn(),
+    refresh: jest.fn(),
+  }),
+}));
+
+jest.mock('../../../../components/providers/AuthModalProvider', () => ({
+  useAuthModal: () => ({
+    openAuthModal: mockOpenAuthModal,
+    closeAuthModal: jest.fn(),
+  }),
 }));
 
 jest.mock('../PlaybackSettingsButton', () => {
@@ -127,6 +153,7 @@ const setMatchMedia = ({ desktop }: { desktop: boolean }) => {
 describe('GeneratedChordGridDialog', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsAuthenticated = true;
   });
 
   it('shows base and desktop shortcuts inside the tooltip on desktop', async () => {
@@ -299,5 +326,50 @@ describe('GeneratedChordGridDialog', () => {
     await user.click(offButton);
     expect(offButton).toHaveAttribute('aria-pressed', 'true');
     expect(subdominantFlowButton).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('prompts login modal when unauthenticated user tries to save arrangement', async () => {
+    mockIsAuthenticated = false;
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <GeneratedChordGridDialog
+        open={true}
+        onClose={jest.fn()}
+        tempoBpm={120}
+        settings={PLAYBACK_SETTINGS_DEFAULTS}
+        onSettingsChange={mockHandlers}
+        onTempoBpmChange={jest.fn()}
+        chords={[mockChord]}
+        pendingLoad={{
+          key: 'pending-1',
+          loopLengthBars: 1,
+          events: [
+            {
+              id: 'event-1',
+              padKey: mockChord.key,
+              chord: mockChord.chord,
+              source: mockChord.source,
+              leftHand: mockChord.leftHand,
+              rightHand: mockChord.rightHand,
+              stepIndex: 0,
+            },
+          ],
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Save arrangement' })).toBeEnabled();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Save arrangement' }));
+
+    expect(mockOpenAuthModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'login',
+        reason: 'save-arrangement',
+      }),
+    );
   });
 });

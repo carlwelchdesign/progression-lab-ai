@@ -34,6 +34,7 @@ import {
 import { CHORD_OPTIONS } from '../../../lib/formOptions';
 import type { Progression } from '../../../lib/types';
 import { useAuth } from '../../../components/providers/AuthProvider';
+import { useAuthModal } from '../../../components/providers/AuthModalProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 
 type ViewMode = 'mine' | 'public';
@@ -61,6 +62,7 @@ export default function ProgressionsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, user } = useAuth();
+  const { openAuthModal } = useAuthModal();
   const isAdmin = user?.role === 'ADMIN';
   const initialViewParam = searchParams.get('view');
   const initialViewMode: ViewMode = initialViewParam === 'public' ? 'public' : 'mine';
@@ -239,7 +241,11 @@ export default function ProgressionsPageContent() {
               variant={viewMode === 'mine' ? 'contained' : 'outlined'}
               onClick={() => {
                 if (!isAuthenticated) {
-                  router.push('/auth?mode=register&reason=my-progressions');
+                  openAuthModal({
+                    mode: 'register',
+                    reason: 'my-progressions',
+                    onSuccess: () => setViewMode('mine'),
+                  });
                   return;
                 }
 

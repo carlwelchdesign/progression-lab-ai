@@ -30,6 +30,7 @@ import PlaybackSettingsButton from './PlaybackSettingsButton';
 import RestoringState from './RestoringState';
 import { useAppLocale } from '../../../components/providers/LocaleProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
+import { useAuth } from '../../../components/providers/AuthProvider';
 import usePlaybackSettings from '../hooks/usePlaybackSettings';
 import useGeneratorSessionCache from '../hooks/useGeneratorSessionCache';
 import type { GeneratorFormData, ProgressionDiagramInstrument } from '../types';
@@ -89,6 +90,7 @@ function pickRandomUnique<T>(items: T[], count: number): T[] {
 export default function GeneratorPageContent() {
   const { t } = useTranslation('generator');
   const { locale } = useAppLocale();
+  const { isAuthenticated } = useAuth();
   const {
     control,
     handleSubmit,
@@ -642,7 +644,7 @@ export default function GeneratorPageContent() {
       <Stack spacing={3}>
         <GeneratorHeader />
 
-        {showArrangementsSection ? (
+        {isAuthenticated && showArrangementsSection ? (
           <Accordion
             expanded={isArrangementsExpanded}
             onChange={(_, expanded) => {
