@@ -1,24 +1,26 @@
 'use client';
 
-import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { useForm, Controller } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
+
 import { useAuth } from '../../../components/providers/AuthProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import TextField from '../../../components/ui/TextField';
 
-type AuthMode = 'login' | 'register';
+export type AuthMode = 'login' | 'register';
+export type AuthDialogReason = 'my-progressions' | 'save-arrangement' | 'generic';
 
 type AuthFormData = {
   name: string;
@@ -26,14 +28,39 @@ type AuthFormData = {
   password: string;
 };
 
-export default function AuthPageContent() {
-  const searchParams = useSearchParams();
-  const initialMode = searchParams.get('mode') === 'register' ? 'register' : 'login';
-  const reason = searchParams.get('reason');
+type AuthModalDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
+  initialMode?: AuthMode;
+  reason?: AuthDialogReason;
+};
+
+const getReasonMessage = (reason: AuthDialogReason | undefined): string | null => {
+  if (reason === 'my-progressions') {
+    return 'Create an account to access your personal saved progressions.';
+  }
+
+  if (reason === 'save-arrangement') {
+    return 'Sign in or create an account to save this arrangement.';
+  }
+
+  return null;
+};
+
+export default function AuthModalDialog({
+  open,
+  onClose,
+  onSuccess,
+  initialMode = 'login',
+  reason,
+}: AuthModalDialogProps) {
   const { refresh } = useAuth();
   const { showError, showSuccess } = useAppSnackbar();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [apiError, setApiError] = useState('');
+  const reasonMessage = getReasonMessage(reason);
+
   const {
     control,
     handleSubmit,
@@ -47,6 +74,16 @@ export default function AuthPageContent() {
     },
     mode: 'onChange',
   });
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setMode(initialMode);
+    setApiError('');
+    reset();
+  }, [initialMode, open, reset]);
 
   const onSubmit = async (data: AuthFormData) => {
     setApiError('');
@@ -67,9 +104,10 @@ export default function AuthPageContent() {
         throw new Error(body.message ?? 'Authentication failed');
       }
 
-      // Refresh auth context with new user data
       await refresh();
       showSuccess(mode === 'login' ? 'Signed in successfully.' : 'Account created successfully.');
+      onClose();
+      onSuccess?.();
     } catch (err) {
       const message = (err as Error).message || 'Authentication failed';
       setApiError(message);
@@ -78,23 +116,17 @@ export default function AuthPageContent() {
   };
 
   return (
-    <Card variant="outlined">
-      <CardContent>
-        <Stack spacing={3} component="form" onSubmit={handleSubmit(onSubmit)}>
+    <Dialog open={open} onClose={isSubmitting ? undefined : onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Account</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2.5} component="form" sx={{ mt: 1 }} onSubmit={handleSubmit(onSubmit)}>
           <Box>
-            <Typography variant="h4" component="h1" gutterBottom>
-              Account
-            </Typography>
             <Typography color="text.secondary">
-              Register or sign in to access your saved progressions.
+              Register or sign in without leaving your current work.
             </Typography>
           </Box>
 
-          {reason === 'my-progressions' ? (
-            <Alert severity="info">
-              Create an account to access your personal saved progressions.
-            </Alert>
-          ) : null}
+          {reasonMessage ? <Alert severity="info">{reasonMessage}</Alert> : null}
 
           <ToggleButtonGroup
             exclusive
@@ -103,7 +135,7 @@ export default function AuthPageContent() {
               if (value) {
                 setMode(value);
                 setApiError('');
-                reset(); // Reset form when switching modes
+                reset();
               }
             }}
             size="small"
@@ -182,23 +214,29 @@ export default function AuthPageContent() {
               />
             )}
           />
+
           {apiError ? <Alert severity="error">{apiError}</Alert> : null}
 
-          <Button
-            variant="contained"
-            type="submit"
-            disabled={isSubmitting || Object.keys(errors).length > 0}
-          >
-            {isSubmitting
-              ? mode === 'login'
-                ? 'Signing in...'
-                : 'Creating account...'
-              : mode === 'login'
-                ? 'Sign in'
-                : 'Create account'}
-          </Button>
+          <Stack direction="row" spacing={1.5} justifyContent="flex-end">
+            <Button onClick={onClose} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              type="submit"
+              disabled={isSubmitting || Object.keys(errors).length > 0}
+            >
+              {isSubmitting
+                ? mode === 'login'
+                  ? 'Signing in...'
+                  : 'Creating account...'
+                : mode === 'login'
+                  ? 'Sign in'
+                  : 'Create account'}
+            </Button>
+          </Stack>
         </Stack>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }

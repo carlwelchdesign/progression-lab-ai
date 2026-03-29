@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from 'react';
 import ThemeModeToggle from './ui/ThemeModeToggle';
 import LanguageSwitcher from './ui/LanguageSwitcher';
 import { useAuth } from './providers/AuthProvider';
+import { useAuthModal } from './providers/AuthModalProvider';
 
 type Props = {
   children: React.ReactNode;
@@ -70,6 +71,7 @@ export default function AppWrapper({ children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [availableSections, setAvailableSections] = useState<ResultSectionId[]>([]);
   const { isAuthenticated, isLoading, logout } = useAuth();
+  const { openAuthModal } = useAuthModal();
   const pathname = usePathname();
 
   const navItems = useMemo(
@@ -200,7 +202,12 @@ export default function AppWrapper({ children }: Props) {
                   {t('logout', { ns: 'nav' })}
                 </Button>
               ) : (
-                <Button component={Link} href="/auth" color="inherit">
+                <Button
+                  color="inherit"
+                  onClick={() => {
+                    openAuthModal({ mode: 'login' });
+                  }}
+                >
                   {t('login', { ns: 'nav' })}
                 </Button>
               )}
@@ -259,7 +266,12 @@ export default function AppWrapper({ children }: Props) {
                 <ListItemText primary={t('logout', { ns: 'nav' })} />
               </ListItemButton>
             ) : (
-              <ListItemButton component={Link} href="/auth" onClick={() => setMobileOpen(false)}>
+              <ListItemButton
+                onClick={() => {
+                  setMobileOpen(false);
+                  openAuthModal({ mode: 'login' });
+                }}
+              >
                 <ListItemText primary={t('login', { ns: 'nav' })} />
               </ListItemButton>
             )}

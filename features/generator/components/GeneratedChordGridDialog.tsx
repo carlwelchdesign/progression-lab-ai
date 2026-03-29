@@ -47,6 +47,8 @@ import { CHORD_OPTIONS } from '../../../lib/formOptions';
 import PlaybackSettingsButton from './PlaybackSettingsButton';
 import PlaybackToggleButton from './PlaybackToggleButton';
 import SelectField from '../../../components/ui/SelectField';
+import { useAuth } from '../../../components/providers/AuthProvider';
+import { useAuthModal } from '../../../components/providers/AuthModalProvider';
 import { stopGlobalPlayback } from '../hooks/usePlaybackToggle';
 import SaveArrangementDialog from '../../arrangements/components/SaveArrangementDialog';
 import SequencerTrack from './SequencerTrack';
@@ -247,6 +249,8 @@ export default function GeneratedChordGridDialog({
   onSaveSuccess,
 }: GeneratedChordGridDialogProps) {
   const { t } = useTranslation('generator');
+  const { isAuthenticated } = useAuth();
+  const { openAuthModal } = useAuthModal();
   const theme = useTheme();
   const { appColors } = theme.palette;
 
@@ -1742,6 +1746,15 @@ export default function GeneratedChordGridDialog({
             variant="contained"
             onClick={() => {
               stopSequencer();
+              if (!isAuthenticated) {
+                openAuthModal({
+                  mode: 'login',
+                  reason: 'save-arrangement',
+                  onSuccess: () => setSaveArrangementDialogOpen(true),
+                });
+                return;
+              }
+
               setSaveArrangementDialogOpen(true);
             }}
             startIcon={<SaveIcon fontSize="small" />}

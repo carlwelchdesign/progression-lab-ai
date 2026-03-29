@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import AppThemeProvider from './providers/AppThemeProvider';
 import { AppSnackbarProvider } from './providers/AppSnackbarProvider';
 import { AuthProvider } from './providers/AuthProvider';
+import { AuthModalProvider } from './providers/AuthModalProvider';
 import { LocaleProvider } from './providers/LocaleProvider';
 import AppWrapper from './AppWrapper';
 
@@ -16,7 +17,9 @@ export default function App({ children }: Props) {
       <AppThemeProvider>
         <AppSnackbarProvider>
           <AuthProvider>
-            <AppWrapper>{children}</AppWrapper>
+            <AuthModalProvider>
+              <AppWrapper>{children}</AppWrapper>
+            </AuthModalProvider>
           </AuthProvider>
         </AppSnackbarProvider>
       </AppThemeProvider>
