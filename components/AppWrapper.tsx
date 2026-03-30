@@ -202,6 +202,11 @@ export default function AppWrapper({ children }: Props) {
                   Billing
                 </Button>
               ) : null}
+              {isAuthenticated ? (
+                <Button component={Link} href="/settings/security" color="inherit">
+                  Security
+                </Button>
+              ) : null}
               {isLoading ? (
                 <Button color="inherit" disabled sx={{ minWidth: 80 }}>
                   {t('loadingEllipsis', { ns: 'common' })}
@@ -271,6 +276,15 @@ export default function AppWrapper({ children }: Props) {
                 onClick={() => setMobileOpen(false)}
               >
                 <ListItemText primary="Billing" />
+              </ListItemButton>
+            ) : null}
+            {isAuthenticated ? (
+              <ListItemButton
+                component={Link}
+                href="/settings/security"
+                onClick={() => setMobileOpen(false)}
+              >
+                <ListItemText primary="Security" />
               </ListItemButton>
             ) : null}
             {isLoading ? (
