@@ -69,7 +69,7 @@ export type PlayChordPatternParams = {
   octaveShift?: number;
 };
 
-export interface AudioEngine {
+export interface AudioEffectsEngine {
   setReverbWet: (wet: number) => void;
   setChorusWet: (wet: number) => void;
   setReverbRoomSize: (roomSize: number) => void;
@@ -95,14 +95,20 @@ export interface AudioEngine {
   setPhaserFrequency: (value: number) => void;
   setPhaserOctaves: (value: number) => void;
   setPhaserQ: (value: number) => void;
+}
+
+export interface AudioLifecycleEngine {
   startAudio: () => Promise<void>;
+  stopAllAudio: () => void;
+}
+
+export interface AudioPlaybackEngine {
   playMetronomeClick: (volume: number, isDownbeat: boolean) => Promise<void>;
   playMetronomePulse: (
     volume: number,
     isDownbeat: boolean,
     opts?: PlayMetronomePulseOptions,
   ) => Promise<void>;
-  stopAllAudio: () => void;
   playChordVoicing: (params: PlayChordVoicingParams) => Promise<void>;
   playProgression: (
     voicings: ProgressionVoicing[],
@@ -114,3 +120,6 @@ export interface AudioEngine {
   ) => Promise<void>;
   playChordPattern: (params: PlayChordPatternParams) => Promise<void>;
 }
+
+export interface AudioEngine
+  extends AudioEffectsEngine, AudioLifecycleEngine, AudioPlaybackEngine {}
