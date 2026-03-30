@@ -191,9 +191,17 @@ export default function AppWrapper({ children }: Props) {
                   {item.label}
                 </Button>
               ))}
+              <Button component={Link} href="/pricing" color="inherit">
+                Pricing
+              </Button>
               <Button component={Link} href="/progressions?view=public" color="inherit">
                 {t('myProgressions', { ns: 'nav' })}
               </Button>
+              {isAuthenticated ? (
+                <Button component={Link} href="/settings/billing" color="inherit">
+                  Billing
+                </Button>
+              ) : null}
               {isLoading ? (
                 <Button color="inherit" disabled sx={{ minWidth: 80 }}>
                   {t('loadingEllipsis', { ns: 'common' })}
@@ -246,6 +254,9 @@ export default function AppWrapper({ children }: Props) {
                 <ListItemText primary={item.label} />
               </ListItemButton>
             ))}
+            <ListItemButton component={Link} href="/pricing" onClick={() => setMobileOpen(false)}>
+              <ListItemText primary="Pricing" />
+            </ListItemButton>
             <ListItemButton
               component={Link}
               href="/progressions?view=public"
@@ -253,6 +264,15 @@ export default function AppWrapper({ children }: Props) {
             >
               <ListItemText primary={t('myProgressions', { ns: 'nav' })} />
             </ListItemButton>
+            {isAuthenticated ? (
+              <ListItemButton
+                component={Link}
+                href="/settings/billing"
+                onClick={() => setMobileOpen(false)}
+              >
+                <ListItemText primary="Billing" />
+              </ListItemButton>
+            ) : null}
             {isLoading ? (
               <ListItemButton disabled>
                 <ListItemText primary={t('loadingEllipsis', { ns: 'common' })} />
