@@ -28,7 +28,13 @@ type BillingInterval = 'monthly' | 'yearly';
 type PublicPlan = 'SESSION' | 'COMPOSER' | 'STUDIO';
 
 type PricingTierConfig = {
-  plan: PublicPlan;
+  planId: string;
+  displayName: string;
+  description: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  monthlyStripePriceId: string | null;
+  yearlyStripePriceId: string | null;
   gptModel: string;
   aiGenerationsPerMonth: number | null;
   maxSavedProgressions: number | null;
@@ -37,6 +43,7 @@ type PricingTierConfig = {
   canExportMidi: boolean;
   canExportPdf: boolean;
   canSharePublicly: boolean;
+  canUsePremiumAiModel: boolean;
 };
 
 type PricingTier = {
@@ -129,6 +136,9 @@ function getExportFeature(config: PricingTierConfig): string {
 }
 
 function getAiAccessFeature(config: PricingTierConfig): string {
+  if (config.canUsePremiumAiModel) {
+    return 'Premium AI model access';
+  }
   const normalizedModel = config.gptModel.toLowerCase();
   const isPremiumModel =
     normalizedModel.startsWith('gpt-4') ||
@@ -183,7 +193,7 @@ export default function PricingPageContent() {
         const body = (await response.json()) as { items: PricingTierConfig[] };
         const byPlan = body.items.reduce(
           (acc, item) => {
-            acc[item.plan] = item;
+            acc[item.planId as PublicPlan] = item;
             return acc;
           },
           {} as Record<PublicPlan, PricingTierConfig>,
@@ -200,10 +210,20 @@ export default function PricingPageContent() {
 
   const displayedTiers = useMemo(
     () =>
-      TIERS.map((tier) => ({
-        ...tier,
-        features: buildFeatures(tier.features, tierConfigs?.[tier.plan]),
-      })),
+      TIERS.map((tier) => {
+        const config = tierConfigs?.[tier.plan];
+        if (!config) return tier;
+        const priceMonthly = config.monthlyPrice === 0 ? '$0' : `$${config.monthlyPrice}`;
+        const priceYearly = config.yearlyPrice === 0 ? '$0' : `$${config.yearlyPrice}`;
+        return {
+          ...tier,
+          name: config.displayName || tier.name,
+          priceMonthly,
+          priceYearly,
+          summary: config.description || tier.summary,
+          features: buildFeatures(tier.features, config),
+        };
+      }),
     [tierConfigs],
   );
 

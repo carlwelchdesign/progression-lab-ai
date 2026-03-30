@@ -5,10 +5,13 @@ import type {
   AdminUserRow,
   AdminUserSummary,
   AdminAuditLogItem,
+  PlanVersion,
+  PlanVersionsState,
   PromptBuilderState,
   PromptVersion,
   ProgressionDetail,
   ProgressionRow,
+  SavePlanDraftInput,
   SubscriptionPlan,
   SubscriptionTierConfig,
 } from './types';
@@ -283,5 +286,74 @@ export async function rollbackPromptVersion(params: {
   }
 
   const data = (await response.json()) as { item: PromptVersion };
+  return data.item;
+}
+
+export async function fetchPlanVersionsState(planId?: string): Promise<PlanVersionsState> {
+  const searchParams = new URLSearchParams();
+  if (planId) {
+    searchParams.set('planId', planId);
+  }
+  const query = searchParams.toString();
+  const response = await fetch(`/api/subscription-plans${query ? `?${query}` : ''}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to fetch plan versions'));
+  }
+
+  return (await response.json()) as PlanVersionsState;
+}
+
+export async function savePlanDraft(input: SavePlanDraftInput): Promise<PlanVersion> {
+  const response = await fetch('/api/subscription-plans', {
+    method: 'POST',
+    credentials: 'include',
+    headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to save plan draft'));
+  }
+
+  const data = (await response.json()) as { item: PlanVersion };
+  return data.item;
+}
+
+export async function publishPlanDraft(planId: string): Promise<PlanVersion> {
+  const response = await fetch('/api/subscription-plans/publish', {
+    method: 'POST',
+    credentials: 'include',
+    headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ planId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to publish plan draft'));
+  }
+
+  const data = (await response.json()) as { item: PlanVersion };
+  return data.item;
+}
+
+export async function rollbackPlanVersion(params: {
+  planId: string;
+  versionId: string;
+}): Promise<PlanVersion> {
+  const response = await fetch('/api/subscription-plans/rollback', {
+    method: 'POST',
+    credentials: 'include',
+    headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to rollback plan version'));
+  }
+
+  const data = (await response.json()) as { item: PlanVersion };
   return data.item;
 }

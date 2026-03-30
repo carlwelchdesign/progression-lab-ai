@@ -102,6 +102,39 @@ model SubscriptionTierConfig {
   updatedAt              DateTime         @updatedAt
 }
 
+model SubscriptionPlanVersion {
+  id                      String   @id @default(cuid())
+  planId                  String   // e.g. 'SESSION', 'COMPOSER', 'STUDIO'
+  displayName             String   // User-facing name
+  description             String
+  monthlyPrice            Decimal  @db.Decimal(10, 2)
+  yearlyPrice             Decimal  @db.Decimal(10, 2)
+  monthlyStripePriceId    String?
+  yearlyStripePriceId     String?
+  gptModel                String   // e.g. 'gpt-3.5-turbo', 'gpt-4o'
+  aiGenerationsPerMonth   Int?     // null = unlimited
+  maxSavedProgressions    Int?     // null = unlimited
+  maxSavedArrangements    Int?     // null = unlimited
+  maxPublicShares         Int?     // null = unlimited
+  canExportMidi           Boolean  @default(false)
+  canExportPdf            Boolean  @default(false)
+  canSharePublicly        Boolean  @default(true)
+  canUsePremiumAiModel    Boolean  @default(false)
+  versionNumber           Int      // Incremented on each new version
+  isDraft                 Boolean  @default(false)
+  isActive                Boolean  @default(false)
+  publishedAt             DateTime?
+  editorEmail             String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([planId, versionNumber])
+  @@index([isActive])
+  @@index([isDraft])
+  @@index([planId, isActive])
+  @@index([planId, createdAt])
+}
+
 model AdminAuditLog {
   id          String   @id @default(cuid())
   actorUserId String?

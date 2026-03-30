@@ -137,3 +137,57 @@ export type AdminUserFilters = {
   subscriptionStatus: UserSubscriptionStatusFilter;
   overrideState: UserOverrideFilter;
 };
+
+export type PlanVersion = {
+  id: string;
+  planId: string;
+  displayName: string;
+  description: string;
+  monthlyPrice: string;
+  yearlyPrice: string;
+  monthlyStripePriceId: string | null;
+  yearlyStripePriceId: string | null;
+  gptModel: string;
+  aiGenerationsPerMonth: number | null;
+  maxSavedProgressions: number | null;
+  maxSavedArrangements: number | null;
+  maxPublicShares: number | null;
+  canExportMidi: boolean;
+  canExportPdf: boolean;
+  canSharePublicly: boolean;
+  canUsePremiumAiModel: boolean;
+  versionNumber: number;
+  isDraft: boolean;
+  isActive: boolean;
+  publishedAt: string | null;
+  editorEmail: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PlanVersionsState = {
+  planId: string;
+  planIds: string[];
+  active: PlanVersion | null;
+  draft: PlanVersion | null;
+  versions: PlanVersion[];
+};
+
+export type SavePlanDraftInput = {
+  planId: string;
+  displayName: string;
+  description: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  monthlyStripePriceId: string | null;
+  yearlyStripePriceId: string | null;
+  gptModel: string;
+  aiGenerationsPerMonth: number | null;
+  maxSavedProgressions: number | null;
+  maxSavedArrangements: number | null;
+  maxPublicShares: number | null;
+  canExportMidi: boolean;
+  canExportPdf: boolean;
+  canSharePublicly: boolean;
+  canUsePremiumAiModel: boolean;
+};
