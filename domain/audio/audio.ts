@@ -176,89 +176,66 @@ export const setPhaserOctaves: AudioEngine['setPhaserOctaves'] = (value) =>
   getAudioEngine().setPhaserOctaves(value);
 export const setPhaserQ: AudioEngine['setPhaserQ'] = (value) => getAudioEngine().setPhaserQ(value);
 
+type EffectPatchApplier = {
+  key: keyof AudioEffectsState;
+  apply: (engine: AudioEngine, value: AudioEffectsState[keyof AudioEffectsState]) => void;
+};
+
+const EFFECT_PATCH_APPLIERS: EffectPatchApplier[] = [
+  { key: 'reverbEnabled', apply: (engine, value) => engine.setReverbEnabled(value as boolean) },
+  { key: 'reverbWet', apply: (engine, value) => engine.setReverbWet(value as number) },
+  { key: 'reverbRoomSize', apply: (engine, value) => engine.setReverbRoomSize(value as number) },
+  { key: 'chorusEnabled', apply: (engine, value) => engine.setChorusEnabled(value as boolean) },
+  { key: 'chorusWet', apply: (engine, value) => engine.setChorusWet(value as number) },
+  { key: 'chorusFrequency', apply: (engine, value) => engine.setChorusFrequency(value as number) },
+  { key: 'chorusDepth', apply: (engine, value) => engine.setChorusDepth(value as number) },
+  { key: 'chorusDelayTime', apply: (engine, value) => engine.setChorusDelayTime(value as number) },
+  {
+    key: 'feedbackDelayEnabled',
+    apply: (engine, value) => engine.setFeedbackDelayEnabled(value as boolean),
+  },
+  {
+    key: 'feedbackDelayWet',
+    apply: (engine, value) => engine.setFeedbackDelayWet(value as number),
+  },
+  {
+    key: 'feedbackDelayTime',
+    apply: (engine, value) => engine.setFeedbackDelayTime(value as number),
+  },
+  {
+    key: 'feedbackDelayFeedback',
+    apply: (engine, value) => engine.setFeedbackDelayFeedback(value as number),
+  },
+  { key: 'tremoloEnabled', apply: (engine, value) => engine.setTremoloEnabled(value as boolean) },
+  { key: 'tremoloWet', apply: (engine, value) => engine.setTremoloWet(value as number) },
+  {
+    key: 'tremoloFrequency',
+    apply: (engine, value) => engine.setTremoloFrequency(value as number),
+  },
+  { key: 'tremoloDepth', apply: (engine, value) => engine.setTremoloDepth(value as number) },
+  { key: 'vibratoEnabled', apply: (engine, value) => engine.setVibratoEnabled(value as boolean) },
+  { key: 'vibratoWet', apply: (engine, value) => engine.setVibratoWet(value as number) },
+  {
+    key: 'vibratoFrequency',
+    apply: (engine, value) => engine.setVibratoFrequency(value as number),
+  },
+  { key: 'vibratoDepth', apply: (engine, value) => engine.setVibratoDepth(value as number) },
+  { key: 'phaserEnabled', apply: (engine, value) => engine.setPhaserEnabled(value as boolean) },
+  { key: 'phaserWet', apply: (engine, value) => engine.setPhaserWet(value as number) },
+  { key: 'phaserFrequency', apply: (engine, value) => engine.setPhaserFrequency(value as number) },
+  { key: 'phaserOctaves', apply: (engine, value) => engine.setPhaserOctaves(value as number) },
+  { key: 'phaserQ', apply: (engine, value) => engine.setPhaserQ(value as number) },
+];
+
 export const applyAudioEffectsState = (effects: Partial<AudioEffectsState>): void => {
   const engine = getAudioEngine();
 
-  if (effects.reverbEnabled !== undefined) {
-    engine.setReverbEnabled(effects.reverbEnabled);
-  }
-  if (effects.reverbWet !== undefined) {
-    engine.setReverbWet(effects.reverbWet);
-  }
-  if (effects.reverbRoomSize !== undefined) {
-    engine.setReverbRoomSize(effects.reverbRoomSize);
-  }
-
-  if (effects.chorusEnabled !== undefined) {
-    engine.setChorusEnabled(effects.chorusEnabled);
-  }
-  if (effects.chorusWet !== undefined) {
-    engine.setChorusWet(effects.chorusWet);
-  }
-  if (effects.chorusFrequency !== undefined) {
-    engine.setChorusFrequency(effects.chorusFrequency);
-  }
-  if (effects.chorusDepth !== undefined) {
-    engine.setChorusDepth(effects.chorusDepth);
-  }
-  if (effects.chorusDelayTime !== undefined) {
-    engine.setChorusDelayTime(effects.chorusDelayTime);
-  }
-
-  if (effects.feedbackDelayEnabled !== undefined) {
-    engine.setFeedbackDelayEnabled(effects.feedbackDelayEnabled);
-  }
-  if (effects.feedbackDelayWet !== undefined) {
-    engine.setFeedbackDelayWet(effects.feedbackDelayWet);
-  }
-  if (effects.feedbackDelayTime !== undefined) {
-    engine.setFeedbackDelayTime(effects.feedbackDelayTime);
-  }
-  if (effects.feedbackDelayFeedback !== undefined) {
-    engine.setFeedbackDelayFeedback(effects.feedbackDelayFeedback);
-  }
-
-  if (effects.tremoloEnabled !== undefined) {
-    engine.setTremoloEnabled(effects.tremoloEnabled);
-  }
-  if (effects.tremoloWet !== undefined) {
-    engine.setTremoloWet(effects.tremoloWet);
-  }
-  if (effects.tremoloFrequency !== undefined) {
-    engine.setTremoloFrequency(effects.tremoloFrequency);
-  }
-  if (effects.tremoloDepth !== undefined) {
-    engine.setTremoloDepth(effects.tremoloDepth);
-  }
-
-  if (effects.vibratoEnabled !== undefined) {
-    engine.setVibratoEnabled(effects.vibratoEnabled);
-  }
-  if (effects.vibratoWet !== undefined) {
-    engine.setVibratoWet(effects.vibratoWet);
-  }
-  if (effects.vibratoFrequency !== undefined) {
-    engine.setVibratoFrequency(effects.vibratoFrequency);
-  }
-  if (effects.vibratoDepth !== undefined) {
-    engine.setVibratoDepth(effects.vibratoDepth);
-  }
-
-  if (effects.phaserEnabled !== undefined) {
-    engine.setPhaserEnabled(effects.phaserEnabled);
-  }
-  if (effects.phaserWet !== undefined) {
-    engine.setPhaserWet(effects.phaserWet);
-  }
-  if (effects.phaserFrequency !== undefined) {
-    engine.setPhaserFrequency(effects.phaserFrequency);
-  }
-  if (effects.phaserOctaves !== undefined) {
-    engine.setPhaserOctaves(effects.phaserOctaves);
-  }
-  if (effects.phaserQ !== undefined) {
-    engine.setPhaserQ(effects.phaserQ);
-  }
+  EFFECT_PATCH_APPLIERS.forEach(({ key, apply }) => {
+    const value = effects[key];
+    if (value !== undefined) {
+      apply(engine, value);
+    }
+  });
 };
 
 // Lifecycle delegation
