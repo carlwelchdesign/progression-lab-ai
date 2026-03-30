@@ -66,6 +66,14 @@ Admin app runs at `http://localhost:3010`.
 
 Deploy `admin-dashboard` as its own Vercel project (or equivalent) with root directory set to `admin-dashboard`.
 
+**Build command** (set in Vercel project settings):
+
+```
+npm run build:deploy
+```
+
+This runs `prisma generate` then `next build`. It does **not** run `prisma migrate deploy` — migrations are owned by the main app and must be applied there before deploying admin.
+
 Required env vars:
 
 - `DATABASE_URL`

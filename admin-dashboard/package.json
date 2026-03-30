@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3010",
     "build": "next build",
+    "build:deploy": "npx prisma generate && npm run build",
     "start": "next start -H 0.0.0.0 -p 3010",
     "lint": "next lint",
     "db:generate": "prisma generate --schema ./prisma/schema.prisma",
