@@ -12,11 +12,15 @@ import {
   Stack,
   Switch,
   Typography,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 import AppTextField from '../../../components/ui/TextField';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import { useAuth } from '../../../components/providers/AuthProvider';
+import { getRandomTitleSuggestion } from '../../../lib/titlePhrases';
 
 import { createProgression } from '../api/progressionsApi';
 import type { ChordItem, GeneratorSnapshot, PianoVoicing } from '../../../lib/types';
@@ -57,6 +61,7 @@ export default function SaveProgressionDialog({
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { isSubmitting, errors },
   } = useForm<SaveProgressionFormData>({
     defaultValues: {
@@ -66,12 +71,18 @@ export default function SaveProgressionDialog({
     mode: 'onChange',
   });
 
-  // Reset form when dialog closes
+  // Generate random title and reset form when dialog state changes
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setValue('title', getRandomTitleSuggestion());
+    } else {
       reset();
     }
-  }, [open, reset]);
+  }, [open, reset, setValue]);
+
+  const handleRefreshTitle = () => {
+    setValue('title', getRandomTitleSuggestion());
+  };
 
   const onSubmit = async (data: SaveProgressionFormData) => {
     try {
@@ -113,6 +124,23 @@ export default function SaveProgressionDialog({
                 disabled={isSubmitting}
                 error={!!error}
                 helperText={error?.message}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={handleRefreshTitle}
+                          disabled={isSubmitting}
+                          edge="end"
+                          size="small"
+                          aria-label="regenerate title"
+                        >
+                          <RefreshIcon fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               />
             )}
           />

@@ -12,11 +12,15 @@ import {
   Stack,
   Switch,
   Typography,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 import AppTextField from '../../../components/ui/TextField';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import { useAuth } from '../../../components/providers/AuthProvider';
+import { getRandomTitleSuggestion } from '../../../lib/titlePhrases';
 import type {
   ArrangementPlaybackSnapshot,
   ArrangementTimeline,
@@ -60,6 +64,7 @@ export default function SaveArrangementDialog({
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { isSubmitting, errors },
   } = useForm<SaveArrangementFormData>({
     defaultValues: {
@@ -70,10 +75,16 @@ export default function SaveArrangementDialog({
   });
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setValue('title', getRandomTitleSuggestion());
+    } else {
       reset();
     }
-  }, [open, reset]);
+  }, [open, reset, setValue]);
+
+  const handleRefreshTitle = () => {
+    setValue('title', getRandomTitleSuggestion());
+  };
 
   const onSubmit = async (data: SaveArrangementFormData) => {
     const payload: CreateArrangementRequest = {
@@ -116,6 +127,23 @@ export default function SaveArrangementDialog({
                 disabled={isSubmitting}
                 error={!!error}
                 helperText={error?.message}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={handleRefreshTitle}
+                          disabled={isSubmitting}
+                          edge="end"
+                          size="small"
+                          aria-label="regenerate title"
+                        >
+                          <RefreshIcon fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               />
             )}
           />
