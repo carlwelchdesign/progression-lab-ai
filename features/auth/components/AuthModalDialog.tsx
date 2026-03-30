@@ -18,6 +18,7 @@ import {
 import { useAuth } from '../../../components/providers/AuthProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import TextField from '../../../components/ui/TextField';
+import WebAuthnEnrollmentModal from './WebAuthnEnrollmentModal';
 
 export type AuthMode = 'login' | 'register';
 export type AuthDialogReason = 'my-progressions' | 'save-arrangement' | 'generic';
@@ -59,6 +60,7 @@ export default function AuthModalDialog({
   const { showError, showSuccess } = useAppSnackbar();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [apiError, setApiError] = useState('');
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   const reasonMessage = getReasonMessage(reason);
 
   const {
@@ -107,8 +109,14 @@ export default function AuthModalDialog({
 
       await refresh();
       showSuccess(mode === 'login' ? 'Signed in successfully.' : 'Account created successfully.');
-      onClose();
-      onSuccess?.();
+
+      // If registering, show optional enrollment modal; otherwise close immediately
+      if (mode === 'register') {
+        setShowEnrollmentModal(true);
+      } else {
+        onClose();
+        onSuccess?.();
+      }
     } catch (err) {
       const message = (err as Error).message || 'Authentication failed';
       setApiError(message);
@@ -116,8 +124,20 @@ export default function AuthModalDialog({
     }
   };
 
+  const handleEnrollmentClose = () => {
+    setShowEnrollmentModal(false);
+    onClose();
+    onSuccess?.();
+  };
+
   return (
-    <Dialog open={open} onClose={isSubmitting ? undefined : onClose} maxWidth="sm" fullWidth>
+    <>
+      <Dialog
+        open={open}
+        onClose={isSubmitting || showEnrollmentModal ? undefined : onClose}
+        maxWidth="sm"
+        fullWidth
+      >
       <DialogTitle>Account</DialogTitle>
       <DialogContent>
         <Stack spacing={2.5} component="form" sx={{ mt: 1 }} onSubmit={handleSubmit(onSubmit)}>
@@ -239,5 +259,7 @@ export default function AuthModalDialog({
         </Stack>
       </DialogContent>
     </Dialog>
+    <WebAuthnEnrollmentModal open={showEnrollmentModal} onClose={handleEnrollmentClose} />
+    </>
   );
 }
