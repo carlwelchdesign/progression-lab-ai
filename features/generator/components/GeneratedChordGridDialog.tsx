@@ -1,9 +1,6 @@
 'use client';
 
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Box,
   Button,
   Dialog,
@@ -11,236 +8,38 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  ToggleButton,
-  ToggleButtonGroup,
-  Tooltip,
   Typography,
   useMediaQuery,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import AvTimerIcon from '@mui/icons-material/AvTimer';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
-import KeyboardIcon from '@mui/icons-material/Keyboard';
-import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import LoopIcon from '@mui/icons-material/Loop';
 import SaveIcon from '@mui/icons-material/Save';
-import { alpha, type Theme, useTheme } from '@mui/material/styles';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { alpha, useTheme } from '@mui/material/styles';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  getAudioClockSeconds,
-  playChordPattern,
-  playMetronomePulse,
-  startAudio,
-  stopAllAudio,
-} from '../../../domain/audio/audio';
-import { createPianoVoicingFromChordSymbol } from '../../../domain/music/chordVoicing';
-import {
-  getChordRootSemitone,
-  getCircleOfFifthsSuggestedSemitones,
-} from '../../../domain/music/circleOfFifths';
-import { CHORD_OPTIONS } from '../../../lib/formOptions';
+import { playChordPattern, stopAllAudio } from '../../../domain/audio/audio';
+import { CHORD_OPTIONS as _CHORD_OPTIONS } from '../../../lib/formOptions';
 import PlaybackSettingsButton from './PlaybackSettingsButton';
-import PlaybackToggleButton from './PlaybackToggleButton';
-import SelectField from '../../../components/ui/SelectField';
+import SequencerTrack from './SequencerTrack';
+import SaveArrangementDialog from '../../arrangements/components/SaveArrangementDialog';
+import TransportBar from './TransportBar';
+import ChordPadGrid from './ChordPadGrid';
+import MobileClipControls from './MobileClipControls';
+import PadEditPanel from './PadEditPanel';
+import CircleOfFifthsAccordion from './CircleOfFifthsAccordion';
 import { useAuth } from '../../../components/providers/AuthProvider';
 import { useAuthModal } from '../../../components/providers/AuthModalProvider';
 import { stopGlobalPlayback } from '../hooks/usePlaybackToggle';
-import SaveArrangementDialog from '../../arrangements/components/SaveArrangementDialog';
-import SequencerTrack from './SequencerTrack';
-import { createPadDragPayload, PAD_DRAG_MIME_TYPE } from './padDragPayload';
-import type {
-  PlaybackSettings,
-  PlaybackSettingsChangeHandlers,
-} from '../lib/playbackSettingsModel';
-import type { TimeSignature } from '../../../domain/audio/audio';
-import type {
-  ArrangementEvent,
-  ArrangementPlaybackSnapshot,
-  ArrangementTimeline,
-} from '../../../lib/types';
-import type { CircleOfFifthsSuggestionMode } from '../../../domain/music/circleOfFifths';
+import { useSequencerEngine } from '../hooks/useSequencerEngine';
+import { useArrangementTimeline } from '../hooks/useArrangementTimeline';
+import { usePadEdit } from '../hooks/usePadEdit';
+import { usePadInteraction } from '../hooks/usePadInteraction';
+import { useChordGridKeyboard } from '../hooks/useChordGridKeyboard';
+import { LOOP_LENGTH_OPTIONS, RECORDING_LEAD_IN_BARS, STEPS_PER_BEAT } from './chordGridTypes';
+import { generateId, getBeatsPerBar } from './chordGridUtils';
+import type { GeneratedChordGridDialogProps, RecordingMode } from './chordGridTypes';
+import type { ArrangementPlaybackSnapshot } from '../../../lib/types';
 
-/**
- * Render-ready chord data for each playable grid pad.
- */
-type ChordGridEntry = {
-  key: string;
-  chord: string;
-  source: string;
-  leftHand: string[];
-  rightHand: string[];
-};
-
-const generateId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  // Fallback for older mobile browsers (pre-iOS 15.4, older Android WebView)
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-  });
-};
-
-const STEPS_PER_BEAT = 4;
-const RECORDING_LEAD_IN_BARS = 1;
-const TOUCH_LONG_PRESS_MS = 360;
-const TOUCH_MOVE_CANCEL_THRESHOLD_PX = 14;
-const LOOP_LENGTH_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
-type RecordingMode = 'continuous' | 'single-shot';
-const PAD_TRIGGER_KEYS = [
-  '1',
-  '2',
-  '3',
-  '4',
-  '5',
-  '6',
-  '7',
-  '8',
-  '9',
-  '0',
-  'a',
-  'b',
-  'c',
-  'd',
-  'e',
-  'f',
-  'g',
-  'h',
-  'i',
-  'j',
-  'k',
-  'l',
-  'm',
-  'n',
-  'o',
-  'p',
-  'q',
-  'r',
-  's',
-  't',
-  'u',
-  'v',
-  'w',
-  'x',
-  'y',
-  'z',
-] as const;
-
-const isTypingTarget = (target: EventTarget | null): boolean => {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-
-  const tag = target.tagName.toLowerCase();
-  if (tag === 'input' || tag === 'textarea' || tag === 'select') {
-    return true;
-  }
-
-  if (target.isContentEditable || target.closest('[contenteditable="true"]')) {
-    return true;
-  }
-
-  return target.closest('[role="textbox"]') !== null;
-};
-
-const getSchedulerNowMs = (): number => {
-  const audioClockMs = getAudioClockSeconds() * 1000;
-  if (Number.isFinite(audioClockMs) && audioClockMs > 0) {
-    return audioClockMs;
-  }
-
-  return performance.now();
-};
-
-const getBeatsPerBar = (signature: TimeSignature): number => {
-  const numerator = Number.parseInt(signature.split('/')[0], 10);
-  return Number.isFinite(numerator) && numerator > 0 ? numerator : 4;
-};
-
-const getTransportIconButtonSx =
-  (isActive: boolean, tone: 'primary' | 'error' = 'primary') =>
-  (theme: Theme) => {
-    const palette = tone === 'error' ? theme.palette.error : theme.palette.primary;
-
-    return {
-      borderWidth: 1.5,
-      borderStyle: 'solid',
-      borderRadius: 1,
-      color: isActive ? theme.palette.common.white : palette.main,
-      borderColor: isActive ? palette.main : alpha(palette.main, 0.9),
-      backgroundColor: isActive ? palette.main : 'transparent',
-      '&:hover': {
-        borderColor: palette.main,
-        backgroundColor: isActive ? palette.dark : alpha(palette.main, 0.08),
-      },
-    };
-  };
-
-/**
- * Props for the generated chord grid playground dialog.
- */
-type PendingArrangementLoad = {
-  /** Unique value that changes each time a load is triggered (use arrangement id or a counter). */
-  key: string;
-  events: import('../../../lib/types').ArrangementEvent[];
-  loopLengthBars: number;
-};
-
-type GeneratedChordGridDialogProps = {
-  open: boolean;
-  onClose: () => void;
-  tempoBpm: number;
-  settings: PlaybackSettings;
-  onSettingsChange: PlaybackSettingsChangeHandlers;
-  onTempoBpmChange: (value: number) => void;
-  chords: ChordGridEntry[];
-  /** When non-null, the dialog seeds its timeline from this value on mount / key change. */
-  pendingLoad?: PendingArrangementLoad | null;
-  /** Called after an arrangement is successfully saved, so callers can refresh lists. */
-  onSaveSuccess?: () => void;
-};
-
-/**
- * Picks a deterministic border color from chord quality or chord-name hash.
- */
-function getChordBorderColor(chordName: string, suggestionBorders: readonly string[]): string {
-  if (/sus/i.test(chordName)) {
-    return suggestionBorders[1] ?? suggestionBorders[0];
-  }
-
-  if (/(?:maj9|add9|\b9\b|\b7\b|11|13)/i.test(chordName)) {
-    return suggestionBorders[5] ?? suggestionBorders[0];
-  }
-
-  if (/(?:^|[^A-Za-z])m(?!aj)|min/i.test(chordName)) {
-    return suggestionBorders[2] ?? suggestionBorders[0];
-  }
-
-  if (/dim|o/i.test(chordName)) {
-    return suggestionBorders[3] ?? suggestionBorders[0];
-  }
-
-  if (/aug|\+/i.test(chordName)) {
-    return suggestionBorders[4] ?? suggestionBorders[0];
-  }
-
-  let hash = 0;
-  for (const char of chordName) {
-    hash = (hash * 31 + char.charCodeAt(0)) % 2147483647;
-  }
-
-  return suggestionBorders[Math.abs(hash) % suggestionBorders.length] ?? suggestionBorders[0];
-}
-
-/**
- * Displays a playable and editable pad grid for generated chord voicings.
- */
 export default function GeneratedChordGridDialog({
   open,
   onClose,
@@ -257,6 +56,8 @@ export default function GeneratedChordGridDialog({
   const { openAuthModal } = useAuthModal();
   const theme = useTheme();
   const { appColors } = theme.palette;
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isDesktopKeyboardUi = useMediaQuery('(hover: hover) and (pointer: fine)');
 
   const {
     playbackStyle,
@@ -277,255 +78,21 @@ export default function GeneratedChordGridDialog({
     metronomeDrumPath,
   } = settings;
 
-  const [activePadKey, setActivePadKey] = useState<string | null>(null);
-  const [cofFocusPadKey, setCofFocusPadKey] = useState<string | null>(null);
-  const [cofSuggestionMode, setCofSuggestionMode] =
-    useState<CircleOfFifthsSuggestionMode>('neighbors');
-  const [isSuggestionAccordionExpanded, setIsSuggestionAccordionExpanded] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editableChords, setEditableChords] = useState<ChordGridEntry[]>(chords);
-  const [editingPadKey, setEditingPadKey] = useState<string | null>(null);
-  const [isSequencerPlaying, setIsSequencerPlaying] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [hasInitializedAudio, setHasInitializedAudio] = useState(false);
-  const [isCountInActive, setIsCountInActive] = useState(false);
+  // ── Dialog-level state ──────────────────────────────────────────────────────
   const [isLoopEnabled, setIsLoopEnabled] = useState(true);
-  const [recordingMode, setRecordingMode] = useState<RecordingMode>('continuous');
   const [loopLengthBars, setLoopLengthBars] = useState<(typeof LOOP_LENGTH_OPTIONS)[number]>(1);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [trackScrollRequestKey, setTrackScrollRequestKey] = useState(0);
-  const [arrangementEvents, setArrangementEvents] = useState<ArrangementEvent[]>([]);
-  const [saveArrangementDialogOpen, setSaveArrangementDialogOpen] = useState(false);
-  const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null);
-  const [mobileTimelineInsertPadKey, setMobileTimelineInsertPadKey] = useState<string | null>(null);
+  const [recordingMode, setRecordingMode] = useState<RecordingMode>('continuous');
   const [singleShotCursorStep, setSingleShotCursorStep] = useState<number | null>(null);
-  const activePadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sequencerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const countInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const countInStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleSequencerPlayToggleRef = useRef<() => void>(() => {});
-  const handleRecordToggleRef = useRef<() => void>(() => {});
-  const deleteSelectedClipRef = useRef<() => void>(() => {});
-  const nudgeSelectedClipRef = useRef<(delta: number) => void>(() => {});
-  const onPadPressRef = useRef<(entry: ChordGridEntry) => void>(() => {});
-  const currentStepRef = useRef(0);
-  const eventsByStepRef = useRef<Map<number, ArrangementEvent[]>>(new Map());
-  const totalStepsRef = useRef(0);
-  const isLoopEnabledRef = useRef(isLoopEnabled);
-  const metronomeEnabledRef = useRef(metronomeEnabled);
-  const metronomeSourceRef = useRef(metronomeSource);
-  const metronomeDrumPathRef = useRef(metronomeDrumPath);
-  const beatsPerBarRef = useRef(4);
-  const beatPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mobilePadLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mobilePadLongPressTriggeredRef = useRef(false);
-  const [isBeatPulseVisible, setIsBeatPulseVisible] = useState(false);
-  const [isDownbeatPulse, setIsDownbeatPulse] = useState(false);
-  const [currentBeatInBar, setCurrentBeatInBar] = useState(1);
-  const [hasDetectedHardwareKeyboardInput, setHasDetectedHardwareKeyboardInput] = useState(false);
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isDesktopKeyboardUi = useMediaQuery('(hover: hover) and (pointer: fine)');
-  const showKeyboardHints = isDesktopKeyboardUi || hasDetectedHardwareKeyboardInput;
-  const padStyles = {
-    body: {
-      bg: appColors.surface.chordPadBodyGradient,
-      bgHover: appColors.surface.chordPadBodyGradientHover,
-    },
-    active: {
-      bg: appColors.surface.chordPadActiveGradient,
-      border: appColors.accent.chordPadActiveBorder,
-    },
-  } as const;
-
-  const clearMobilePadLongPressTimer = () => {
-    if (mobilePadLongPressTimerRef.current) {
-      clearTimeout(mobilePadLongPressTimerRef.current);
-      mobilePadLongPressTimerRef.current = null;
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (activePadTimeout.current) {
-        clearTimeout(activePadTimeout.current);
-      }
-
-      if (sequencerTimerRef.current) {
-        clearTimeout(sequencerTimerRef.current);
-      }
-
-      if (countInTimerRef.current) {
-        clearTimeout(countInTimerRef.current);
-      }
-
-      if (countInStartTimeoutRef.current) {
-        clearTimeout(countInStartTimeoutRef.current);
-      }
-
-      if (beatPulseTimeoutRef.current) {
-        clearTimeout(beatPulseTimeoutRef.current);
-      }
-
-      clearMobilePadLongPressTimer();
-    };
-  }, []);
-
-  useEffect(() => {
-    setEditableChords(chords);
-    setEditingPadKey(null);
-  }, [chords, open]);
-
-  // Seed timeline from a loaded arrangement whenever the load key changes.
-  useEffect(() => {
-    if (!pendingLoad) {
-      return;
-    }
-
-    const clampedBars = Math.max(
-      1,
-      Math.min(
-        8,
-        LOOP_LENGTH_OPTIONS.includes(
-          pendingLoad.loopLengthBars as (typeof LOOP_LENGTH_OPTIONS)[number],
-        )
-          ? (pendingLoad.loopLengthBars as (typeof LOOP_LENGTH_OPTIONS)[number])
-          : 1,
-      ),
-    ) as (typeof LOOP_LENGTH_OPTIONS)[number];
-
-    setArrangementEvents(
-      pendingLoad.events.map((event) => ({ ...event, id: event.id ?? generateId() })),
-    );
-    setSelectedStepIndex(null);
-    setLoopLengthBars(clampedBars);
-    setCurrentStep(0);
-    currentStepRef.current = 0;
-    setIsRecording(false);
-    setIsSequencerPlaying(false);
-    setIsCountInActive(false);
-    setSingleShotCursorStep(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingLoad?.key]);
-
-  useEffect(() => {
-    if (open) {
-      setHasInitializedAudio(false);
-      return;
-    }
-
-    if (sequencerTimerRef.current) {
-      clearTimeout(sequencerTimerRef.current);
-      sequencerTimerRef.current = null;
-    }
-
-    if (countInTimerRef.current) {
-      clearTimeout(countInTimerRef.current);
-      countInTimerRef.current = null;
-    }
-
-    if (countInStartTimeoutRef.current) {
-      clearTimeout(countInStartTimeoutRef.current);
-      countInStartTimeoutRef.current = null;
-    }
-
-    setIsSequencerPlaying(false);
-    setIsRecording(false);
-    setIsCountInActive(false);
-    setCurrentStep(0);
-    currentStepRef.current = 0;
-    setSelectedStepIndex(null);
-    setCofFocusPadKey(null);
-    setMobileTimelineInsertPadKey(null);
-    setSingleShotCursorStep(null);
-    setRecordingMode('continuous');
-    setHasInitializedAudio(false);
-    clearMobilePadLongPressTimer();
-  }, [open]);
+  const [trackScrollRequestKey, setTrackScrollRequestKey] = useState(0);
+  const [saveArrangementDialogOpen, setSaveArrangementDialogOpen] = useState(false);
 
   const beatsPerBar = useMemo(() => getBeatsPerBar(timeSignature), [timeSignature]);
   const stepsPerBar = beatsPerBar * STEPS_PER_BEAT;
   const totalSteps = stepsPerBar * loopLengthBars;
 
-  const eventsByStep = useMemo(() => {
-    const grouped = new Map<number, ArrangementEvent[]>();
-    arrangementEvents.forEach((event) => {
-      if (!grouped.has(event.stepIndex)) {
-        grouped.set(event.stepIndex, []);
-      }
-
-      grouped.get(event.stepIndex)?.push(event);
-    });
-    return grouped;
-  }, [arrangementEvents]);
-
-  useEffect(() => {
-    eventsByStepRef.current = eventsByStep;
-  }, [eventsByStep]);
-
-  useEffect(() => {
-    totalStepsRef.current = totalSteps;
-  }, [totalSteps]);
-
-  useEffect(() => {
-    isLoopEnabledRef.current = isLoopEnabled;
-  }, [isLoopEnabled]);
-
-  useEffect(() => {
-    metronomeEnabledRef.current = metronomeEnabled;
-  }, [metronomeEnabled]);
-
-  useEffect(() => {
-    metronomeSourceRef.current = metronomeSource;
-  }, [metronomeSource]);
-
-  useEffect(() => {
-    metronomeDrumPathRef.current = metronomeDrumPath;
-  }, [metronomeDrumPath]);
-
-  useEffect(() => {
-    beatsPerBarRef.current = beatsPerBar;
-  }, [beatsPerBar]);
-
-  const timeline = useMemo<ArrangementTimeline>(
-    () => ({
-      stepsPerBar,
-      loopLengthBars,
-      totalSteps,
-      events: arrangementEvents,
-    }),
-    [arrangementEvents, loopLengthBars, stepsPerBar, totalSteps],
-  );
-  const showRecordingLeadIn = isCountInActive || isRecording;
-
-  const padHotkeyBindings = useMemo(
-    () =>
-      editableChords.map((entry, index) => ({
-        entry,
-        hotkey: PAD_TRIGGER_KEYS[index] ?? null,
-      })),
-    [editableChords],
-  );
-
-  const padHotkeyMap = useMemo(() => {
-    const bindings = new Map<string, ChordGridEntry>();
-    padHotkeyBindings.forEach(({ entry, hotkey }) => {
-      if (hotkey) {
-        bindings.set(hotkey, entry);
-      }
-    });
-    return bindings;
-  }, [padHotkeyBindings]);
-
-  const playbackSnapshot = useMemo<ArrangementPlaybackSnapshot>(
-    () => ({
-      ...settings,
-      tempoBpm,
-    }),
-    [settings, tempoBpm],
-  );
-
+  // ── Audio playback helper (passed down as callback — DIP) ───────────────────
   const playEntry = (
-    entry: Pick<ChordGridEntry, 'key' | 'leftHand' | 'rightHand'>,
+    entry: { key: string; leftHand: string[]; rightHand: string[] },
     options?: {
       stopBefore?: boolean;
       loop?: boolean;
@@ -556,622 +123,193 @@ export default function GeneratedChordGridDialog({
     });
   };
 
-  const stopSequencer = () => {
-    if (sequencerTimerRef.current) {
-      clearTimeout(sequencerTimerRef.current);
-      sequencerTimerRef.current = null;
-    }
+  // ── Hooks ───────────────────────────────────────────────────────────────────
+  const timeline$ = useArrangementTimeline({
+    totalSteps,
+    stepsPerBar,
+    loopLengthBars,
+    padVelocity,
+  });
 
-    if (countInTimerRef.current) {
-      clearTimeout(countInTimerRef.current);
-      countInTimerRef.current = null;
-    }
+  const engine$ = useSequencerEngine({
+    open,
+    tempoBpm,
+    beatsPerBar,
+    stepsPerBar,
+    totalSteps,
+    isLoopEnabled,
+    recordingMode,
+    metronomeEnabled,
+    metronomeVolume,
+    metronomeSource,
+    metronomeDrumPath,
+    timeSignature,
+    padVelocity,
+    eventsByStepRef: timeline$.eventsByStepRef,
+    onPlayEntry: playEntry,
+    onCountInBegin: () => setTrackScrollRequestKey((k) => k + 1),
+  });
 
-    if (countInStartTimeoutRef.current) {
-      clearTimeout(countInStartTimeoutRef.current);
-      countInStartTimeoutRef.current = null;
-    }
+  const edit$ = usePadEdit({ chords, open });
 
-    setIsSequencerPlaying(false);
-    setIsRecording(false);
-    setIsCountInActive(false);
-    setCurrentStep(0);
-    currentStepRef.current = 0;
-    setIsBeatPulseVisible(false);
-    setCurrentBeatInBar(1);
+  const interaction$ = usePadInteraction({
+    open,
+    isSequencerPlaying: engine$.isSequencerPlaying,
+    isRecording: engine$.isRecording,
+    padLatchMode,
+    onPlayEntry: playEntry,
+  });
 
-    if (beatPulseTimeoutRef.current) {
-      clearTimeout(beatPulseTimeoutRef.current);
-      beatPulseTimeoutRef.current = null;
-    }
+  // ── Cross-hook helpers built at the composition root ────────────────────────
 
-    stopAllAudio();
-  };
-
-  const pulseBeatIndicator = (beatNumber: number, isDownbeat: boolean) => {
-    setCurrentBeatInBar(beatNumber);
-    setIsDownbeatPulse(isDownbeat);
-    setIsBeatPulseVisible(true);
-
-    if (beatPulseTimeoutRef.current) {
-      clearTimeout(beatPulseTimeoutRef.current);
-    }
-
-    beatPulseTimeoutRef.current = setTimeout(() => {
-      setIsBeatPulseVisible(false);
-      beatPulseTimeoutRef.current = null;
-    }, 120);
-  };
-
-  const startSequencer = () => {
-    if (sequencerTimerRef.current) {
-      clearTimeout(sequencerTimerRef.current);
-      sequencerTimerRef.current = null;
-    }
-
-    stopGlobalPlayback();
-    stopAllAudio();
-    void startAudio();
-
-    const stepDurationMs = 60_000 / tempoBpm / STEPS_PER_BEAT;
-    let expectedNextTick = getSchedulerNowMs();
-    currentStepRef.current = 0;
-    setCurrentStep(0);
-    setIsSequencerPlaying(true);
-
-    const scheduleNextStep = () => {
-      expectedNextTick += stepDurationMs;
-      const delayMs = Math.max(0, expectedNextTick - getSchedulerNowMs());
-
-      sequencerTimerRef.current = setTimeout(() => {
-        runSequencerStep();
-      }, delayMs);
-    };
-
-    const runSequencerStep = () => {
-      const stepIndex = currentStepRef.current;
-      setCurrentStep(stepIndex);
-
-      if (metronomeEnabledRef.current && stepIndex % STEPS_PER_BEAT === 0) {
-        const absoluteBeatIndex = Math.floor(stepIndex / STEPS_PER_BEAT);
-        const beatInBar = absoluteBeatIndex % beatsPerBarRef.current;
-        const isDownbeat = beatInBar === 0;
-
-        pulseBeatIndicator(beatInBar + 1, isDownbeat);
-        void playMetronomePulse(metronomeVolume, isDownbeat, {
-          source: metronomeSourceRef.current,
-          drumPath: metronomeDrumPathRef.current,
-          timeSignature,
-          tempoBpm,
-          beatIndex: absoluteBeatIndex,
-        });
-      }
-
-      const events = eventsByStepRef.current.get(stepIndex) ?? [];
-      events.forEach((event) => {
-        playEntry(
-          { key: event.padKey, leftHand: event.leftHand, rightHand: event.rightHand },
-          {
-            stopBefore: false,
-            loop: false,
-            useCurrentPadPattern: false,
-            velocity: event.velocity ?? padVelocity,
-          },
-        );
-      });
-
-      const nextStep = stepIndex + 1;
-      if (nextStep >= totalStepsRef.current) {
-        if (isLoopEnabledRef.current) {
-          currentStepRef.current = 0;
-          scheduleNextStep();
-          return;
-        }
-
-        stopSequencer();
-        return;
-      }
-
-      currentStepRef.current = nextStep;
-      scheduleNextStep();
-    };
-
-    runSequencerStep();
-  };
-
-  const handleSequencerPlayToggle = () => {
-    if (isSequencerPlaying) {
-      stopSequencer();
-      return;
-    }
-
-    startSequencer();
-  };
-
-  const handleRecordToggle = () => {
-    if (recordingMode === 'single-shot') {
-      return;
-    }
-
-    if (!hasInitializedAudio) {
-      return;
-    }
-
-    if (isCountInActive) {
-      stopSequencer();
-      return;
-    }
-
-    if (isRecording) {
-      setIsRecording(false);
-      return;
-    }
-
-    stopSequencer();
-    setCurrentBeatInBar(1);
-    setIsCountInActive(true);
-    setTrackScrollRequestKey((previous) => previous + 1);
-
-    void startAudio().then(() => {
-      let stepIndex = 0;
-      const stepDurationMs = 60_000 / tempoBpm / STEPS_PER_BEAT;
-      const totalPreRollBeats = beatsPerBar;
-      const totalPreRollSteps = totalPreRollBeats * STEPS_PER_BEAT;
-      const leadInSteps = RECORDING_LEAD_IN_BARS * stepsPerBar;
-      let expectedNextTick = getSchedulerNowMs();
-
-      setCurrentStep(-leadInSteps);
-
-      const scheduleNextCountInStep = () => {
-        expectedNextTick += stepDurationMs;
-        const delayMs = Math.max(0, expectedNextTick - getSchedulerNowMs());
-
-        countInTimerRef.current = setTimeout(() => {
-          runCountInStep();
-        }, delayMs);
-      };
-
-      const runCountInStep = () => {
-        const beatIndex = Math.floor(stepIndex / STEPS_PER_BEAT);
-        const beatNumber = (beatIndex % beatsPerBar) + 1;
-        const isDownbeat = beatNumber === 1;
-        const isAudibleCountInBeat = beatIndex < beatsPerBar;
-
-        if (stepIndex % STEPS_PER_BEAT === 0) {
-          pulseBeatIndicator(beatNumber, isDownbeat);
-          if (isAudibleCountInBeat) {
-            void playMetronomePulse(metronomeVolume, isDownbeat, {
-              source: metronomeSourceRef.current,
-              drumPath: metronomeDrumPathRef.current,
-              timeSignature,
-              tempoBpm,
-              beatIndex,
-            });
-          }
-        }
-
-        const completedPreRollSteps = stepIndex + 1;
-        setCurrentStep(completedPreRollSteps - leadInSteps);
-
-        stepIndex += 1;
-
-        if (stepIndex >= totalPreRollSteps) {
-          if (countInTimerRef.current) {
-            clearTimeout(countInTimerRef.current);
-            countInTimerRef.current = null;
-          }
-
-          setIsCountInActive(false);
-          setCurrentBeatInBar(1);
-          startSequencer();
-          setIsRecording(true);
-
-          return;
-        }
-
-        scheduleNextCountInStep();
-      };
-
-      runCountInStep();
-    });
-  };
-
-  const clearRecordedEvents = () => {
-    setArrangementEvents([]);
-    setCurrentStep(0);
-    currentStepRef.current = 0;
-    setSelectedStepIndex(null);
-  };
-
-  const deleteSelectedClip = () => {
-    if (selectedStepIndex === null) {
-      return;
-    }
-
-    setArrangementEvents((prev) => prev.filter((event) => event.stepIndex !== selectedStepIndex));
-    setSelectedStepIndex(null);
-  };
-
-  const moveClipStep = (sourceStepIndex: number, newStepIndex: number) => {
-    setArrangementEvents((prev) =>
-      prev
-        .map((event) =>
-          event.stepIndex === sourceStepIndex ? { ...event, stepIndex: newStepIndex } : event,
-        )
-        .sort((a, b) => a.stepIndex - b.stepIndex),
-    );
-    setSelectedStepIndex(newStepIndex);
-  };
-
-  const nudgeSelectedClip = (delta: number) => {
-    if (selectedStepIndex === null) {
-      return;
-    }
-
-    const next = Math.max(0, Math.min(totalSteps - 1, selectedStepIndex + delta));
-    if (next === selectedStepIndex) {
-      return;
-    }
-
-    moveClipStep(selectedStepIndex, next);
-  };
-
-  const triggerPad = (entry: ChordGridEntry) => {
-    if (activePadTimeout.current) {
-      clearTimeout(activePadTimeout.current);
-    }
-
-    setActivePadKey(entry.key);
-    activePadTimeout.current = setTimeout(() => {
-      setActivePadKey(null);
-      activePadTimeout.current = null;
-    }, 180);
-
-    const playInSequencerContext = isSequencerPlaying || isRecording;
-    playEntry(entry, {
-      stopBefore: !playInSequencerContext,
-      loop: playInSequencerContext ? false : padLatchMode,
-      useCurrentPadPattern: !playInSequencerContext,
-    });
-  };
-
-  const insertArrangementEvent = (
-    entry: ChordGridEntry,
-    stepIndex: number,
-    options?: { durationSteps?: number },
-  ) => {
-    const boundedStepIndex = Math.max(0, Math.min(totalSteps - 1, stepIndex));
-    const event: ArrangementEvent = {
-      id: generateId(),
-      padKey: entry.key,
-      chord: entry.chord,
-      source: entry.source,
-      leftHand: entry.leftHand,
-      rightHand: entry.rightHand,
-      stepIndex: boundedStepIndex,
-      velocity: padVelocity,
-      durationSteps: options?.durationSteps,
-    };
-
-    setArrangementEvents((previous) => {
-      const filtered = previous.filter((candidate) => candidate.stepIndex !== event.stepIndex);
-      return [...filtered, event].sort((a, b) => a.stepIndex - b.stepIndex);
-    });
-    setSelectedStepIndex(boundedStepIndex);
-  };
-
+  /** Insert a chord at a precise step only when not playing/counting-in. */
   const insertManualEventAtStep = (
-    entry: ChordGridEntry,
+    entry: Parameters<typeof timeline$.insertArrangementEvent>[0],
     stepIndex: number,
     options?: { durationSteps?: number },
   ) => {
-    if (isSequencerPlaying || isCountInActive) {
+    if (engine$.isSequencerPlaying || engine$.isCountInActive) {
       return false;
     }
 
-    insertArrangementEvent(entry, stepIndex, options);
+    timeline$.insertArrangementEvent(entry, stepIndex, options);
     return true;
   };
 
-  const onPadPress = (entry: ChordGridEntry) => {
-    if (mobileTimelineInsertPadKey) {
-      setMobileTimelineInsertPadKey(null);
+  /** Full pad-press handler — orchestrates all concerns. */
+  const onPadPress = (entry: (typeof edit$.editableChords)[number]) => {
+    if (interaction$.mobileTimelineInsertPadKey) {
+      interaction$.setMobileTimelineInsertPadKey(null);
     }
 
-    if (!hasInitializedAudio) {
-      setHasInitializedAudio(true);
+    if (!engine$.hasInitializedAudio) {
+      engine$.setHasInitializedAudio(true);
     }
 
-    if (isEditMode) {
-      setEditingPadKey(entry.key);
+    if (edit$.isEditMode) {
+      edit$.setEditingPadKey(entry.key);
     } else {
-      setCofFocusPadKey((previous) => (previous === entry.key ? null : entry.key));
+      edit$.setCofFocusPadKey((prev) => (prev === entry.key ? null : entry.key));
     }
 
-    triggerPad(entry);
+    interaction$.triggerPad(entry);
 
     if (recordingMode === 'single-shot') {
-      if (singleShotCursorStep === null) {
-        return;
+      if (singleShotCursorStep !== null) {
+        insertManualEventAtStep(entry, singleShotCursorStep, { durationSteps: 1 });
       }
 
-      insertManualEventAtStep(entry, singleShotCursorStep, { durationSteps: 1 });
       return;
     }
 
-    if (isRecording) {
-      const stepIndex = Math.min(currentStepRef.current, Math.max(0, totalSteps - 1));
-      insertArrangementEvent(entry, stepIndex);
+    if (engine$.isRecording) {
+      const stepIndex = Math.min(engine$.currentStepRef.current, Math.max(0, totalSteps - 1));
+      timeline$.insertArrangementEvent(entry, stepIndex);
     }
   };
 
-  const armMobileTimelineInsert = (
-    entry: ChordGridEntry,
-    pointerDownEvent: React.PointerEvent<HTMLButtonElement>,
-  ) => {
-    const pointerId = pointerDownEvent.pointerId;
-    const startX = pointerDownEvent.clientX;
-    const startY = pointerDownEvent.clientY;
-    mobilePadLongPressTriggeredRef.current = false;
-    clearMobilePadLongPressTimer();
-
-    const clearPointerListeners = () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUpOrCancel);
-      window.removeEventListener('pointercancel', handlePointerUpOrCancel);
-    };
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      if (moveEvent.pointerId !== pointerId || mobilePadLongPressTriggeredRef.current) {
-        return;
-      }
-
-      const distance = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
-      if (distance > TOUCH_MOVE_CANCEL_THRESHOLD_PX) {
-        clearMobilePadLongPressTimer();
-      }
-    };
-
-    const handlePointerUpOrCancel = (endEvent: PointerEvent) => {
-      if (endEvent.pointerId !== pointerId) {
-        return;
-      }
-
-      const wasLongPress = mobilePadLongPressTriggeredRef.current;
-      clearPointerListeners();
-      clearMobilePadLongPressTimer();
-      mobilePadLongPressTriggeredRef.current = false;
-
-      if (!wasLongPress) {
-        onPadPress(entry);
-      }
-    };
-
-    mobilePadLongPressTimerRef.current = setTimeout(() => {
-      mobilePadLongPressTimerRef.current = null;
-      mobilePadLongPressTriggeredRef.current = true;
-      setMobileTimelineInsertPadKey(entry.key);
-    }, TOUCH_LONG_PRESS_MS);
-
-    window.addEventListener('pointermove', handlePointerMove, { passive: false });
-    window.addEventListener('pointerup', handlePointerUpOrCancel, { passive: false });
-    window.addEventListener('pointercancel', handlePointerUpOrCancel, { passive: false });
-  };
-
-  const handleMobileTimelineInsert = (stepIndex: number) => {
-    if (!mobileTimelineInsertPadKey) {
-      return;
-    }
-
-    const entry = editableChords.find((candidate) => candidate.key === mobileTimelineInsertPadKey);
-    setMobileTimelineInsertPadKey(null);
-    if (!entry) {
-      return;
-    }
-
-    if (!hasInitializedAudio) {
-      setHasInitializedAudio(true);
-    }
-
-    triggerPad(entry);
-    insertManualEventAtStep(entry, stepIndex, { durationSteps: 1 });
+  const clearRecordedEvents = () => {
+    timeline$.clearArrangementEvents();
+    engine$.resetStep();
   };
 
   const handleLaneClickStep = (stepIndex: number) => {
-    if (mobileTimelineInsertPadKey) {
-      handleMobileTimelineInsert(stepIndex);
+    if (interaction$.mobileTimelineInsertPadKey) {
+      const entry = edit$.editableChords.find(
+        (c) => c.key === interaction$.mobileTimelineInsertPadKey,
+      );
+      interaction$.setMobileTimelineInsertPadKey(null);
+      if (!entry) return;
+      if (!engine$.hasInitializedAudio) engine$.setHasInitializedAudio(true);
+      interaction$.triggerPad(entry);
+      insertManualEventAtStep(entry, stepIndex, { durationSteps: 1 });
       return;
     }
 
-    if (recordingMode !== 'single-shot' || isSequencerPlaying || isCountInActive) {
+    if (recordingMode !== 'single-shot' || engine$.isSequencerPlaying || engine$.isCountInActive) {
       return;
     }
 
     setSingleShotCursorStep(stepIndex);
   };
 
-  handleSequencerPlayToggleRef.current = handleSequencerPlayToggle;
-  handleRecordToggleRef.current = handleRecordToggle;
-  deleteSelectedClipRef.current = deleteSelectedClip;
-  nudgeSelectedClipRef.current = nudgeSelectedClip;
-  onPadPressRef.current = onPadPress;
-
-  useEffect(() => {
-    if (!open || saveArrangementDialogOpen) {
-      return;
-    }
-
-    const onWindowKeyDown = (event: KeyboardEvent) => {
-      if (!isDesktopKeyboardUi && !hasDetectedHardwareKeyboardInput) {
-        setHasDetectedHardwareKeyboardInput(true);
-      }
-
-      if (event.defaultPrevented || event.repeat || isTypingTarget(event.target)) {
-        return;
-      }
-
-      if (event.metaKey || event.ctrlKey || event.altKey) {
-        return;
-      }
-
-      const key = event.key.toLowerCase();
-
-      if (key === ' ') {
-        event.preventDefault();
-        handleSequencerPlayToggleRef.current();
-        return;
-      }
-
-      if (event.key === 'Shift') {
-        event.preventDefault();
-        handleRecordToggleRef.current();
-        return;
-      }
-
-      if ((key === 'delete' || key === 'backspace') && selectedStepIndex !== null) {
-        event.preventDefault();
-        deleteSelectedClipRef.current();
-        return;
-      }
-
-      if (key === 'escape') {
-        setSelectedStepIndex(null);
-        return;
-      }
-
-      if ((key === 'arrowleft' || key === 'arrowright') && selectedStepIndex !== null) {
-        event.preventDefault();
-        nudgeSelectedClipRef.current(key === 'arrowleft' ? -1 : 1);
-        return;
-      }
-
-      const matchedEntry = padHotkeyMap.get(key);
-      if (!matchedEntry) {
-        return;
-      }
-
-      event.preventDefault();
-      onPadPressRef.current(matchedEntry);
-    };
-
-    window.addEventListener('keydown', onWindowKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', onWindowKeyDown);
-    };
-  }, [
-    hasDetectedHardwareKeyboardInput,
-    isDesktopKeyboardUi,
+  // ── Keyboard shortcuts hook ─────────────────────────────────────────────────
+  const { hasDetectedHardwareKeyboardInput } = useChordGridKeyboard({
     open,
-    padHotkeyMap,
     saveArrangementDialogOpen,
-    selectedStepIndex,
-    totalSteps,
-  ]);
+    isDesktopKeyboardUi,
+    selectedStepIndex: timeline$.selectedStepIndex,
+    setSelectedStepIndex: timeline$.setSelectedStepIndex,
+    padHotkeyMap: edit$.padHotkeyMap,
+    onPlayToggle: engine$.handleSequencerPlayToggle,
+    onRecordToggle: engine$.handleRecordToggle,
+    onDeleteClip: timeline$.deleteSelectedClip,
+    onNudgeClip: timeline$.nudgeSelectedClip,
+    onPadPress,
+  });
 
-  const onPadChordChange = (padKey: string, chord: string) => {
-    const voicing = createPianoVoicingFromChordSymbol(chord);
-    if (!voicing) {
+  const showKeyboardHints = isDesktopKeyboardUi || hasDetectedHardwareKeyboardInput;
+
+  // ── Pending arrangement load (seeds timeline + engine from saved data) ───────
+  useEffect(() => {
+    if (!pendingLoad) {
       return;
     }
 
-    setEditableChords((previous) =>
-      previous.map((entry) =>
-        entry.key === padKey
-          ? {
-              ...entry,
-              chord,
-              leftHand: voicing.leftHand,
-              rightHand: voicing.rightHand,
-            }
-          : entry,
+    const clampedBars = Math.max(
+      1,
+      Math.min(
+        8,
+        LOOP_LENGTH_OPTIONS.includes(
+          pendingLoad.loopLengthBars as (typeof LOOP_LENGTH_OPTIONS)[number],
+        )
+          ? (pendingLoad.loopLengthBars as (typeof LOOP_LENGTH_OPTIONS)[number])
+          : 1,
       ),
+    ) as (typeof LOOP_LENGTH_OPTIONS)[number];
+
+    timeline$.setArrangementEvents(
+      pendingLoad.events.map((event) => ({ ...event, id: event.id ?? generateId() })),
     );
-  };
+    timeline$.setSelectedStepIndex(null);
+    setLoopLengthBars(clampedBars);
+    engine$.resetEngineState();
+    setSingleShotCursorStep(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingLoad?.key]);
 
-  const cofHighlightedKeys = useMemo<Set<string>>(() => {
-    if (!cofFocusPadKey || cofSuggestionMode === 'none') {
-      return new Set();
+  // ── Close cleanup ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!open) {
+      setSingleShotCursorStep(null);
+      setRecordingMode('continuous');
+      timeline$.setSelectedStepIndex(null);
+      // Engine and pad-edit/interaction hooks handle their own state on open change.
     }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const focusedEntry = editableChords.find((entry) => entry.key === cofFocusPadKey);
-    if (!focusedEntry) {
-      return new Set();
-    }
+  // ── Derived values for render ────────────────────────────────────────────────
+  const playbackSnapshot = useMemo<ArrangementPlaybackSnapshot>(
+    () => ({ ...settings, tempoBpm }),
+    [settings, tempoBpm],
+  );
 
-    const rootSemitone = getChordRootSemitone(focusedEntry.chord);
-    if (rootSemitone === null) {
-      return new Set();
-    }
-
-    const suggestedSemitones = getCircleOfFifthsSuggestedSemitones(rootSemitone, cofSuggestionMode);
-    const highlighted = new Set<string>();
-    for (const entry of editableChords) {
-      if (entry.key === cofFocusPadKey) {
-        continue;
-      }
-
-      const entrySemitone = getChordRootSemitone(entry.chord);
-      if (entrySemitone !== null && suggestedSemitones.has(entrySemitone)) {
-        highlighted.add(entry.key);
-      }
-    }
-
-    return highlighted;
-  }, [cofFocusPadKey, cofSuggestionMode, editableChords]);
-
-  const editableChordOptions = useMemo(() => {
-    const values = Array.from(
-      new Set([...CHORD_OPTIONS, ...editableChords.map((entry) => entry.chord)]),
-    );
-    return values.map((value) => ({ value, label: value }));
-  }, [editableChords]);
-
-  const editingEntry = editingPadKey
-    ? editableChords.find((entry) => entry.key === editingPadKey)
+  const editingEntry = edit$.editingPadKey
+    ? edit$.editableChords.find((e) => e.key === edit$.editingPadKey)
     : undefined;
-  const selectedStepEventCount =
-    selectedStepIndex === null ? 0 : (eventsByStep.get(selectedStepIndex)?.length ?? 0);
-
-  const handleStartEditing = () => {
-    setIsEditMode(true);
-  };
-
-  const handleSaveEditing = () => {
-    setIsEditMode(false);
-    setEditingPadKey(null);
-  };
 
   const previewEntry =
-    editableChords.find((entry) => entry.key === activePadKey) ??
-    (editableChords.length > 0
-      ? {
-          leftHand: editableChords[0].leftHand,
-          rightHand: editableChords[0].rightHand,
-        }
+    edit$.editableChords.find((e) => e.key === interaction$.activePadKey) ??
+    (edit$.editableChords.length > 0
+      ? { leftHand: edit$.editableChords[0].leftHand, rightHand: edit$.editableChords[0].rightHand }
       : undefined);
-  const keyboardShortcutItems = [
-    t('ui.chordGrid.keyboardShortcutPads', {
-      defaultValue: 'Pads: 1-0, then A-Z.',
-    }),
-    t('ui.chordGrid.keyboardShortcutTransport', {
-      defaultValue: 'Space: play or stop the track.',
-    }),
-    t('ui.chordGrid.keyboardShortcutRecord', {
-      defaultValue: 'Shift: toggle recording.',
-    }),
-  ];
-  const desktopKeyboardShortcutItems = [
-    t('ui.chordGrid.keyboardShortcutDelete', {
-      defaultValue: 'Delete / Backspace: remove all events at the selected step.',
-    }),
-    t('ui.chordGrid.keyboardShortcutEscape', {
-      defaultValue: 'Escape: clear the current selection.',
-    }),
-    t('ui.chordGrid.keyboardShortcutNudge', {
-      defaultValue: 'Left / Right arrows: nudge the selected clip within the loop.',
-    }),
-  ];
+
+  const selectedStepEventCount =
+    timeline$.selectedStepIndex === null
+      ? 0
+      : (timeline$.eventsByStep.get(timeline$.selectedStepIndex)?.length ?? 0);
+
+  const showRecordingLeadIn = engine$.isCountInActive || engine$.isRecording;
 
   return (
     <Dialog
@@ -1181,12 +319,7 @@ export default function GeneratedChordGridDialog({
       maxWidth={false}
       fullWidth
       fullScreen={isMobile}
-      sx={{
-        '& .MuiDialog-container': {
-          justifyContent: 'center',
-          alignItems: 'center',
-        },
-      }}
+      sx={{ '& .MuiDialog-container': { justifyContent: 'center', alignItems: 'center' } }}
       PaperProps={{
         dir: 'ltr',
         style: { direction: 'ltr' },
@@ -1214,365 +347,81 @@ export default function GeneratedChordGridDialog({
           </IconButton>
         </Box>
       </DialogTitle>
+
       <DialogContent dividers>
-        <Box
-          sx={{
-            mb: 1.5,
-            p: 1.25,
-            borderRadius: 1.5,
-            bgcolor: appColors.surface.translucentPanel,
-            border: `1px solid ${appColors.surface.translucentPanelBorder}`,
-            display: 'flex',
-            gap: 1,
-            flexWrap: 'wrap',
-            alignItems: 'center',
+        <TransportBar
+          isSequencerPlaying={engine$.isSequencerPlaying}
+          isRecording={engine$.isRecording}
+          isCountInActive={engine$.isCountInActive}
+          hasInitializedAudio={engine$.hasInitializedAudio}
+          recordingMode={recordingMode}
+          isLoopEnabled={isLoopEnabled}
+          metronomeEnabled={metronomeEnabled}
+          isBeatPulseVisible={engine$.isBeatPulseVisible}
+          isDownbeatPulse={engine$.isDownbeatPulse}
+          currentBeatInBar={engine$.currentBeatInBar}
+          beatsPerBar={beatsPerBar}
+          currentStep={engine$.currentStep}
+          totalSteps={totalSteps}
+          loopLengthBars={loopLengthBars}
+          arrangementEventsCount={timeline$.arrangementEvents.length}
+          singleShotCursorStep={singleShotCursorStep}
+          showKeyboardHints={showKeyboardHints}
+          isDesktopKeyboardUi={isDesktopKeyboardUi}
+          onPlayToggle={engine$.handleSequencerPlayToggle}
+          onRecordToggle={engine$.handleRecordToggle}
+          onLoopToggle={() => setIsLoopEnabled((prev) => !prev)}
+          onMetronomeToggle={() => onSettingsChange.onMetronomeEnabledChange(!metronomeEnabled)}
+          onClearRecording={clearRecordedEvents}
+          onLoopLengthChange={(bars) => {
+            setLoopLengthBars(bars);
+            engine$.resetStep();
           }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              flexWrap: 'wrap',
-              mb: { xs: 0.75, sm: 0 },
-            }}
-          >
-            <PlaybackToggleButton
-              isPlaying={isSequencerPlaying}
-              onClick={handleSequencerPlayToggle}
-            />
-            <Tooltip
-              title={
-                recordingMode === 'single-shot'
-                  ? t('ui.chordGrid.recordDisabledInSingleShot', {
-                      defaultValue: 'Switch to Continuous mode to use live recording.',
-                    })
-                  : isCountInActive
-                    ? t('ui.chordGrid.countInTooltip', {
-                        current: currentBeatInBar,
-                        total: beatsPerBar,
-                      })
-                    : isRecording
-                      ? t('ui.chordGrid.stopRecording')
-                      : t('ui.chordGrid.recordArrangement')
-              }
-            >
-              <span>
-                <IconButton
-                  size="small"
-                  aria-label={
-                    isCountInActive
-                      ? t('ui.chordGrid.countInAriaLabel', {
-                          current: currentBeatInBar,
-                          total: beatsPerBar,
-                        })
-                      : isRecording
-                        ? t('ui.chordGrid.stopRecording')
-                        : t('ui.chordGrid.recordArrangement')
-                  }
-                  onClick={handleRecordToggle}
-                  disabled={!hasInitializedAudio || recordingMode === 'single-shot'}
-                  sx={getTransportIconButtonSx(isRecording || isCountInActive, 'error')}
-                >
-                  <FiberManualRecordIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-            <ToggleButtonGroup
-              exclusive
-              size="small"
-              value={recordingMode}
-              onChange={(_event, mode: RecordingMode | null) => {
-                if (!mode) {
-                  return;
-                }
+          onRecordingModeChange={(mode) => {
+            setRecordingMode(mode);
+            if (mode === 'single-shot') {
+              engine$.isRecording && engine$.handleRecordToggle();
+            }
+          }}
+          onSingleShotCursorStepChange={setSingleShotCursorStep}
+        />
 
-                setRecordingMode(mode);
-                if (mode === 'continuous') {
-                  setSingleShotCursorStep(null);
-                  return;
-                }
-
-                setIsRecording(false);
-                if (singleShotCursorStep === null) {
-                  setSingleShotCursorStep(Math.max(0, Math.min(totalSteps - 1, currentStep)));
-                }
-              }}
-              aria-label={t('ui.chordGrid.recordingModeLabel', {
-                defaultValue: 'Recording mode',
-              })}
-              sx={{
-                '& .MuiToggleButton-root': {
-                  textTransform: 'none',
-                  px: 0.9,
-                  py: 0.5,
-                  fontWeight: 600,
-                  fontSize: { xs: '0.67rem', sm: '0.72rem' },
-                },
-              }}
-            >
-              <ToggleButton
-                value="continuous"
-                aria-label={t('ui.chordGrid.recordingModeContinuous', {
-                  defaultValue: 'Continuous recording',
-                })}
-              >
-                {t('ui.chordGrid.recordingModeContinuous', {
-                  defaultValue: 'Continuous',
-                })}
-              </ToggleButton>
-              <ToggleButton
-                value="single-shot"
-                aria-label={t('ui.chordGrid.recordingModeSingleShot', {
-                  defaultValue: 'Single-shot recording',
-                })}
-              >
-                {t('ui.chordGrid.recordingModeSingleShot', {
-                  defaultValue: 'Single-shot',
-                })}
-              </ToggleButton>
-            </ToggleButtonGroup>
-            <Tooltip
-              title={isLoopEnabled ? t('ui.chordGrid.disableLoop') : t('ui.chordGrid.enableLoop')}
-            >
-              <IconButton
-                size="small"
-                aria-label={
-                  isLoopEnabled ? t('ui.chordGrid.disableLoop') : t('ui.chordGrid.enableLoop')
-                }
-                onClick={() => setIsLoopEnabled((previous) => !previous)}
-                sx={getTransportIconButtonSx(isLoopEnabled)}
-              >
-                <LoopIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip
-              title={
-                metronomeEnabled
-                  ? t('ui.chordGrid.disableMetronome')
-                  : t('ui.chordGrid.enableMetronome')
-              }
-            >
-              <IconButton
-                size="small"
-                aria-label={
-                  metronomeEnabled
-                    ? t('ui.chordGrid.disableMetronome')
-                    : t('ui.chordGrid.enableMetronome')
-                }
-                onClick={() => onSettingsChange.onMetronomeEnabledChange(!metronomeEnabled)}
-                sx={getTransportIconButtonSx(metronomeEnabled)}
-              >
-                <AvTimerIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <Box
-                sx={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  backgroundColor: isDownbeatPulse
-                    ? theme.palette.error.main
-                    : theme.palette.primary.main,
-                  opacity: metronomeEnabled && isBeatPulseVisible ? 1 : 0.25,
-                  transform: metronomeEnabled && isBeatPulseVisible ? 'scale(1.35)' : 'scale(1)',
-                  boxShadow:
-                    metronomeEnabled && isBeatPulseVisible
-                      ? isDownbeatPulse
-                        ? `0 0 0 5px ${alpha(theme.palette.error.main, 0.24)}`
-                        : `0 0 0 5px ${alpha(theme.palette.primary.main, 0.24)}`
-                      : 'none',
-                  transition: 'opacity 90ms ease, transform 90ms ease, box-shadow 90ms ease',
-                }}
-              />
-              <Typography variant="caption" color="text.secondary" sx={{ minWidth: 50 }}>
-                {t('ui.chordGrid.beatCounter', {
-                  current: currentBeatInBar,
-                  total: beatsPerBar,
-                })}
-              </Typography>
-            </Box>
-            <IconButton
-              aria-label={t('ui.chordGrid.clearRecording')}
-              size="small"
-              onClick={clearRecordedEvents}
-              disabled={arrangementEvents.length === 0}
-            >
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-            {showKeyboardHints ? (
-              <Box sx={{ ml: 'auto' }}>
-                <Tooltip
-                  arrow
-                  enterTouchDelay={0}
-                  leaveTouchDelay={3000}
-                  placement="bottom-end"
-                  title={
-                    <Box sx={{ maxWidth: 340, py: 0.25 }}>
-                      <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                        {t('ui.chordGrid.keyboardShortcutsLabel', {
-                          defaultValue: 'Keyboard shortcuts',
-                        })}
-                      </Typography>
-                      <Box component="ul" sx={{ m: 0, pl: 2.25 }}>
-                        {keyboardShortcutItems.map((item) => (
-                          <Box component="li" key={item} sx={{ mt: 0.25 }}>
-                            <Typography variant="body2">{item}</Typography>
-                          </Box>
-                        ))}
-                      </Box>
-                      {isDesktopKeyboardUi ? (
-                        <>
-                          <Typography variant="subtitle2" sx={{ mt: 1.25, mb: 0.5 }}>
-                            {t('ui.chordGrid.keyboardShortcutDesktopTitle', {
-                              defaultValue: 'Desktop clip editing',
-                            })}
-                          </Typography>
-                          <Box component="ul" sx={{ m: 0, pl: 2.25 }}>
-                            {desktopKeyboardShortcutItems.map((item) => (
-                              <Box component="li" key={item} sx={{ mt: 0.25 }}>
-                                <Typography variant="body2">{item}</Typography>
-                              </Box>
-                            ))}
-                          </Box>
-                        </>
-                      ) : null}
-                    </Box>
-                  }
-                >
-                  <Button
-                    size="small"
-                    variant="text"
-                    startIcon={<KeyboardIcon fontSize="small" />}
-                    aria-label={t('ui.chordGrid.keyboardShortcutsButtonLabel', {
-                      defaultValue: 'Tips',
-                    })}
-                    sx={{
-                      px: 0.75,
-                      minWidth: 0,
-                      color: 'text.secondary',
-                      textTransform: 'none',
-                      fontWeight: 600,
-                    }}
-                  >
-                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                      {t('ui.chordGrid.keyboardShortcutsButtonLabel', {
-                        defaultValue: 'Tips',
-                      })}
-                    </Box>
-                  </Button>
-                </Tooltip>
-              </Box>
-            ) : null}
-          </Box>
-          <Box
-            sx={{
-              ml: { xs: 0, sm: 'auto' },
-              width: { xs: '100%', sm: 'auto' },
-              minWidth: { sm: 144 },
-            }}
-          >
-            <SelectField
-              label={t('ui.chordGrid.lengthLabel')}
-              value={String(loopLengthBars)}
-              size="small"
-              onChange={(event) => {
-                const nextValue = Number.parseInt(event.target.value, 10);
-                if (
-                  LOOP_LENGTH_OPTIONS.includes(nextValue as (typeof LOOP_LENGTH_OPTIONS)[number])
-                ) {
-                  setLoopLengthBars(nextValue as (typeof LOOP_LENGTH_OPTIONS)[number]);
-                  setCurrentStep(0);
-                  currentStepRef.current = 0;
-                }
-              }}
-              options={LOOP_LENGTH_OPTIONS.map((value) => ({
-                value: String(value),
-                label:
-                  value === 1
-                    ? t('ui.chordGrid.oneBar')
-                    : t('ui.chordGrid.multipleBars', { count: value }),
-              }))}
-              sx={{ minWidth: { xs: '100%', sm: 144 } }}
-            />
-          </Box>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ width: '100%' }}
-            style={{ textAlign: 'right' }}
-          >
-            {isCountInActive
-              ? t('ui.chordGrid.countInActive')
-              : t('ui.chordGrid.stepSummary', {
-                  current: currentStep + 1,
-                  total: totalSteps,
-                })}{' '}
-            •{' '}
-            {arrangementEvents.length === 1
-              ? t('ui.chordGrid.eventSingular', { count: arrangementEvents.length })
-              : t('ui.chordGrid.eventPlural', { count: arrangementEvents.length })}
-            {recordingMode === 'single-shot' ? (
-              <>
-                {' '}
-                •{' '}
-                {singleShotCursorStep === null
-                  ? t('ui.chordGrid.singleShotCursorUnset', {
-                      defaultValue: 'Single-shot: click timeline to place cursor',
-                    })
-                  : t('ui.chordGrid.singleShotCursorSet', {
-                      defaultValue: 'Single-shot cursor: step {{step}}',
-                      step: singleShotCursorStep + 1,
-                    })}
-              </>
-            ) : null}
-          </Typography>
-        </Box>
-
-        {/* DAW-style sequencer track visualization */}
         <SequencerTrack
-          currentStep={currentStep}
+          currentStep={engine$.currentStep}
           totalSteps={totalSteps}
           stepsPerBar={stepsPerBar}
           beatsPerBar={beatsPerBar}
           tempoBpm={tempoBpm}
-          isPlaying={isSequencerPlaying || isCountInActive}
+          isPlaying={engine$.isSequencerPlaying || engine$.isCountInActive}
           loopLengthBars={loopLengthBars}
           leadInBars={showRecordingLeadIn ? RECORDING_LEAD_IN_BARS : 0}
           scrollToStep={showRecordingLeadIn ? stepsPerBar * RECORDING_LEAD_IN_BARS : 0}
           scrollRequestKey={trackScrollRequestKey}
-          events={arrangementEvents}
+          events={timeline$.arrangementEvents}
           insertionCursorStep={recordingMode === 'single-shot' ? singleShotCursorStep : null}
-          onInsertionCursorMove={(stepIndex) => {
-            setSingleShotCursorStep(stepIndex);
-          }}
-          selectedStepIndex={selectedStepIndex}
+          onInsertionCursorMove={setSingleShotCursorStep}
+          selectedStepIndex={timeline$.selectedStepIndex}
           onClipClick={(sourceStepIndex) => {
-            setSelectedStepIndex((prev) => (prev === sourceStepIndex ? null : sourceStepIndex));
+            timeline$.setSelectedStepIndex((prev) =>
+              prev === sourceStepIndex ? null : sourceStepIndex,
+            );
           }}
-          onClipMove={moveClipStep}
+          onClipMove={timeline$.moveClipStep}
           onLaneClickStep={handleLaneClickStep}
           onPadDropAtStep={(padKey, stepIndex) => {
-            const entry = editableChords.find((candidate) => candidate.key === padKey);
-            if (!entry) {
-              return;
-            }
-
-            if (!hasInitializedAudio) {
-              setHasInitializedAudio(true);
-            }
-
-            triggerPad(entry);
+            const entry = edit$.editableChords.find((c) => c.key === padKey);
+            if (!entry) return;
+            if (!engine$.hasInitializedAudio) engine$.setHasInitializedAudio(true);
+            interaction$.triggerPad(entry);
             insertManualEventAtStep(entry, stepIndex, { durationSteps: 1 });
-            setMobileTimelineInsertPadKey(null);
+            interaction$.setMobileTimelineInsertPadKey(null);
           }}
           emptyTimelineHint={t('ui.chordGrid.dragOrRecordHint', {
             defaultValue: 'Drag pads or record chords to place regions on the timeline',
           })}
         />
 
-        {isMobile && mobileTimelineInsertPadKey ? (
+        {isMobile && interaction$.mobileTimelineInsertPadKey ? (
           <Box
             sx={{
               mb: 1.5,
@@ -1590,14 +439,15 @@ export default function GeneratedChordGridDialog({
               {t('ui.chordGrid.mobileDragInsertHint', {
                 defaultValue: 'Tap the timeline to place {{chord}}.',
                 chord:
-                  editableChords.find((candidate) => candidate.key === mobileTimelineInsertPadKey)
-                    ?.chord ?? mobileTimelineInsertPadKey,
+                  edit$.editableChords.find(
+                    (c) => c.key === interaction$.mobileTimelineInsertPadKey,
+                  )?.chord ?? interaction$.mobileTimelineInsertPadKey,
               })}
             </Typography>
             <Button
               size="small"
               variant="outlined"
-              onClick={() => setMobileTimelineInsertPadKey(null)}
+              onClick={() => interaction$.setMobileTimelineInsertPadKey(null)}
               sx={{ textTransform: 'none' }}
             >
               {t('ui.buttons.cancel', { defaultValue: 'Cancel' })}
@@ -1614,416 +464,48 @@ export default function GeneratedChordGridDialog({
           </Typography>
         ) : null}
 
-        {selectedStepIndex !== null && isMobile ? (
-          <Box
-            sx={{
-              mb: 1.5,
-              p: 1.25,
-              borderRadius: 1.5,
-              bgcolor: appColors.surface.translucentPanel,
-              border: `1px solid ${appColors.surface.translucentPanelBorder}`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              flexWrap: 'wrap',
-            }}
-          >
-            <Box sx={{ flex: 1, minWidth: 160 }}>
-              <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
-                {t('ui.chordGrid.selectedClipTitle', {
-                  defaultValue: 'Selected clip',
-                })}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {t('ui.chordGrid.selectedClipMeta', {
-                  defaultValue:
-                    '{{count}} event at step {{step}}. Drag the clip or use the controls to move it.',
-                  count: selectedStepEventCount,
-                  step: selectedStepIndex + 1,
-                })}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
-              <Tooltip
-                title={t('ui.chordGrid.moveClipLeft', {
-                  defaultValue: 'Move clip left',
-                })}
-              >
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={() => nudgeSelectedClip(-1)}
-                    disabled={selectedStepIndex === 0}
-                    aria-label={t('ui.chordGrid.moveClipLeft', {
-                      defaultValue: 'Move clip left',
-                    })}
-                  >
-                    <KeyboardArrowLeftIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              <Tooltip
-                title={t('ui.chordGrid.moveClipRight', {
-                  defaultValue: 'Move clip right',
-                })}
-              >
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={() => nudgeSelectedClip(1)}
-                    disabled={selectedStepIndex >= totalSteps - 1}
-                    aria-label={t('ui.chordGrid.moveClipRight', {
-                      defaultValue: 'Move clip right',
-                    })}
-                  >
-                    <KeyboardArrowRightIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              <Tooltip
-                title={t('ui.chordGrid.deleteSelectedClip', { defaultValue: 'Delete clip' })}
-              >
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={deleteSelectedClip}
-                    aria-label={t('ui.chordGrid.deleteSelectedClip', {
-                      defaultValue: 'Delete clip',
-                    })}
-                    sx={{ color: theme.palette.error.main }}
-                  >
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ width: '100%' }}>
-              {t('ui.chordGrid.touchEditHint', {
-                defaultValue: 'Tap a clip to select it. Drag it horizontally to move it.',
-              })}
-            </Typography>
-          </Box>
+        {timeline$.selectedStepIndex !== null && isMobile ? (
+          <MobileClipControls
+            selectedStepIndex={timeline$.selectedStepIndex}
+            selectedStepEventCount={selectedStepEventCount}
+            totalSteps={totalSteps}
+            onNudgeLeft={() => timeline$.nudgeSelectedClip(-1)}
+            onNudgeRight={() => timeline$.nudgeSelectedClip(1)}
+            onDeleteClip={timeline$.deleteSelectedClip}
+          />
         ) : null}
 
-        {isEditMode ? (
-          <Box
-            sx={{
-              mb: 1.5,
-              p: 1.5,
-              borderRadius: 1.5,
-              bgcolor: appColors.surface.translucentPanel,
-              border: `1px solid ${appColors.surface.translucentPanelBorder}`,
-            }}
-          >
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              {t('ui.chordGrid.selectPadThenChord')}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'nowrap' }}>
-              <Box sx={{ width: { xs: '68%', sm: 'auto' }, flexGrow: { sm: 1 }, minWidth: 0 }}>
-                <SelectField
-                  label={t('ui.chordGrid.padChordLabel')}
-                  value={editingEntry?.chord ?? ''}
-                  onChange={(event) => {
-                    if (editingPadKey) {
-                      onPadChordChange(editingPadKey, event.target.value);
-                    }
-                  }}
-                  options={editableChordOptions}
-                  fullWidth
-                  size="small"
-                  disabled={!editingPadKey}
-                />
-              </Box>
-              <Button
-                size="small"
-                variant="contained"
-                onClick={handleSaveEditing}
-                disabled={!editingPadKey}
-                sx={{ textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}
-              >
-                {t('ui.buttons.save')}
-              </Button>
-            </Box>
-          </Box>
+        {edit$.isEditMode ? (
+          <PadEditPanel
+            editingPadKey={edit$.editingPadKey}
+            editingChord={editingEntry?.chord ?? ''}
+            editableChordOptions={edit$.editableChordOptions}
+            onPadChordChange={edit$.onPadChordChange}
+            onSaveEditing={edit$.handleSaveEditing}
+          />
         ) : null}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: 'repeat(4, minmax(0, 1fr))',
-              sm: 'repeat(4, minmax(0, 1fr))',
-              lg: 'repeat(4, minmax(0, 1fr))',
-            },
-            gap: { xs: 1, sm: 1.5 },
-            p: { xs: 0.5, sm: 1 },
-            borderRadius: 2,
-            bgcolor: appColors.surface.chordPadGridBackground,
-            border: `1px solid ${appColors.surface.translucentPanelBorder}`,
+
+        <ChordPadGrid
+          padHotkeyBindings={edit$.padHotkeyBindings}
+          activePadKey={interaction$.activePadKey}
+          editingPadKey={edit$.editingPadKey}
+          cofHighlightedKeys={edit$.cofHighlightedKeys}
+          isMobile={isMobile}
+          showKeyboardHints={showKeyboardHints}
+          onPadPress={onPadPress}
+          onMobilePointerDown={(entry, event) => {
+            interaction$.armMobileTimelineInsert(entry, event, onPadPress);
           }}
-        >
-          {padHotkeyBindings.map(({ entry, hotkey }) => {
-            const isActive = activePadKey === entry.key;
-            const isEditing = editingPadKey === entry.key;
-            const isCoFHighlighted = cofHighlightedKeys.has(entry.key);
-            const borderColor = getChordBorderColor(
-              entry.chord,
-              appColors.accent.chordSuggestionBorders,
-            );
-            const editingBorderColor = appColors.accent.chordPadEditBorder;
-            const cofBorderColor = appColors.accent.chordPadCofBorder;
-            const cofGlowColor = appColors.accent.chordPadCofGlow;
-            const hotkeyLabel = hotkey ? hotkey.toUpperCase() : null;
+        />
 
-            return (
-              <Button
-                key={entry.key}
-                variant="contained"
-                draggable={!isMobile}
-                onDragStart={(event) => {
-                  const payload = createPadDragPayload(entry.key);
-                  event.dataTransfer.setData(PAD_DRAG_MIME_TYPE, payload);
-                  event.dataTransfer.setData('text/plain', payload);
-                  event.dataTransfer.effectAllowed = 'copy';
+        <CircleOfFifthsAccordion
+          expanded={edit$.isSuggestionAccordionExpanded}
+          onExpandedChange={edit$.setIsSuggestionAccordionExpanded}
+          suggestionMode={edit$.cofSuggestionMode}
+          onSuggestionModeChange={edit$.setCofSuggestionMode}
+        />
 
-                  // Create a custom drag image: same height as timeline clips (42px), 50% pad width
-                  const dragImageEl = document.createElement('div');
-                  dragImageEl.style.width = '50px';
-                  dragImageEl.style.height = '42px';
-                  dragImageEl.style.backgroundColor = '#6b7280';
-                  dragImageEl.style.border = '2px solid #374151';
-                  dragImageEl.style.borderRadius = '4px';
-                  dragImageEl.style.display = 'flex';
-                  dragImageEl.style.alignItems = 'center';
-                  dragImageEl.style.justifyContent = 'center';
-                  dragImageEl.style.fontSize = '10px';
-                  dragImageEl.style.fontWeight = '700';
-                  dragImageEl.style.color = '#ffffff';
-                  dragImageEl.style.overflow = 'hidden';
-                  dragImageEl.style.position = 'absolute';
-                  dragImageEl.style.left = '-9999px';
-                  dragImageEl.style.top = '-9999px';
-                  dragImageEl.textContent = entry.chord;
-                  document.body.appendChild(dragImageEl);
-
-                  // Anchor drag hotspot to left-middle.
-                  event.dataTransfer.setDragImage(dragImageEl, 0, 21);
-
-                  // Clean up after drag ends
-                  setTimeout(() => dragImageEl.remove(), 0);
-                }}
-                onPointerDown={(event) => {
-                  if (event.pointerType === 'touch') {
-                    event.preventDefault();
-                    armMobileTimelineInsert(entry, event);
-                    return;
-                  }
-
-                  onPadPress(entry);
-                }}
-                sx={{
-                  position: 'relative',
-                  aspectRatio: '1 / 1',
-                  minHeight: { xs: 82, sm: 108 },
-                  borderRadius: 1.5,
-                  fontWeight: 700,
-                  fontSize: { xs: '0.88rem', sm: '1.02rem' },
-                  letterSpacing: 0.2,
-                  textTransform: 'none',
-                  color: 'common.white',
-                  background: isEditing
-                    ? appColors.surface.chordPadEditGradient
-                    : isActive
-                      ? padStyles.active.bg
-                      : padStyles.body.bg,
-                  backgroundColor: appColors.surface.chordPadDefaultBackground,
-                  border: '2px solid',
-                  borderColor: isEditing
-                    ? editingBorderColor
-                    : isActive
-                      ? padStyles.active.border
-                      : isCoFHighlighted
-                        ? cofBorderColor
-                        : borderColor,
-                  boxShadow: isEditing
-                    ? `0 0 0 2px ${appColors.surface.chordPadEditGlow}, 0 8px 0 ${appColors.surface.chordPadShadowRest}`
-                    : isActive
-                      ? `0 3px 0 ${appColors.surface.chordPadShadowPressed}`
-                      : isCoFHighlighted
-                        ? `0 0 0 3px ${cofGlowColor}, 0 8px 0 ${appColors.surface.chordPadShadowRest}`
-                        : `0 8px 0 ${appColors.surface.chordPadShadowRest}`,
-                  transform: isActive ? 'translateY(5px)' : 'translateY(0)',
-                  transition:
-                    'transform 90ms ease, box-shadow 90ms ease, background 120ms, border-color 120ms',
-                  '&:hover': {
-                    background: isEditing
-                      ? appColors.surface.chordPadEditGradientHover
-                      : isActive
-                        ? padStyles.active.bg
-                        : padStyles.body.bgHover,
-                    boxShadow: isEditing
-                      ? `0 0 0 2px ${appColors.surface.chordPadEditGlowHover}, 0 8px 0 ${appColors.surface.chordPadShadowRest}`
-                      : isActive
-                        ? `0 3px 0 ${appColors.surface.chordPadShadowPressed}`
-                        : isCoFHighlighted
-                          ? `0 0 0 4px ${cofGlowColor}, 0 8px 0 ${appColors.surface.chordPadShadowRest}`
-                          : `0 8px 0 ${appColors.surface.chordPadShadowRest}`,
-                    borderColor: isEditing
-                      ? editingBorderColor
-                      : isActive
-                        ? padStyles.active.border
-                        : isCoFHighlighted
-                          ? cofBorderColor
-                          : borderColor,
-                  },
-                  '&:active': {
-                    transform: 'translateY(5px)',
-                    background: isEditing
-                      ? appColors.surface.chordPadEditGradientActive
-                      : isActive
-                        ? padStyles.active.bg
-                        : padStyles.body.bgHover,
-                    boxShadow: `0 3px 0 ${appColors.surface.chordPadShadowPressed}`,
-                  },
-                }}
-              >
-                {showKeyboardHints && hotkeyLabel ? (
-                  <Box
-                    component="span"
-                    sx={{
-                      position: 'absolute',
-                      top: 6,
-                      minWidth: 20,
-                      height: 20,
-                      px: 0.5,
-                      borderRadius: 0.75,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: { xs: '0.64rem', sm: '0.68rem' },
-                      fontWeight: 700,
-                      lineHeight: 1,
-                      color: theme.palette.common.white,
-                      bgcolor: alpha(theme.palette.common.black, 0.36),
-                      border: `1px solid ${alpha(theme.palette.common.white, 0.32)}`,
-                      boxShadow: `0 1px 0 ${alpha(theme.palette.common.black, 0.3)}`,
-                    }}
-                    style={{ left: 6 }}
-                  >
-                    {hotkeyLabel}
-                  </Box>
-                ) : null}
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Typography
-                    component="span"
-                    sx={{ fontWeight: 700, fontSize: { xs: '0.88rem', sm: '1.02rem' } }}
-                  >
-                    {entry.chord}
-                  </Typography>
-                </Box>
-              </Button>
-            );
-          })}
-        </Box>
-
-        <Accordion
-          disableGutters
-          expanded={isSuggestionAccordionExpanded}
-          onChange={(_event, expanded) => setIsSuggestionAccordionExpanded(expanded)}
-          sx={{
-            mt: 1.5,
-            borderRadius: 1.5,
-            bgcolor: appColors.surface.translucentPanel,
-            border: `1px solid ${appColors.surface.translucentPanelBorder}`,
-            '&:before': { display: 'none' },
-            overflow: 'hidden',
-          }}
-        >
-          <AccordionSummary
-            expandIcon={<ExpandMoreIcon />}
-            aria-label={t('ui.chordGrid.suggestionModeAccordionLabel', {
-              defaultValue: 'Suggestion modes',
-            })}
-            sx={{
-              px: 1.25,
-              minHeight: 0,
-              '& .MuiAccordionSummary-content': {
-                my: 1,
-              },
-            }}
-          >
-            <Typography variant="subtitle2">
-              {t('ui.chordGrid.suggestionModeAccordionLabel', {
-                defaultValue: 'Suggestion modes',
-              })}
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails sx={{ px: 1.25, pb: 1.25, pt: 0.25 }}>
-            <ToggleButtonGroup
-              exclusive
-              size="small"
-              color="primary"
-              fullWidth
-              value={cofSuggestionMode}
-              onChange={(_event, mode: CircleOfFifthsSuggestionMode | null) => {
-                if (mode) {
-                  setCofSuggestionMode(mode);
-                }
-              }}
-              aria-label={t('ui.chordGrid.suggestionModeLabel', {
-                defaultValue: 'Circle of 5ths suggestions',
-              })}
-              sx={{
-                '& .MuiToggleButton-root': {
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: { xs: '0.72rem', sm: '0.8rem' },
-                  px: { xs: 0.75, sm: 1.25 },
-                  py: 0.7,
-                  whiteSpace: 'nowrap',
-                },
-              }}
-            >
-              <ToggleButton
-                value="none"
-                aria-label={t('ui.chordGrid.suggestionModeOff', { defaultValue: 'Off' })}
-              >
-                {t('ui.chordGrid.suggestionModeOff', { defaultValue: 'Off' })}
-              </ToggleButton>
-              <ToggleButton
-                value="neighbors"
-                aria-label={t('ui.chordGrid.suggestionModeCurrent', {
-                  defaultValue: 'Both directions',
-                })}
-              >
-                {t('ui.chordGrid.suggestionModeCurrent', {
-                  defaultValue: 'Both directions',
-                })}
-              </ToggleButton>
-              <ToggleButton
-                value="clockwise"
-                aria-label={t('ui.chordGrid.suggestionModeClockwise', {
-                  defaultValue: 'Dominant flow',
-                })}
-              >
-                {t('ui.chordGrid.suggestionModeClockwise', {
-                  defaultValue: 'Dominant flow',
-                })}
-              </ToggleButton>
-              <ToggleButton
-                value="counterclockwise"
-                aria-label={t('ui.chordGrid.suggestionModeCounterclockwise', {
-                  defaultValue: 'Subdominant flow',
-                })}
-              >
-                {t('ui.chordGrid.suggestionModeCounterclockwise', {
-                  defaultValue: 'Subdominant flow',
-                })}
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </AccordionDetails>
-        </Accordion>
-
-        {editableChords.length === 0 ? (
+        {edit$.editableChords.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             {t('ui.chordGrid.noPianoVoicings')}
           </Typography>
@@ -2043,23 +525,23 @@ export default function GeneratedChordGridDialog({
           <Button
             size="small"
             variant="outlined"
-            onClick={handleStartEditing}
-            disabled={isEditMode}
-            sx={(theme) => ({
+            onClick={edit$.handleStartEditing}
+            disabled={edit$.isEditMode}
+            sx={(t) => ({
               borderWidth: 1.5,
-              color: theme.palette.primary.main,
-              borderColor: alpha(theme.palette.primary.main, 0.9),
+              color: t.palette.primary.main,
+              borderColor: alpha(t.palette.primary.main, 0.9),
               backgroundColor: 'transparent',
               textTransform: 'none',
               fontWeight: 600,
               '&:hover': {
-                borderColor: theme.palette.primary.main,
-                backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                borderColor: t.palette.primary.main,
+                backgroundColor: alpha(t.palette.primary.main, 0.08),
                 borderWidth: 1.5,
               },
               '&.Mui-disabled': {
-                borderColor: alpha(theme.palette.primary.main, 0.35),
-                color: alpha(theme.palette.primary.main, 0.45),
+                borderColor: alpha(t.palette.primary.main, 0.35),
+                color: alpha(t.palette.primary.main, 0.45),
               },
             })}
           >
@@ -2072,7 +554,7 @@ export default function GeneratedChordGridDialog({
             size="small"
             variant="contained"
             onClick={() => {
-              stopSequencer();
+              engine$.stopSequencer();
               if (!isAuthenticated) {
                 openAuthModal({
                   mode: 'login',
@@ -2085,7 +567,7 @@ export default function GeneratedChordGridDialog({
               setSaveArrangementDialogOpen(true);
             }}
             startIcon={<SaveIcon fontSize="small" />}
-            disabled={arrangementEvents.length === 0}
+            disabled={timeline$.arrangementEvents.length === 0}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
             {t('ui.buttons.saveArrangement')}
@@ -2097,9 +579,9 @@ export default function GeneratedChordGridDialog({
         open={saveArrangementDialogOpen}
         onClose={() => setSaveArrangementDialogOpen(false)}
         onSuccess={onSaveSuccess}
-        timeline={timeline}
+        timeline={timeline$.timeline}
         playbackSnapshot={playbackSnapshot}
-        sourceChords={editableChords}
+        sourceChords={edit$.editableChords}
       />
     </Dialog>
   );
