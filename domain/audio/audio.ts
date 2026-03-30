@@ -29,6 +29,7 @@ import { triggerChordByStyle } from './engine/ChordTrigger';
 import { loadDrumPattern, normalizeDrumPatternPath } from './engine/DrumPatternRepository';
 import { createMetronomeSynthBank } from './engine/MetronomeSynthBank';
 import { applyInversionLock, shiftNotesByOctaves } from './engine/NoteTransforms';
+import { ensureAudioStarted, stopAllAudioPlayback } from './engine/TransportLifecycle';
 
 export type {
   AudioEngine,
@@ -711,40 +712,34 @@ export const createToneAudioEngine = (): AudioEngine => {
   };
 
   const startAudio = async (): Promise<void> => {
-    if (Tone.context.state !== 'running') {
-      await Tone.start();
-    }
+    await ensureAudioStarted();
   };
 
   const stopAllAudio = (): void => {
-    scheduledPlaybackTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
-    scheduledPlaybackTimeouts = [];
-    activeMetronomePulseTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
-    activeMetronomePulseTimeouts = [];
-
-    Tone.Transport.stop();
-    Tone.Transport.cancel();
-
-    if (activePart) {
-      activePart.dispose();
-      activePart = null;
-    }
-
-    if (metronomeLoop) {
-      metronomeLoop.dispose();
-      metronomeLoop = null;
-      metronomeClickBeat = 0;
-    }
-
-    if (pianoSampler) {
-      pianoSampler.releaseAll();
-    }
-
-    if (rhodesSampler) {
-      rhodesSampler.releaseAll();
-    }
-
-    metronomeSynthBank.releaseAll();
+    stopAllAudioPlayback({
+      scheduledPlaybackTimeouts,
+      setScheduledPlaybackTimeouts: (timeouts) => {
+        scheduledPlaybackTimeouts = timeouts;
+      },
+      activeMetronomePulseTimeouts,
+      setActiveMetronomePulseTimeouts: (timeouts) => {
+        activeMetronomePulseTimeouts = timeouts;
+      },
+      activePart,
+      setActivePart: (part) => {
+        activePart = part;
+      },
+      metronomeLoop,
+      setMetronomeLoop: (loop) => {
+        metronomeLoop = loop;
+      },
+      setMetronomeClickBeat: (beat) => {
+        metronomeClickBeat = beat;
+      },
+      pianoSampler,
+      rhodesSampler,
+      releaseMetronomeSynths: metronomeSynthBank.releaseAll,
+    });
   };
 
   const playChordVoicing = async ({
