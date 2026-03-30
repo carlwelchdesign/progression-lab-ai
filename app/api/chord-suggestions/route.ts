@@ -28,6 +28,11 @@ const CHORD_SUGGESTION_RATE_LIMIT = {
   windowMs: 15 * 60 * 1000,
 };
 
+const MODEL_FALLBACKS: Record<string, string> = {
+  'gpt-3.5-turbo': 'gpt-4o-mini',
+  'gpt-3.5-turbo-0125': 'gpt-4o-mini',
+};
+
 type ChordSuggestionRequestBody = {
   seedChords?: unknown;
   mood?: unknown;
@@ -49,6 +54,16 @@ type ChordSuggestionModelInput = {
   adventurousness: 'safe' | 'balanced' | 'surprising';
   language: string;
 };
+
+function resolveModelForResponsesApi(model: string): string {
+  return MODEL_FALLBACKS[model] ?? model;
+}
+
+function isOpenAiApiError(
+  error: unknown,
+): error is { status?: number; message?: string; code?: string; type?: string } {
+  return typeof error === 'object' && error !== null && 'message' in error;
+}
 
 /**
  * Returns chord-root pitch class from a chord symbol, or null when unknown.
@@ -325,7 +340,8 @@ export async function POST(req: NextRequest) {
     const modelInput = buildModelInput(body);
     const input = JSON.stringify(modelInput);
     const localeDefinition = getLocaleDefinition(modelInput.language);
-    const model = accessContext.entitlements.gptModel;
+    const requestedModel = accessContext.entitlements.gptModel;
+    const model = resolveModelForResponsesApi(requestedModel);
     const prompt = await getRenderedPrompt({
       promptKey: CHORD_SUGGESTION_PROMPT_KEY,
       outputLanguage: localeDefinition.modelLanguage,
@@ -350,6 +366,7 @@ export async function POST(req: NextRequest) {
       eventType: UsageEventType.AI_GENERATION,
       metadata: {
         model,
+        requestedModel,
         promptKey: CHORD_SUGGESTION_PROMPT_KEY,
         promptVersion: prompt.versionNumber,
         promptSource: prompt.source,
@@ -374,6 +391,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(parsed);
   } catch (error) {
     console.error('chord-suggestions route error:', error);
+
+    if (isOpenAiApiError(error) && typeof error.status === 'number') {
+      return NextResponse.json(
+        {
+          error: 'AI provider request failed',
+          providerStatus: error.status,
+        },
+        { status: 502 },
+      );
+    }
 
     if (error instanceof Error) {
       if (error.message === 'Request body is too large') {
