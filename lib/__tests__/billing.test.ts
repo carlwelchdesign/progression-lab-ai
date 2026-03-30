@@ -1,5 +1,3 @@
-import { BillingInterval, SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
-
 import {
   getAppUrl,
   getBillingInterval,
@@ -28,37 +26,37 @@ describe('billing helpers', () => {
   });
 
   it('validates billable plans and intervals', () => {
-    expect(isBillablePlan(SubscriptionPlan.COMPOSER)).toBe(true);
-    expect(isBillablePlan(SubscriptionPlan.STUDIO)).toBe(true);
-    expect(isBillablePlan(SubscriptionPlan.SESSION)).toBe(false);
+    expect(isBillablePlan('COMPOSER')).toBe(true);
+    expect(isBillablePlan('STUDIO')).toBe(true);
+    expect(isBillablePlan('SESSION')).toBe(false);
     expect(isCheckoutInterval('monthly')).toBe(true);
     expect(isCheckoutInterval('yearly')).toBe(true);
     expect(isCheckoutInterval('weekly')).toBe(false);
   });
 
   it('maps checkout intervals to Prisma billing intervals', () => {
-    expect(getBillingInterval('monthly')).toBe(BillingInterval.MONTHLY);
-    expect(getBillingInterval('yearly')).toBe(BillingInterval.YEARLY);
+    expect(getBillingInterval('monthly')).toBe('MONTHLY');
+    expect(getBillingInterval('yearly')).toBe('YEARLY');
   });
 
   it('resolves checkout price ids from the environment', () => {
-    expect(getCheckoutPriceId(SubscriptionPlan.COMPOSER, 'monthly')).toBe('price_composer_month');
-    expect(getCheckoutPriceId(SubscriptionPlan.STUDIO, 'yearly')).toBe('price_studio_year');
+    expect(getCheckoutPriceId('COMPOSER', 'monthly')).toBe('price_composer_month');
+    expect(getCheckoutPriceId('STUDIO', 'yearly')).toBe('price_studio_year');
   });
 
   it('resolves a plan from a Stripe price id', () => {
-    expect(resolvePlanFromPriceId('price_composer_year')).toBe(SubscriptionPlan.COMPOSER);
-    expect(resolvePlanFromPriceId('price_studio_month')).toBe(SubscriptionPlan.STUDIO);
+    expect(resolvePlanFromPriceId('price_composer_year')).toBe('COMPOSER');
+    expect(resolvePlanFromPriceId('price_studio_month')).toBe('STUDIO');
     expect(resolvePlanFromPriceId('price_unknown')).toBeNull();
   });
 
   it('maps Stripe subscription statuses to Prisma statuses', () => {
-    expect(mapStripeSubscriptionStatus('active')).toBe(SubscriptionStatus.ACTIVE);
-    expect(mapStripeSubscriptionStatus('trialing')).toBe(SubscriptionStatus.TRIALING);
-    expect(mapStripeSubscriptionStatus('past_due')).toBe(SubscriptionStatus.PAST_DUE);
-    expect(mapStripeSubscriptionStatus('unpaid')).toBe(SubscriptionStatus.PAST_DUE);
-    expect(mapStripeSubscriptionStatus('canceled')).toBe(SubscriptionStatus.CANCELED);
-    expect(mapStripeSubscriptionStatus('paused')).toBe(SubscriptionStatus.CANCELED);
+    expect(mapStripeSubscriptionStatus('active')).toBe('ACTIVE');
+    expect(mapStripeSubscriptionStatus('trialing')).toBe('TRIALING');
+    expect(mapStripeSubscriptionStatus('past_due')).toBe('PAST_DUE');
+    expect(mapStripeSubscriptionStatus('unpaid')).toBe('PAST_DUE');
+    expect(mapStripeSubscriptionStatus('canceled')).toBe('CANCELED');
+    expect(mapStripeSubscriptionStatus('paused')).toBe('CANCELED');
   });
 
   it('prefers explicit app urls over the request origin fallback', () => {

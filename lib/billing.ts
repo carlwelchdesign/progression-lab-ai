@@ -1,4 +1,4 @@
-import {
+import type {
   BillingInterval,
   SubscriptionPlan,
   SubscriptionStatus,
@@ -11,23 +11,40 @@ import { getStripeClient } from './stripe';
 import { getCurrentMonthUsageCount } from './usage';
 
 export type CheckoutInterval = 'monthly' | 'yearly';
-export type BillablePlan = SubscriptionPlan.COMPOSER | SubscriptionPlan.STUDIO;
+export type BillablePlan = Extract<SubscriptionPlan, 'COMPOSER' | 'STUDIO'>;
 
 type StripePriceEnvMap = Record<BillablePlan, Record<CheckoutInterval, string>>;
 
+const BILLABLE_PLANS = ['COMPOSER', 'STUDIO'] as const satisfies readonly BillablePlan[];
+const BILLING_INTERVAL_BY_CHECKOUT_INTERVAL = {
+  monthly: 'MONTHLY',
+  yearly: 'YEARLY',
+} as const satisfies Record<CheckoutInterval, BillingInterval>;
+const SUBSCRIPTION_STATUS_BY_STRIPE_STATUS = {
+  active: 'ACTIVE',
+  trialing: 'TRIALING',
+  past_due: 'PAST_DUE',
+  unpaid: 'PAST_DUE',
+  incomplete: 'PAST_DUE',
+  canceled: 'CANCELED',
+  incomplete_expired: 'CANCELED',
+  paused: 'CANCELED',
+} as const satisfies Partial<Record<Stripe.Subscription.Status, SubscriptionStatus>>;
+const AI_GENERATION_USAGE_EVENT = 'AI_GENERATION' as UsageEventType;
+
 const STRIPE_PRICE_ENV_BY_PLAN: StripePriceEnvMap = {
-  [SubscriptionPlan.COMPOSER]: {
+  COMPOSER: {
     monthly: 'STRIPE_COMPOSER_MONTHLY_PRICE_ID',
     yearly: 'STRIPE_COMPOSER_YEARLY_PRICE_ID',
   },
-  [SubscriptionPlan.STUDIO]: {
+  STUDIO: {
     monthly: 'STRIPE_STUDIO_MONTHLY_PRICE_ID',
     yearly: 'STRIPE_STUDIO_YEARLY_PRICE_ID',
   },
 };
 
 export function isBillablePlan(value: string): value is BillablePlan {
-  return value === SubscriptionPlan.COMPOSER || value === SubscriptionPlan.STUDIO;
+  return value === 'COMPOSER' || value === 'STUDIO';
 }
 
 export function isCheckoutInterval(value: string): value is CheckoutInterval {
@@ -35,7 +52,7 @@ export function isCheckoutInterval(value: string): value is CheckoutInterval {
 }
 
 export function getBillingInterval(interval: CheckoutInterval): BillingInterval {
-  return interval === 'yearly' ? BillingInterval.YEARLY : BillingInterval.MONTHLY;
+  return BILLING_INTERVAL_BY_CHECKOUT_INTERVAL[interval];
 }
 
 export function getPrimaryPriceId(subscription: Stripe.Subscription): string | null {
@@ -58,7 +75,7 @@ export function resolvePlanFromPriceId(priceId: string | null | undefined): Bill
     return null;
   }
 
-  for (const plan of [SubscriptionPlan.COMPOSER, SubscriptionPlan.STUDIO] as const) {
+  for (const plan of BILLABLE_PLANS) {
     for (const interval of ['monthly', 'yearly'] as const) {
       if (process.env[STRIPE_PRICE_ENV_BY_PLAN[plan][interval]] === priceId) {
         return plan;
@@ -72,22 +89,7 @@ export function resolvePlanFromPriceId(priceId: string | null | undefined): Bill
 export function mapStripeSubscriptionStatus(
   status: Stripe.Subscription.Status,
 ): SubscriptionStatus {
-  switch (status) {
-    case 'active':
-      return SubscriptionStatus.ACTIVE;
-    case 'trialing':
-      return SubscriptionStatus.TRIALING;
-    case 'past_due':
-    case 'unpaid':
-    case 'incomplete':
-      return SubscriptionStatus.PAST_DUE;
-    case 'canceled':
-    case 'incomplete_expired':
-    case 'paused':
-      return SubscriptionStatus.CANCELED;
-    default:
-      return SubscriptionStatus.CANCELED;
-  }
+  return SUBSCRIPTION_STATUS_BY_STRIPE_STATUS[status] ?? 'CANCELED';
 }
 
 export function getAppUrl(origin?: string): string {
@@ -165,12 +167,7 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription) 
   }
 
   const interval = subscription.items.data[0]?.price.recurring?.interval;
-  const billingInterval =
-    interval === 'year'
-      ? BillingInterval.YEARLY
-      : interval === 'month'
-        ? BillingInterval.MONTHLY
-        : null;
+  const billingInterval = interval === 'year' ? 'YEARLY' : interval === 'month' ? 'MONTHLY' : null;
 
   return prisma.subscription.upsert({
     where: { userId: user.id },
@@ -222,7 +219,7 @@ export async function getBillingStatusForUser(userId: string) {
         },
       },
     }),
-    getCurrentMonthUsageCount(userId, UsageEventType.AI_GENERATION),
+    getCurrentMonthUsageCount(userId, AI_GENERATION_USAGE_EVENT),
   ]);
 
   return {
