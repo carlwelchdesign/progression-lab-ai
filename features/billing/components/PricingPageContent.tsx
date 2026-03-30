@@ -128,6 +128,17 @@ function getExportFeature(config: PricingTierConfig): string {
   return 'No export tools';
 }
 
+function getAiAccessFeature(config: PricingTierConfig): string {
+  const normalizedModel = config.gptModel.toLowerCase();
+  const isPremiumModel =
+    normalizedModel.startsWith('gpt-4') ||
+    normalizedModel.startsWith('o1') ||
+    normalizedModel.startsWith('o3') ||
+    normalizedModel.startsWith('gpt-5');
+
+  return isPremiumModel ? 'Premium AI model access' : 'Standard AI model access';
+}
+
 function buildFeatures(baseFeatures: string[], config?: PricingTierConfig): string[] {
   if (!config) {
     return baseFeatures;
@@ -141,11 +152,8 @@ function buildFeatures(baseFeatures: string[], config?: PricingTierConfig): stri
       ? formatLimit(config.maxPublicShares, 'public shares')
       : 'Public sharing disabled',
     getExportFeature(config),
+    getAiAccessFeature(config),
   ];
-
-  if (config.plan === 'STUDIO') {
-    features.push(`AI model: ${config.gptModel}`);
-  }
 
   return features;
 }
