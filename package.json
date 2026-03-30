@@ -38,7 +38,8 @@
     "admin:start": "yarn --cwd admin-dashboard start",
     "admin:lint": "yarn --cwd admin-dashboard lint",
     "admin:db:generate": "yarn --cwd admin-dashboard db:generate",
-    "admin:seed": "node prisma/seed-admin.js"
+    "admin:seed": "node prisma/seed-admin.js",
+    "wiki:publish": "bash ./scripts/publish-wiki.sh"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
