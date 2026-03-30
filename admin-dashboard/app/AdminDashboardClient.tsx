@@ -10,6 +10,7 @@ import LoadingState from '../components/admin/LoadingState';
 import LoginCard from '../components/admin/LoginCard';
 import ProgressionDetailsDialog from '../components/admin/ProgressionDetailsDialog';
 import ProgressionsTable from '../components/admin/ProgressionsTable';
+import PlanManagerPanel from '../components/admin/PlanManagerPanel';
 import PromptBuilderPanel from '../components/admin/PromptBuilderPanel';
 import TierConfigTable from '../components/admin/TierConfigTable';
 import UsersTable from '../components/admin/UsersTable';
@@ -17,7 +18,7 @@ import useAdminDashboard from '../components/admin/useAdminDashboard';
 
 export default function AdminDashboardClient() {
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'progressions' | 'tier-config' | 'prompt-builder' | 'audit-log'
+    'overview' | 'progressions' | 'tier-config' | 'prompt-builder' | 'plan-manager' | 'audit-log'
   >('overview');
 
   const {
@@ -102,6 +103,7 @@ export default function AdminDashboardClient() {
                   | 'progressions'
                   | 'tier-config'
                   | 'prompt-builder'
+                  | 'plan-manager'
                   | 'audit-log',
               )
             }
@@ -110,6 +112,7 @@ export default function AdminDashboardClient() {
             <Tab label="Progressions" value="progressions" />
             {user.role === 'ADMIN' && <Tab label="Tier Configuration" value="tier-config" />}
             <Tab label="Prompt Builder" value="prompt-builder" />
+            {user.role === 'ADMIN' && <Tab label="Plan Manager" value="plan-manager" />}
             <Tab label="Audit Log" value="audit-log" />
           </Tabs>
         </Box>
@@ -166,6 +169,10 @@ export default function AdminDashboardClient() {
         {activeTab === 'tier-config' && user.role === 'ADMIN' && <TierConfigTable />}
 
         {activeTab === 'prompt-builder' && <PromptBuilderPanel role={user.role} />}
+
+        {activeTab === 'plan-manager' && user.role === 'ADMIN' && (
+          <PlanManagerPanel role={user.role} />
+        )}
 
         {activeTab === 'audit-log' && <AdminAuditLogTable />}
 

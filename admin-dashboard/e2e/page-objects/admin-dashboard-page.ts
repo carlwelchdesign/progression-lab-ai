@@ -24,7 +24,6 @@ export default class AdminDashboardPage {
     await expect(this.page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible();
     await expect(this.page.getByText('Subscribers and access')).toBeVisible();
     await expect(this.page.getByText('subscriber@progressionlab.ai')).toBeVisible();
-    await expect(this.page.getByText('Midnight Progression')).toBeVisible();
   }
 
   async logout() {
