@@ -295,7 +295,11 @@ export default function SequencerTrack({
     const dragStart = cursorDragStartRef.current;
     let isDragging = false;
 
-    const handlePointerMove = (moveEvent: PointerEvent) => {
+    const handlePointerMove = (moveEvent: Event) => {
+      if (!(moveEvent instanceof PointerEvent)) {
+        return;
+      }
+
       const deltaX = moveEvent.clientX - dragStart.x;
       const distance = Math.abs(deltaX);
 
@@ -314,15 +318,15 @@ export default function SequencerTrack({
     };
 
     const handlePointerUp = () => {
-      window.removeEventListener('pointermove', handlePointerMove, { passive: false });
-      window.removeEventListener('pointerup', handlePointerUp, { passive: false });
-      window.removeEventListener('pointercancel', handlePointerUp, { passive: false });
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
       cursorDragStartRef.current = null;
     };
 
-    window.addEventListener('pointermove', handlePointerMove, { passive: false });
-    window.addEventListener('pointerup', handlePointerUp, { passive: false });
-    window.addEventListener('pointercancel', handlePointerUp, { passive: false });
+    window.addEventListener('pointermove', handlePointerMove, false);
+    window.addEventListener('pointerup', handlePointerUp, false);
+    window.addEventListener('pointercancel', handlePointerUp, false);
 
     return () => {
       window.removeEventListener('pointermove', handlePointerMove);
