@@ -1,6 +1,7 @@
 import type * as Tone from 'tone';
 import type { PlaybackStyle } from '../audioEngine';
 import { triggerChordByStyle } from './ChordTrigger';
+import { computeEffectiveVelocity, computeOneShotStartTime } from './ChordEventComputationPolicy';
 
 type OneShotChordVelocityParams = {
   velocity?: number;
@@ -39,9 +40,11 @@ export const triggerOneShotChordEvent = ({
   }
 
   const timingDelay = getTimingOffset({ humanize, symmetric: false });
-  const effectiveVelocity = toEffectiveVelocity({
+  const effectiveVelocity = computeEffectiveVelocity({
     velocity,
-    velocityJitter: getVelocityJitter(humanize),
+    humanize,
+    getVelocityJitter,
+    toEffectiveVelocity,
   });
 
   triggerChordByStyle({
@@ -49,7 +52,7 @@ export const triggerOneShotChordEvent = ({
     instrument,
     notes,
     duration,
-    startTime: timingDelay > 0 ? `+${timingDelay}` : undefined,
+    startTime: computeOneShotStartTime(timingDelay),
     attack,
     decay,
     velocity: effectiveVelocity,

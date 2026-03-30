@@ -1,6 +1,7 @@
 import type * as Tone from 'tone';
 import type { PlaybackStyle } from '../audioEngine';
 import { triggerChordByStyle } from './ChordTrigger';
+import { computeEffectiveVelocity, computeScheduledStartTime } from './ChordEventComputationPolicy';
 
 type ScheduledChordVelocityParams = {
   velocity?: number;
@@ -46,18 +47,19 @@ export const triggerScheduledChordEvent = ({
   }
 
   const timingOffset = getTimingOffset({ humanize, symmetric: symmetricTiming });
-  const effectiveVelocity = toEffectiveVelocity({
+  const effectiveVelocity = computeEffectiveVelocity({
     velocity,
     velocityScale,
-    velocityJitter: getVelocityJitter(humanize),
+    humanize,
+    getVelocityJitter,
+    toEffectiveVelocity,
   });
 
-  const startTime =
-    symmetricTiming && timingOffset !== 0
-      ? eventTime + timingOffset
-      : !symmetricTiming && timingOffset > 0
-        ? eventTime + timingOffset
-        : eventTime;
+  const startTime = computeScheduledStartTime({
+    eventTime,
+    timingOffset,
+    symmetricTiming,
+  });
 
   triggerChordByStyle({
     style,
