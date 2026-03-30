@@ -11,23 +11,14 @@ import { prisma } from '../../../lib/prisma';
 
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
-const ENTITLED_SUBSCRIPTION_STATUSES = [
+const ENTITLED_SUBSCRIPTION_STATUSES: SubscriptionStatus[] = [
   SubscriptionStatus.ACTIVE,
   SubscriptionStatus.TRIALING,
   SubscriptionStatus.PAST_DUE,
-] as const;
+];
 const USER_ROLE_VALUES = ['ADMIN', 'AUDITOR', 'USER'] as const;
 const RESOLVED_PLAN_VALUES = ['SESSION', 'COMPOSER', 'STUDIO', 'COMP'] as const;
-const SUBSCRIPTION_STATUS_VALUES = [
-  'ACTIVE',
-  'TRIALING',
-  'PAST_DUE',
-  'CANCELED',
-  'INCOMPLETE',
-  'INCOMPLETE_EXPIRED',
-  'UNPAID',
-  'NONE',
-] as const;
+const SUBSCRIPTION_STATUS_VALUES = ['ACTIVE', 'TRIALING', 'PAST_DUE', 'CANCELED', 'NONE'] as const;
 const OVERRIDE_STATE_VALUES = ['OVERRIDDEN', 'NONE'] as const;
 
 const AI_GENERATION_EVENT_TYPE = 'AI_GENERATION' as UsageEventType;
