@@ -22,6 +22,7 @@ import {
 } from './engine/AudioMath';
 import { loadDrumPattern, normalizeDrumPatternPath } from './engine/DrumPatternRepository';
 import { createEffectsChain } from './engine/EffectsChain';
+import { createEffectsControl } from './engine/EffectsControl';
 import { createAudioEngineRegistry, type AudioEngineScope } from './engine/AudioEngineRegistry';
 import { createMetronomePlayback } from './engine/MetronomePlayback';
 import { createMetronomeSynthBank } from './engine/MetronomeSynthBank';
@@ -52,38 +53,11 @@ export const createToneAudioEngine = (): AudioEngine => {
   let activeMetronomePulseTimeouts: ReturnType<typeof setTimeout>[] = [];
   const metronomeSynthBank = createMetronomeSynthBank();
   const effectsChain = createEffectsChain();
+  const effectsControl = createEffectsControl(effectsChain);
   const samplerBank = createSamplerBank({
     connectSamplerToCurrentOutput: effectsChain.connectSamplerToCurrentOutput,
     ensureReverbReady: effectsChain.ensureReverbReady,
   });
-
-  const {
-    setReverbWet,
-    setChorusWet,
-    setReverbRoomSize,
-    setReverbEnabled,
-    setChorusEnabled,
-    setChorusFrequency,
-    setChorusDelayTime,
-    setChorusDepth,
-    setFeedbackDelayEnabled,
-    setFeedbackDelayWet,
-    setFeedbackDelayTime,
-    setFeedbackDelayFeedback,
-    setTremoloEnabled,
-    setTremoloWet,
-    setTremoloFrequency,
-    setTremoloDepth,
-    setVibratoEnabled,
-    setVibratoWet,
-    setVibratoFrequency,
-    setVibratoDepth,
-    setPhaserEnabled,
-    setPhaserWet,
-    setPhaserFrequency,
-    setPhaserOctaves,
-    setPhaserQ,
-  } = effectsChain;
 
   const { ensurePianoSamplerLoaded, ensureRhodesSamplerLoaded } = samplerBank;
 
@@ -166,31 +140,7 @@ export const createToneAudioEngine = (): AudioEngine => {
   const { playChordVoicing, playProgression, playChordPattern } = progressionPlayback;
 
   return {
-    setReverbWet,
-    setChorusWet,
-    setReverbRoomSize,
-    setReverbEnabled,
-    setChorusEnabled,
-    setChorusFrequency,
-    setChorusDelayTime,
-    setChorusDepth,
-    setFeedbackDelayEnabled,
-    setFeedbackDelayWet,
-    setFeedbackDelayTime,
-    setFeedbackDelayFeedback,
-    setTremoloEnabled,
-    setTremoloWet,
-    setTremoloFrequency,
-    setTremoloDepth,
-    setVibratoEnabled,
-    setVibratoWet,
-    setVibratoFrequency,
-    setVibratoDepth,
-    setPhaserEnabled,
-    setPhaserWet,
-    setPhaserFrequency,
-    setPhaserOctaves,
-    setPhaserQ,
+    ...effectsControl,
     startAudio,
     playMetronomeClick,
     playMetronomePulse,
