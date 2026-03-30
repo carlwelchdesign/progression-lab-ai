@@ -1,6 +1,10 @@
-import * as Tone from 'tone';
 import { applyTransportStopPolicy } from './TransportStopPolicy';
 import type { SchedulablePart, SchedulableLoop } from './AudioTimelineState';
+
+export type EnsureAudioStartedDeps = {
+  isContextRunning: () => boolean;
+  startContext: () => Promise<void>;
+};
 
 export type StopAllAudioParams = {
   scheduledPlaybackTimeouts: ReturnType<typeof setTimeout>[];
@@ -14,11 +18,16 @@ export type StopAllAudioParams = {
   setMetronomeClickBeat: (beat: number) => void;
   releaseInstrumentSamplers: () => void;
   releaseMetronomeSynths: () => void;
+  stopTransport: () => void;
+  cancelTransport: () => void;
 };
 
-export const ensureAudioStarted = async (): Promise<void> => {
-  if (Tone.context.state !== 'running') {
-    await Tone.start();
+export const ensureAudioStarted = async ({
+  isContextRunning,
+  startContext,
+}: EnsureAudioStartedDeps): Promise<void> => {
+  if (!isContextRunning()) {
+    await startContext();
   }
 };
 
@@ -34,6 +43,8 @@ export const stopAllAudioPlayback = ({
   setMetronomeClickBeat,
   releaseInstrumentSamplers,
   releaseMetronomeSynths,
+  stopTransport,
+  cancelTransport,
 }: StopAllAudioParams): void => {
   applyTransportStopPolicy({
     scheduledPlaybackTimeouts,
@@ -45,8 +56,8 @@ export const stopAllAudioPlayback = ({
     metronomeLoop,
     setMetronomeLoop,
     setMetronomeClickBeat,
-    stopTransport: () => Tone.Transport.stop(),
-    cancelTransport: () => Tone.Transport.cancel(),
+    stopTransport,
+    cancelTransport,
     releaseInstrumentSamplers,
     releaseMetronomeSynths,
   });

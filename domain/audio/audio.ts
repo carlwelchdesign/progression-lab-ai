@@ -39,7 +39,10 @@ export const createToneAudioEngine = (): AudioEngine => {
   const { ensurePianoSamplerLoaded, ensureRhodesSamplerLoaded } = samplerBank;
 
   const startAudio = async (): Promise<void> => {
-    await ensureAudioStarted();
+    await ensureAudioStarted({
+      isContextRunning: () => Tone.context.state === 'running',
+      startContext: () => Tone.start(),
+    });
   };
 
   const stopAllAudio = (): void => {
@@ -55,6 +58,8 @@ export const createToneAudioEngine = (): AudioEngine => {
       setMetronomeClickBeat: timelineState.setMetronomeClickBeat,
       releaseInstrumentSamplers: samplerBank.releaseAllSamplers,
       releaseMetronomeSynths: metronomeSynthBank.releaseAll,
+      stopTransport: () => Tone.Transport.stop(),
+      cancelTransport: () => Tone.Transport.cancel(),
     });
   };
 
