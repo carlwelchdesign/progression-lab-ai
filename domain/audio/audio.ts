@@ -8,6 +8,7 @@ import { createMetronomePlayback } from './engine/MetronomePlayback';
 import { createMetronomeSynthBank } from './engine/MetronomeSynthBank';
 import { createProgressionPlayback } from './engine/ProgressionPlayback';
 import { createSamplerBank } from './engine/SamplerBank';
+import { applyTransportTiming } from './engine/TransportTimingPolicy';
 import { ensureAudioStarted, stopAllAudioPlayback } from './engine/TransportLifecycle';
 
 export type {
@@ -87,6 +88,10 @@ export const createToneAudioEngine = (): AudioEngine => {
     timeoutState: {
       getScheduledPlaybackTimeouts: timelineState.getScheduledPlaybackTimeouts,
       setScheduledPlaybackTimeouts: timelineState.setScheduledPlaybackTimeouts,
+    },
+    transportControl: {
+      applyTiming: (timing) => applyTransportTiming(Tone.Transport, timing),
+      start: () => Tone.Transport.start(),
     },
   });
 

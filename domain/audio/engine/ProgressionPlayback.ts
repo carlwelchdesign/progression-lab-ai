@@ -17,7 +17,7 @@ import {
 } from './ProgressionSchedulingPolicy';
 import { applyChordPatternLifecyclePolicy } from './ChordPatternLifecyclePolicy';
 import { startPartPlayback } from './PartTransportPolicy';
-import { applyTransportTiming, buildTransportTiming } from './TransportTimingPolicy';
+import { buildTransportTiming, type TransportTiming } from './TransportTimingPolicy';
 import { beginPlaybackSession } from './PlaybackSessionPolicy';
 import { schedulePlaybackCleanupTimeout } from './PlaybackCleanupTimeoutPolicy';
 import { triggerScheduledChordEvent } from './ScheduledChordEventPolicy';
@@ -44,6 +44,10 @@ interface ProgressionPlaybackDeps {
     getScheduledPlaybackTimeouts: () => ReturnType<typeof setTimeout>[];
     setScheduledPlaybackTimeouts: (timeouts: ReturnType<typeof setTimeout>[]) => void;
   };
+  transportControl: {
+    applyTiming: (timing: TransportTiming) => void;
+    start: () => void;
+  };
 }
 
 interface ProgressionPlayback {
@@ -68,6 +72,7 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
     startMetronomeLoop,
     partState,
     timeoutState,
+    transportControl,
   } = deps;
 
   const {
@@ -149,7 +154,7 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
       tempoBpm,
       timeSignature,
     });
-    applyTransportTiming(Tone.Transport, {
+    transportControl.applyTiming({
       normalizedTempo,
       transportTimeSignature,
       singleBeatSeconds,
@@ -212,7 +217,7 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
       part,
       setActivePart: partState.setActivePart,
       startPart: (nextPart) => nextPart.start(0),
-      startTransport: () => Tone.Transport.start(),
+      startTransport: transportControl.start,
     });
   };
 
@@ -258,7 +263,7 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
       tempoBpm,
       timeSignature,
     });
-    applyTransportTiming(Tone.Transport, {
+    transportControl.applyTiming({
       normalizedTempo,
       transportTimeSignature,
       singleBeatSeconds,
@@ -316,7 +321,7 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
       part,
       setActivePart: partState.setActivePart,
       startPart: (nextPart) => nextPart.start(0),
-      startTransport: () => Tone.Transport.start(),
+      startTransport: transportControl.start,
     });
   };
 
