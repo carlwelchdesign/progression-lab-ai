@@ -67,6 +67,76 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
     timeoutState,
   } = deps;
 
+  const resolveInstrument = async (
+    instrument: PlayChordVoicingParams['instrument'] = 'piano',
+  ): Promise<Tone.Sampler> => {
+    if (instrument === 'rhodes') {
+      return ensureRhodesSamplerLoaded();
+    }
+
+    return ensurePianoSamplerLoaded();
+  };
+
+  const getLockedNotes = ({
+    leftHand,
+    rightHand,
+    octaveShift,
+    inversionRegister,
+  }: {
+    leftHand: string[];
+    rightHand: string[];
+    octaveShift: number;
+    inversionRegister: PlayChordVoicingParams['inversionRegister'];
+  }): string[] => {
+    const shiftedLeftHand = shiftNotesByOctaves(leftHand, octaveShift);
+    const shiftedRightHand = shiftNotesByOctaves(rightHand, octaveShift);
+
+    return applyInversionLock([...shiftedLeftHand, ...shiftedRightHand], inversionRegister);
+  };
+
+  const getTimingOffset = ({
+    humanize,
+    symmetric,
+  }: {
+    humanize: number;
+    symmetric: boolean;
+  }): number => {
+    if (humanize <= 0) {
+      return 0;
+    }
+
+    const amount = humanize * MAX_HUMANIZE_TIMING_S;
+    if (!symmetric) {
+      return Math.random() * amount;
+    }
+
+    return (Math.random() * 2 - 1) * amount;
+  };
+
+  const getVelocityJitter = (humanize: number): number => {
+    if (humanize <= 0) {
+      return 0;
+    }
+
+    return (Math.random() * 2 - 1) * humanize * MAX_HUMANIZE_VELOCITY;
+  };
+
+  const toEffectiveVelocity = ({
+    velocity,
+    velocityScale = 1,
+    velocityJitter,
+  }: {
+    velocity?: number;
+    velocityScale?: number;
+    velocityJitter: number;
+  }): number | undefined => {
+    if (velocity === undefined) {
+      return undefined;
+    }
+
+    return Math.round(Math.max(20, Math.min(127, velocity * velocityScale + velocityJitter)));
+  };
+
   const playChordVoicing = async ({
     leftHand,
     rightHand,
@@ -85,32 +155,20 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
     await startAudio();
     stopAllAudio();
 
-    let audioInstrument: Tone.Sampler;
-    if (instrument === 'rhodes') {
-      audioInstrument = await ensureRhodesSamplerLoaded();
-    } else {
-      audioInstrument = await ensurePianoSamplerLoaded();
-    }
+    const audioInstrument = await resolveInstrument(instrument);
 
     const chordDurSeconds = getChordDurationSeconds(tempoBpm);
     const noteDuration =
       gate !== 1 ? applyGate(chordDurSeconds, gate) : (duration ?? chordDurSeconds);
 
-    const shiftedLeftHand = shiftNotesByOctaves(leftHand, octaveShift);
-    const shiftedRightHand = shiftNotesByOctaves(rightHand, octaveShift);
-    const lockedNotes = applyInversionLock(
-      [...shiftedLeftHand, ...shiftedRightHand],
-      inversionRegister,
-    );
+    const lockedNotes = getLockedNotes({ leftHand, rightHand, octaveShift, inversionRegister });
 
     if (lockedNotes.length > 0) {
-      const timingDelay = humanize > 0 ? Math.random() * humanize * MAX_HUMANIZE_TIMING_S : 0;
-      const velJitter =
-        humanize > 0 ? (Math.random() * 2 - 1) * humanize * MAX_HUMANIZE_VELOCITY : 0;
-      const effectiveVelocity =
-        velocity !== undefined
-          ? Math.round(Math.max(20, Math.min(127, velocity + velJitter)))
-          : undefined;
+      const timingDelay = getTimingOffset({ humanize, symmetric: false });
+      const effectiveVelocity = toEffectiveVelocity({
+        velocity,
+        velocityJitter: getVelocityJitter(humanize),
+      });
 
       triggerChordByStyle({
         style: playbackStyle,
@@ -151,12 +209,7 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
       metronomeDrumPath = null,
     } = opts ?? {};
 
-    let audioInstrument: Tone.Sampler;
-    if (instrument === 'rhodes') {
-      audioInstrument = await ensureRhodesSamplerLoaded();
-    } else {
-      audioInstrument = await ensurePianoSamplerLoaded();
-    }
+    const audioInstrument = await resolveInstrument(instrument);
 
     const normalizedTempo = normalizeTempoBpm(tempoBpm);
     Tone.Transport.bpm.value = normalizedTempo;
@@ -186,22 +239,20 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
       velocityScale: number;
     }>((time, event) => {
       const { voicing, velocityScale } = event;
-      const shiftedLeftHand = shiftNotesByOctaves(voicing.leftHand, octaveShift);
-      const shiftedRightHand = shiftNotesByOctaves(voicing.rightHand, octaveShift);
-      const lockedNotes = applyInversionLock(
-        [...shiftedLeftHand, ...shiftedRightHand],
+      const lockedNotes = getLockedNotes({
+        leftHand: voicing.leftHand,
+        rightHand: voicing.rightHand,
+        octaveShift,
         inversionRegister,
-      );
+      });
 
       if (lockedNotes.length > 0) {
-        const timingJitter =
-          humanize > 0 ? (Math.random() * 2 - 1) * humanize * MAX_HUMANIZE_TIMING_S : 0;
-        const velJitter =
-          humanize > 0 ? (Math.random() * 2 - 1) * humanize * MAX_HUMANIZE_VELOCITY : 0;
-        const effectiveVelocity =
-          velocity !== undefined
-            ? Math.round(Math.max(20, Math.min(127, velocity * velocityScale + velJitter)))
-            : undefined;
+        const timingJitter = getTimingOffset({ humanize, symmetric: true });
+        const effectiveVelocity = toEffectiveVelocity({
+          velocity,
+          velocityScale,
+          velocityJitter: getVelocityJitter(humanize),
+        });
 
         triggerChordByStyle({
           style: playbackStyle,
@@ -270,12 +321,7 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
     await startAudio();
     stopAllAudio();
 
-    let audioInstrument: Tone.Sampler;
-    if (instrument === 'rhodes') {
-      audioInstrument = await ensureRhodesSamplerLoaded();
-    } else {
-      audioInstrument = await ensurePianoSamplerLoaded();
-    }
+    const audioInstrument = await resolveInstrument(instrument);
 
     const normalizedTempo = normalizeTempoBpm(tempoBpm);
     Tone.Transport.bpm.value = normalizedTempo;
@@ -287,12 +333,7 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
     const beatsPerBar = TIME_SIGNATURE_BEATS_PER_BAR[timeSignature];
     const barDurationSeconds = beatsPerBar * singleBeatSeconds;
 
-    const shiftedLeftHand = shiftNotesByOctaves(leftHand, octaveShift);
-    const shiftedRightHand = shiftNotesByOctaves(rightHand, octaveShift);
-    const lockedNotes = applyInversionLock(
-      [...shiftedLeftHand, ...shiftedRightHand],
-      inversionRegister,
-    );
+    const lockedNotes = getLockedNotes({ leftHand, rightHand, octaveShift, inversionRegister });
 
     if (lockedNotes.length === 0) {
       return;
@@ -305,13 +346,12 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
     }));
 
     const part = new Tone.Part<{ time: number; velocityScale: number }>((time, event) => {
-      const timingDelay = humanize > 0 ? Math.random() * humanize * MAX_HUMANIZE_TIMING_S : 0;
-      const velJitter =
-        humanize > 0 ? (Math.random() * 2 - 1) * humanize * MAX_HUMANIZE_VELOCITY : 0;
-      const scaledVelocity =
-        velocity !== undefined
-          ? Math.round(Math.max(20, Math.min(127, velocity * event.velocityScale + velJitter)))
-          : undefined;
+      const timingDelay = getTimingOffset({ humanize, symmetric: false });
+      const scaledVelocity = toEffectiveVelocity({
+        velocity,
+        velocityScale: event.velocityScale,
+        velocityJitter: getVelocityJitter(humanize),
+      });
 
       triggerChordByStyle({
         style: playbackStyle,

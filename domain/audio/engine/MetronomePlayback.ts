@@ -52,50 +52,52 @@ export const createMetronomePlayback = ({
   loadPattern,
   loopState,
 }: CreateMetronomePlaybackParams): MetronomePlayback => {
-  const playMetronomePulse = async (
-    volume: number,
-    isDownbeat: boolean,
-    opts?: PlayMetronomePulseOptions,
-  ): Promise<void> => {
-    await startAudio();
+  const triggerClickPulse = ({
+    volume,
+    isDownbeat,
+    time,
+  }: {
+    volume: number;
+    isDownbeat: boolean;
+    time: number;
+  }): void => {
+    const synth = synthBank.getClickSynth();
+    synth.volume.value = volume > 0 ? Tone.gainToDb(volume * 0.45) : -Infinity;
+    synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', time);
+  };
 
-    const source: MetronomeSource = opts?.source ?? 'click';
-    const normalizedVolume = clampUnitValue(volume);
-    if (normalizedVolume <= 0) {
-      return;
-    }
-
-    if (source === 'click') {
-      const synth = synthBank.getClickSynth();
-      synth.volume.value = Tone.gainToDb(normalizedVolume * 0.45);
-      synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
-      return;
-    }
-
-    const drumPath = normalizeDrumPatternPath(opts?.drumPath);
+  const playDrumPulse = async ({
+    volume,
+    isDownbeat,
+    drumPath,
+    timeSignature,
+    tempoBpm,
+    beatIndex,
+  }: {
+    volume: number;
+    isDownbeat: boolean;
+    drumPath: string | null;
+    timeSignature: TimeSignature;
+    tempoBpm?: number;
+    beatIndex: number;
+  }): Promise<boolean> => {
     if (!drumPath) {
-      const synth = synthBank.getClickSynth();
-      synth.volume.value = Tone.gainToDb(normalizedVolume * 0.45);
-      synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
-      return;
+      return false;
     }
 
     const pattern = await loadPattern(drumPath);
     if (!pattern) {
-      const synth = synthBank.getClickSynth();
-      synth.volume.value = Tone.gainToDb(normalizedVolume * 0.45);
-      synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
-      return;
+      return false;
     }
 
-    const tempo = normalizeTempoBpm(opts?.tempoBpm);
+    const tempo = normalizeTempoBpm(tempoBpm);
     const beatDurationSeconds = getBeatDurationSeconds(tempo);
-    const beatIndex = Math.max(0, opts?.beatIndex ?? 0);
+    const safeBeatIndex = Math.max(0, beatIndex);
     const patternDuration = Math.max(
       pattern.durationBeats,
-      inferFallbackDrumDurationBeats(opts?.timeSignature ?? '4/4'),
+      inferFallbackDrumDurationBeats(timeSignature),
     );
-    const beatStartInPattern = beatIndex % patternDuration;
+    const beatStartInPattern = safeBeatIndex % patternDuration;
     const now = Tone.now();
 
     pattern.events.forEach((event) => {
@@ -112,9 +114,44 @@ export const createMetronomePlayback = ({
         event.midi,
         eventTime,
         eventDurationSeconds,
-        event.velocity * normalizedVolume,
+        event.velocity * volume,
       );
     });
+
+    return true;
+  };
+
+  const playMetronomePulse = async (
+    volume: number,
+    isDownbeat: boolean,
+    opts?: PlayMetronomePulseOptions,
+  ): Promise<void> => {
+    await startAudio();
+
+    const source: MetronomeSource = opts?.source ?? 'click';
+    const normalizedVolume = clampUnitValue(volume);
+    if (normalizedVolume <= 0) {
+      return;
+    }
+
+    if (source === 'click') {
+      triggerClickPulse({ volume: normalizedVolume, isDownbeat, time: Tone.now() });
+      return;
+    }
+
+    const drumPath = normalizeDrumPatternPath(opts?.drumPath);
+    const played = await playDrumPulse({
+      volume: normalizedVolume,
+      isDownbeat,
+      drumPath,
+      timeSignature: opts?.timeSignature ?? '4/4',
+      tempoBpm: opts?.tempoBpm,
+      beatIndex: opts?.beatIndex ?? 0,
+    });
+
+    if (!played) {
+      triggerClickPulse({ volume: normalizedVolume, isDownbeat, time: Tone.now() });
+    }
   };
 
   const playMetronomeClick = async (volume: number, isDownbeat: boolean): Promise<void> => {
@@ -146,9 +183,7 @@ export const createMetronomePlayback = ({
 
       const isDownbeat = currentBeat % beatsPerBar === 0;
       if (source === 'click') {
-        const synth = synthBank.getClickSynth();
-        synth.volume.value = volume > 0 ? Tone.gainToDb(volume * 0.45) : -Infinity;
-        synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', time);
+        triggerClickPulse({ volume, isDownbeat, time });
       } else {
         const beatIndex = currentBeat;
         const delayMs = Math.max(0, (time - Tone.now()) * 1000);
