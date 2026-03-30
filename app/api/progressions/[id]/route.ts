@@ -2,10 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getSessionFromRequest } from '../../../../lib/auth';
 import { checkCsrfToken } from '../../../../lib/csrf';
+import { getAccessContextForSession, hasReachedLimit } from '../../../../lib/entitlements';
 import { prisma } from '../../../../lib/prisma';
+import { createPlanLimitResponse } from '../../../../lib/subscriptionResponses';
 import type { UpdateProgressionRequest } from '../../../../lib/types';
 
 const toPrismaJson = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+async function getPublicShareCount(userId: string): Promise<number> {
+  const [publicProgressions, publicArrangements] = await Promise.all([
+    prisma.progression.count({ where: { userId, isPublic: true } }),
+    prisma.arrangement.count({ where: { userId, isPublic: true } }),
+  ]);
+
+  return publicProgressions + publicArrangements;
+}
 
 /**
  * Fetches a single saved progression for the authenticated user.
@@ -51,6 +62,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
+    const accessContext = await getAccessContextForSession(session);
+    if (!accessContext) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = (await request.json()) as UpdateProgressionRequest;
     const {
@@ -71,11 +87,32 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         id,
         userId: session.userId,
       },
-      select: { id: true },
+      select: { id: true, isPublic: true },
     });
 
     if (!existing) {
       return NextResponse.json({ message: 'Progression not found' }, { status: 404 });
+    }
+
+    if (isPublic === true && !accessContext.entitlements.canSharePublicly) {
+      return createPlanLimitResponse({
+        code: 'PUBLIC_SHARING_NOT_AVAILABLE',
+        message: 'Public sharing is not available on your current plan',
+        plan: accessContext.plan,
+      });
+    }
+
+    if (isPublic === true && !existing.isPublic) {
+      const publicShareCount = await getPublicShareCount(session.userId);
+      if (hasReachedLimit(accessContext.entitlements.maxPublicShares, publicShareCount)) {
+        return createPlanLimitResponse({
+          code: 'PUBLIC_SHARE_LIMIT_REACHED',
+          message: 'You have reached your public sharing limit for this plan',
+          plan: accessContext.plan,
+          limit: accessContext.entitlements.maxPublicShares,
+          used: publicShareCount,
+        });
+      }
     }
 
     const progression = await prisma.progression.update({

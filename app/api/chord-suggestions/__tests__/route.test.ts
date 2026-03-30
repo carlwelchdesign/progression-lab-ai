@@ -2,6 +2,10 @@
 
 var mockCreate = jest.fn();
 var mockCreateRateLimitResponse = jest.fn();
+var mockGetSessionFromRequest = jest.fn();
+var mockGetAccessContextForSession = jest.fn();
+var mockGetCurrentMonthUsageCount = jest.fn();
+var mockRecordUsageEvent = jest.fn();
 
 jest.mock('openai', () => {
   return jest.fn().mockImplementation(() => ({
@@ -13,6 +17,20 @@ jest.mock('openai', () => {
 
 jest.mock('../../../../lib/rateLimiting', () => ({
   createRateLimitResponse: (...args: unknown[]) => mockCreateRateLimitResponse(...args),
+}));
+
+jest.mock('../../../../lib/auth', () => ({
+  getSessionFromRequest: (...args: unknown[]) => mockGetSessionFromRequest(...args),
+}));
+
+jest.mock('../../../../lib/entitlements', () => ({
+  getAccessContextForSession: (...args: unknown[]) => mockGetAccessContextForSession(...args),
+  hasReachedLimit: (limit: number | null, used: number) => limit !== null && used >= limit,
+}));
+
+jest.mock('../../../../lib/usage', () => ({
+  getCurrentMonthUsageCount: (...args: unknown[]) => mockGetCurrentMonthUsageCount(...args),
+  recordUsageEvent: (...args: unknown[]) => mockRecordUsageEvent(...args),
 }));
 
 import { POST } from '../route';
@@ -77,7 +95,29 @@ describe('POST /api/chord-suggestions', () => {
   beforeEach(() => {
     mockCreate.mockReset();
     mockCreateRateLimitResponse.mockReset();
+    mockGetSessionFromRequest.mockReset();
+    mockGetAccessContextForSession.mockReset();
+    mockGetCurrentMonthUsageCount.mockReset();
+    mockRecordUsageEvent.mockReset();
     mockCreateRateLimitResponse.mockReturnValue(null);
+    mockGetSessionFromRequest.mockReturnValue({ userId: 'user-1', role: 'USER' });
+    mockGetAccessContextForSession.mockResolvedValue({
+      userId: 'user-1',
+      role: 'USER',
+      plan: 'SESSION',
+      entitlements: {
+        aiGenerationsPerMonth: 10,
+        maxSavedProgressions: 10,
+        maxSavedArrangements: 5,
+        maxPublicShares: 2,
+        canExportMidi: false,
+        canExportPdf: false,
+        canSharePublicly: true,
+        canUsePremiumAiModel: false,
+      },
+    });
+    mockGetCurrentMonthUsageCount.mockResolvedValue(0);
+    mockRecordUsageEvent.mockResolvedValue({ id: 'usage-1' });
     console.error = jest.fn();
   });
 
@@ -99,6 +139,36 @@ describe('POST /api/chord-suggestions', () => {
 
     expect(response.status).toBe(503);
     expect(body).toEqual({ error: 'Chord suggestions are unavailable' });
+  });
+
+  it('returns 401 when the user is not authenticated', async () => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    mockGetSessionFromRequest.mockReturnValue(null);
+
+    const response = await POST({ text: async () => '{}' } as never);
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body).toEqual({ error: 'Authentication required to generate chord suggestions' });
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('returns 402 when the plan quota is exhausted', async () => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    mockGetCurrentMonthUsageCount.mockResolvedValue(10);
+
+    const response = await POST({ text: async () => '{}' } as never);
+    const body = await response.json();
+
+    expect(response.status).toBe(402);
+    expect(body).toEqual({
+      error: 'You have reached your monthly AI generation limit for this plan',
+      code: 'AI_GENERATION_LIMIT_REACHED',
+      plan: 'SESSION',
+      limit: 10,
+      used: 10,
+    });
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it('returns parsed model response when OpenAI responds with valid JSON', async () => {
@@ -126,6 +196,11 @@ describe('POST /api/chord-suggestions', () => {
     expect(response.status).toBe(200);
     expect(body).toEqual(validModelPayload);
     expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockRecordUsageEvent).toHaveBeenCalledWith({
+      userId: 'user-1',
+      eventType: 'AI_GENERATION',
+      metadata: { model: 'gpt-5.4' },
+    });
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         instructions: expect.stringContaining('Write all explanatory prose fields in Spanish.'),

@@ -3,10 +3,21 @@ import { Prisma } from '@prisma/client';
 
 import { getSessionFromRequest } from '../../../../lib/auth';
 import { checkCsrfToken } from '../../../../lib/csrf';
+import { getAccessContextForSession, hasReachedLimit } from '../../../../lib/entitlements';
 import { prisma } from '../../../../lib/prisma';
+import { createPlanLimitResponse } from '../../../../lib/subscriptionResponses';
 import type { UpdateArrangementRequest } from '../../../../lib/types';
 
 const toPrismaJson = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+async function getPublicShareCount(userId: string): Promise<number> {
+  const [publicProgressions, publicArrangements] = await Promise.all([
+    prisma.progression.count({ where: { userId, isPublic: true } }),
+    prisma.arrangement.count({ where: { userId, isPublic: true } }),
+  ]);
+
+  return publicProgressions + publicArrangements;
+}
 
 /**
  * Fetches a saved arrangement for the authenticated user.
@@ -15,6 +26,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const session = getSessionFromRequest(request);
     if (!session) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const accessContext = await getAccessContextForSession(session);
+    if (!accessContext) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
@@ -74,11 +90,38 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         id,
         ...(session.role === 'ADMIN' ? {} : { userId: session.userId }),
       },
-      select: { id: true },
+      select: { id: true, isPublic: true, userId: true },
     });
 
     if (!existing) {
       return NextResponse.json({ message: 'Arrangement not found' }, { status: 404 });
+    }
+
+    const shouldEnforcePlanLimits = existing.userId === session.userId;
+
+    if (
+      shouldEnforcePlanLimits &&
+      isPublic === true &&
+      !accessContext.entitlements.canSharePublicly
+    ) {
+      return createPlanLimitResponse({
+        code: 'PUBLIC_SHARING_NOT_AVAILABLE',
+        message: 'Public sharing is not available on your current plan',
+        plan: accessContext.plan,
+      });
+    }
+
+    if (shouldEnforcePlanLimits && isPublic === true && !existing.isPublic) {
+      const publicShareCount = await getPublicShareCount(session.userId);
+      if (hasReachedLimit(accessContext.entitlements.maxPublicShares, publicShareCount)) {
+        return createPlanLimitResponse({
+          code: 'PUBLIC_SHARE_LIMIT_REACHED',
+          message: 'You have reached your public sharing limit for this plan',
+          plan: accessContext.plan,
+          limit: accessContext.entitlements.maxPublicShares,
+          used: publicShareCount,
+        });
+      }
     }
 
     const arrangement = await prisma.arrangement.update({
@@ -90,7 +133,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         ...(sourceChords !== undefined && { sourceChords: toPrismaJson(sourceChords) }),
         ...(notes !== undefined && { notes }),
         ...(tags !== undefined && { tags }),
-        ...(isPublic !== undefined && { isPublic: session.role === 'ADMIN' ? isPublic : false }),
+        ...(isPublic !== undefined && { isPublic }),
       },
     });
 

@@ -1,9 +1,14 @@
+import { UsageEventType } from '@prisma/client';
 import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getSessionFromRequest } from '../../../lib/auth';
+import { getAccessContextForSession, hasReachedLimit } from '../../../lib/entitlements';
 import { getLocaleDefinition, normalizeAppLocale } from '../../../lib/i18n/locales';
 import { createRateLimitResponse } from '../../../lib/rateLimiting';
+import { createPlanLimitResponse } from '../../../lib/subscriptionResponses';
 import type { ChordSuggestionResponse, PianoVoicing } from '../../../lib/types';
+import { getCurrentMonthUsageCount, recordUsageEvent } from '../../../lib/usage';
 import { NOTE_TO_SEMITONE } from '../../../lib/noteToSemitone';
 import { buildChordSuggestionInstructions } from './instructions';
 import { chordSuggestionSchema } from './schema';
@@ -283,8 +288,35 @@ export async function POST(req: NextRequest) {
       return rateLimitResponse;
     }
 
+    const session = getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Authentication required to generate chord suggestions' },
+        { status: 401 },
+      );
+    }
+
+    const accessContext = await getAccessContextForSession(session);
+    if (!accessContext) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ error: 'Chord suggestions are unavailable' }, { status: 503 });
+    }
+
+    const aiGenerationsUsed = await getCurrentMonthUsageCount(
+      session.userId,
+      UsageEventType.AI_GENERATION,
+    );
+    if (hasReachedLimit(accessContext.entitlements.aiGenerationsPerMonth, aiGenerationsUsed)) {
+      return createPlanLimitResponse({
+        code: 'AI_GENERATION_LIMIT_REACHED',
+        message: 'You have reached your monthly AI generation limit for this plan',
+        plan: accessContext.plan,
+        limit: accessContext.entitlements.aiGenerationsPerMonth,
+        used: aiGenerationsUsed,
+      });
     }
 
     const rawBody = await req.text();
@@ -292,9 +324,12 @@ export async function POST(req: NextRequest) {
     const modelInput = buildModelInput(body);
     const input = JSON.stringify(modelInput);
     const localeDefinition = getLocaleDefinition(modelInput.language);
+    const model = accessContext.entitlements.canUsePremiumAiModel
+      ? process.env.OPENAI_PREMIUM_MODEL || process.env.OPENAI_MODEL || 'gpt-5.4'
+      : process.env.OPENAI_STANDARD_MODEL || process.env.OPENAI_MODEL || 'gpt-5.4';
 
     const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || 'gpt-5.4',
+      model,
       instructions: buildChordSuggestionInstructions(localeDefinition.modelLanguage),
       input,
       text: {
@@ -305,6 +340,12 @@ export async function POST(req: NextRequest) {
           schema: chordSuggestionSchema,
         },
       },
+    });
+
+    await recordUsageEvent({
+      userId: session.userId,
+      eventType: UsageEventType.AI_GENERATION,
+      metadata: { model },
     });
 
     const raw = response.output_text;

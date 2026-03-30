@@ -13,16 +13,77 @@ enum UserRole {
   USER
 }
 
+enum SubscriptionPlan {
+  SESSION
+  COMPOSER
+  STUDIO
+  COMP
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+}
+
+enum UsageEventType {
+  AI_GENERATION
+  MIDI_EXPORT
+  PDF_EXPORT
+}
+
 model User {
   id           String        @id @default(cuid())
   email        String        @unique
   name         String?
   passwordHash String?
   role         UserRole      @default(USER)
+  stripeCustomerId String?   @unique
+  planOverride SubscriptionPlan?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   progressions Progression[]
+  subscription Subscription?
+  usageEvents  UsageEvent[]
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  plan                 SubscriptionPlan
+  billingInterval      BillingInterval?
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([plan, status])
+}
+
+model UsageEvent {
+  id        String         @id @default(cuid())
+  userId    String
+  eventType UsageEventType
+  quantity  Int            @default(1)
+  metadata  Json?
+  createdAt DateTime       @default(now())
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, eventType, createdAt])
 }
 
 model Progression {
