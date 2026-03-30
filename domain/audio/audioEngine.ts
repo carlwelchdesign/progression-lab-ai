@@ -69,6 +69,34 @@ export type PlayChordPatternParams = {
   octaveShift?: number;
 };
 
+export type AudioEffectsState = {
+  reverbWet: number;
+  reverbRoomSize: number;
+  reverbEnabled: boolean;
+  chorusWet: number;
+  chorusEnabled: boolean;
+  chorusFrequency: number;
+  chorusDelayTime: number;
+  chorusDepth: number;
+  feedbackDelayEnabled: boolean;
+  feedbackDelayWet: number;
+  feedbackDelayTime: number;
+  feedbackDelayFeedback: number;
+  tremoloEnabled: boolean;
+  tremoloWet: number;
+  tremoloFrequency: number;
+  tremoloDepth: number;
+  vibratoEnabled: boolean;
+  vibratoWet: number;
+  vibratoFrequency: number;
+  vibratoDepth: number;
+  phaserEnabled: boolean;
+  phaserWet: number;
+  phaserFrequency: number;
+  phaserOctaves: number;
+  phaserQ: number;
+};
+
 export interface AudioEffectsEngine {
   setReverbWet: (wet: number) => void;
   setChorusWet: (wet: number) => void;

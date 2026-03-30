@@ -1,5 +1,5 @@
 import * as Tone from 'tone';
-import type { AudioEngine } from './audioEngine';
+import type { AudioEffectsState, AudioEngine } from './audioEngine';
 import { loadDrumPattern, normalizeDrumPatternPath } from './engine/DrumPatternRepository';
 import { createEffectsChain } from './engine/EffectsChain';
 import { createAudioEngineRegistry, type AudioEngineScope } from './engine/AudioEngineRegistry';
@@ -12,6 +12,7 @@ import { ensureAudioStarted, stopAllAudioPlayback } from './engine/TransportLife
 
 export type {
   AudioEngine,
+  AudioEffectsState,
   AudioInstrument,
   MetronomeSource,
   PlayChordVoicingParams,
@@ -174,6 +175,91 @@ export const setPhaserFrequency: AudioEngine['setPhaserFrequency'] = (value) =>
 export const setPhaserOctaves: AudioEngine['setPhaserOctaves'] = (value) =>
   getAudioEngine().setPhaserOctaves(value);
 export const setPhaserQ: AudioEngine['setPhaserQ'] = (value) => getAudioEngine().setPhaserQ(value);
+
+export const applyAudioEffectsState = (effects: Partial<AudioEffectsState>): void => {
+  const engine = getAudioEngine();
+
+  if (effects.reverbEnabled !== undefined) {
+    engine.setReverbEnabled(effects.reverbEnabled);
+  }
+  if (effects.reverbWet !== undefined) {
+    engine.setReverbWet(effects.reverbWet);
+  }
+  if (effects.reverbRoomSize !== undefined) {
+    engine.setReverbRoomSize(effects.reverbRoomSize);
+  }
+
+  if (effects.chorusEnabled !== undefined) {
+    engine.setChorusEnabled(effects.chorusEnabled);
+  }
+  if (effects.chorusWet !== undefined) {
+    engine.setChorusWet(effects.chorusWet);
+  }
+  if (effects.chorusFrequency !== undefined) {
+    engine.setChorusFrequency(effects.chorusFrequency);
+  }
+  if (effects.chorusDepth !== undefined) {
+    engine.setChorusDepth(effects.chorusDepth);
+  }
+  if (effects.chorusDelayTime !== undefined) {
+    engine.setChorusDelayTime(effects.chorusDelayTime);
+  }
+
+  if (effects.feedbackDelayEnabled !== undefined) {
+    engine.setFeedbackDelayEnabled(effects.feedbackDelayEnabled);
+  }
+  if (effects.feedbackDelayWet !== undefined) {
+    engine.setFeedbackDelayWet(effects.feedbackDelayWet);
+  }
+  if (effects.feedbackDelayTime !== undefined) {
+    engine.setFeedbackDelayTime(effects.feedbackDelayTime);
+  }
+  if (effects.feedbackDelayFeedback !== undefined) {
+    engine.setFeedbackDelayFeedback(effects.feedbackDelayFeedback);
+  }
+
+  if (effects.tremoloEnabled !== undefined) {
+    engine.setTremoloEnabled(effects.tremoloEnabled);
+  }
+  if (effects.tremoloWet !== undefined) {
+    engine.setTremoloWet(effects.tremoloWet);
+  }
+  if (effects.tremoloFrequency !== undefined) {
+    engine.setTremoloFrequency(effects.tremoloFrequency);
+  }
+  if (effects.tremoloDepth !== undefined) {
+    engine.setTremoloDepth(effects.tremoloDepth);
+  }
+
+  if (effects.vibratoEnabled !== undefined) {
+    engine.setVibratoEnabled(effects.vibratoEnabled);
+  }
+  if (effects.vibratoWet !== undefined) {
+    engine.setVibratoWet(effects.vibratoWet);
+  }
+  if (effects.vibratoFrequency !== undefined) {
+    engine.setVibratoFrequency(effects.vibratoFrequency);
+  }
+  if (effects.vibratoDepth !== undefined) {
+    engine.setVibratoDepth(effects.vibratoDepth);
+  }
+
+  if (effects.phaserEnabled !== undefined) {
+    engine.setPhaserEnabled(effects.phaserEnabled);
+  }
+  if (effects.phaserWet !== undefined) {
+    engine.setPhaserWet(effects.phaserWet);
+  }
+  if (effects.phaserFrequency !== undefined) {
+    engine.setPhaserFrequency(effects.phaserFrequency);
+  }
+  if (effects.phaserOctaves !== undefined) {
+    engine.setPhaserOctaves(effects.phaserOctaves);
+  }
+  if (effects.phaserQ !== undefined) {
+    engine.setPhaserQ(effects.phaserQ);
+  }
+};
 
 // Lifecycle delegation
 export const startAudio: AudioEngine['startAudio'] = () => getAudioEngine().startAudio();
