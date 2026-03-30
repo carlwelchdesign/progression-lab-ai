@@ -193,12 +193,37 @@ export default function GeneratorPageContent() {
   const inFlightRequestControllerRef = useRef<AbortController | null>(null);
   const { showError } = useAppSnackbar();
 
+  const abortInFlightRequest = useCallback(() => {
+    inFlightRequestControllerRef.current?.abort();
+    inFlightRequestControllerRef.current = null;
+  }, []);
+
   useEffect(
     () => () => {
-      inFlightRequestControllerRef.current?.abort();
+      abortInFlightRequest();
     },
-    [],
+    [abortInFlightRequest],
   );
+
+  useEffect(() => {
+    const handlePageHide = () => {
+      abortInFlightRequest();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        abortInFlightRequest();
+      }
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [abortInFlightRequest]);
 
   const handleLoadArrangement = useCallback(
     (arrangement: Arrangement) => {
@@ -440,7 +465,7 @@ export default function GeneratorPageContent() {
       return;
     }
 
-    inFlightRequestControllerRef.current?.abort();
+    abortInFlightRequest();
     const controller = new AbortController();
     inFlightRequestControllerRef.current = controller;
 
@@ -484,7 +509,7 @@ export default function GeneratorPageContent() {
       showError(errorMessage);
     } finally {
       if (inFlightRequestControllerRef.current === controller) {
-        inFlightRequestControllerRef.current = null;
+        abortInFlightRequest();
         setLoading(false);
       }
     }
