@@ -320,17 +320,21 @@ export default function GeneratedChordGridDialog({
       fullWidth
       fullScreen={isMobile}
       sx={{ '& .MuiDialog-container': { justifyContent: 'center', alignItems: 'center' } }}
-      PaperProps={{
-        dir: 'ltr',
-        style: { direction: 'ltr' },
-        sx: {
-          width: '100%',
-          maxWidth: isMobile ? '100%' : 800,
-          paddingTop: 2,
-          borderRadius: isMobile ? 0 : 2,
-          color: 'common.white',
-          background: appColors.surface.chordPlaygroundDialogGradient,
-          border: isMobile ? 'none' : `1px solid ${appColors.surface.chordPlaygroundDialogBorder}`,
+      slotProps={{
+        paper: {
+          dir: 'ltr',
+          style: { direction: 'ltr' },
+          sx: {
+            width: '100%',
+            maxWidth: isMobile ? '100%' : 800,
+            paddingTop: 2,
+            borderRadius: isMobile ? 0 : 2,
+            color: 'common.white',
+            background: appColors.surface.chordPlaygroundDialogGradient,
+            border: isMobile
+              ? 'none'
+              : `1px solid ${appColors.surface.chordPlaygroundDialogBorder}`,
+          },
         },
       }}
     >
