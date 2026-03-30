@@ -305,6 +305,19 @@ yarn dev
 
 App runs at `http://localhost:3000`.
 
+**6. Forward Stripe webhooks locally (billing flows)**
+```bash
+./scripts/stripe-listen-local.sh
+```
+
+Optional: print a webhook signing secret for local config updates:
+
+```bash
+./scripts/stripe-listen-local.sh --print-secret
+```
+
+The helper reads `STRIPE_SECRET_KEY` from your shell or `.env.local`, and supports both quoted and unquoted `.env.local` formats.
+
 ---
 
 ## Testing
