@@ -324,9 +324,7 @@ export async function POST(req: NextRequest) {
     const modelInput = buildModelInput(body);
     const input = JSON.stringify(modelInput);
     const localeDefinition = getLocaleDefinition(modelInput.language);
-    const model = accessContext.entitlements.canUsePremiumAiModel
-      ? process.env.OPENAI_PREMIUM_MODEL || process.env.OPENAI_MODEL || 'gpt-5.4'
-      : process.env.OPENAI_STANDARD_MODEL || process.env.OPENAI_MODEL || 'gpt-5.4';
+    const model = accessContext.entitlements.gptModel;
 
     const response = await client.responses.create({
       model,

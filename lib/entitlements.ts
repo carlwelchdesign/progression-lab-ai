@@ -2,6 +2,7 @@ import { SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
 
 import type { UserRole } from './auth';
 import { prisma } from './prisma';
+import { getTierConfig } from './subscriptionConfig';
 
 export type PlanEntitlements = {
   aiGenerationsPerMonth: number | null;
@@ -12,6 +13,7 @@ export type PlanEntitlements = {
   canExportPdf: boolean;
   canSharePublicly: boolean;
   canUsePremiumAiModel: boolean;
+  gptModel: string;
 };
 
 export type AccessContext = {
@@ -23,6 +25,11 @@ export type AccessContext = {
   subscriptionStatus: SubscriptionStatus | null;
 };
 
+/**
+ * Legacy fallback for backward compatibility.
+ * Prefer using getTierConfig() from subscriptionConfig.ts instead.
+ * @deprecated Use getTierConfig() from subscriptionConfig.ts
+ */
 export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
   [SubscriptionPlan.SESSION]: {
     aiGenerationsPerMonth: 10,
@@ -33,6 +40,7 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canExportPdf: false,
     canSharePublicly: true,
     canUsePremiumAiModel: false,
+    gptModel: 'gpt-3.5-turbo',
   },
   [SubscriptionPlan.COMPOSER]: {
     aiGenerationsPerMonth: 50,
@@ -43,6 +51,7 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canExportPdf: true,
     canSharePublicly: true,
     canUsePremiumAiModel: false,
+    gptModel: 'gpt-3.5-turbo',
   },
   [SubscriptionPlan.STUDIO]: {
     aiGenerationsPerMonth: 200,
@@ -53,6 +62,7 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canExportPdf: true,
     canSharePublicly: true,
     canUsePremiumAiModel: true,
+    gptModel: 'gpt-4o',
   },
   [SubscriptionPlan.COMP]: {
     aiGenerationsPerMonth: 200,
@@ -63,6 +73,7 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canExportPdf: true,
     canSharePublicly: true,
     canUsePremiumAiModel: true,
+    gptModel: 'gpt-4o',
   },
 };
 
@@ -122,11 +133,25 @@ export async function getAccessContextForSession(session: {
     subscriptionStatus: user.subscription?.status,
   });
 
+  const tierConfig = await getTierConfig(plan);
+
+  const entitlements: PlanEntitlements = {
+    aiGenerationsPerMonth: tierConfig.aiGenerationsPerMonth,
+    maxSavedProgressions: tierConfig.maxSavedProgressions,
+    maxSavedArrangements: tierConfig.maxSavedArrangements,
+    maxPublicShares: tierConfig.maxPublicShares,
+    canExportMidi: tierConfig.canExportMidi,
+    canExportPdf: tierConfig.canExportPdf,
+    canSharePublicly: tierConfig.canSharePublicly,
+    canUsePremiumAiModel: tierConfig.gptModel !== 'gpt-3.5-turbo',
+    gptModel: tierConfig.gptModel,
+  };
+
   return {
     userId: session.userId,
     role: session.role,
     plan,
-    entitlements: PLAN_ENTITLEMENTS[plan],
+    entitlements,
     planOverride: user.planOverride,
     subscriptionStatus: user.subscription?.status ?? null,
   };

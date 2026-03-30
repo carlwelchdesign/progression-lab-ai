@@ -70,6 +70,18 @@ export type AdminUserSummary = {
   monthlyAiGenerations: number;
 };
 
+export type SubscriptionTierConfig = {
+  plan: SubscriptionPlan;
+  gptModel: string;
+  aiGenerationsPerMonth: number | null;
+  maxSavedProgressions: number | null;
+  maxSavedArrangements: number | null;
+  maxPublicShares: number | null;
+  canExportMidi: boolean;
+  canExportPdf: boolean;
+  canSharePublicly: boolean;
+};
+
 export type UserRoleFilter = UserRole | 'ALL';
 export type UserResolvedPlanFilter = SubscriptionPlan | 'ALL';
 export type UserSubscriptionStatusFilter =

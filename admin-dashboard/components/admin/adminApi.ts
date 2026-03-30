@@ -7,6 +7,7 @@ import type {
   ProgressionDetail,
   ProgressionRow,
   SubscriptionPlan,
+  SubscriptionTierConfig,
 } from './types';
 
 import { createCsrfHeaders } from '../../lib/csrfClient';
@@ -156,4 +157,39 @@ export async function updateUserPlanOverride(params: {
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, 'Failed to update plan override'));
   }
+}
+
+export async function fetchSubscriptionTierConfigs(): Promise<SubscriptionTierConfig[]> {
+  const response = await fetch('/api/subscription-tier-configs', {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to fetch tier configurations'));
+  }
+
+  const data = (await response.json()) as { items: SubscriptionTierConfig[] };
+  return data.items;
+}
+
+export async function updateSubscriptionTierConfig(
+  plan: SubscriptionPlan,
+  updates: Partial<Omit<SubscriptionTierConfig, 'plan'>>,
+): Promise<SubscriptionTierConfig> {
+  const response = await fetch(`/api/subscription-tier-configs/${plan}`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await readErrorMessage(response, `Failed to update tier configuration for ${plan}`),
+    );
+  }
+
+  const data = (await response.json()) as { item: SubscriptionTierConfig };
+  return data.item;
 }

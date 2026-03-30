@@ -90,6 +90,20 @@ model UsageEvent {
   @@index([userId, eventType, createdAt])
 }
 
+model SubscriptionTierConfig {
+  plan                   SubscriptionPlan @id
+  gptModel               String
+  aiGenerationsPerMonth  Int?
+  maxSavedProgressions   Int?
+  maxSavedArrangements   Int?
+  maxPublicShares        Int?
+  canExportMidi          Boolean          @default(false)
+  canExportPdf           Boolean          @default(false)
+  canSharePublicly       Boolean          @default(true)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+}
+
 model Progression {
   id         String   @id @default(cuid())
   shareId    String   @unique @default(cuid())
