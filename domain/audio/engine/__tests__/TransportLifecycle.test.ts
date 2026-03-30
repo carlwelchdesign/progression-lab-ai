@@ -7,6 +7,7 @@ jest.mock('tone', () => ({
   },
 }));
 
+import * as Tone from 'tone';
 import { stopAllAudioPlayback } from '../TransportLifecycle';
 
 describe('TransportLifecycle', () => {
@@ -46,6 +47,8 @@ describe('TransportLifecycle', () => {
     expect(metronomeLoop.dispose).toHaveBeenCalledTimes(1);
     expect(setMetronomeLoop).toHaveBeenCalledWith(null);
     expect(setMetronomeClickBeat).toHaveBeenCalledWith(0);
+    expect(Tone.Transport.stop).toHaveBeenCalledTimes(1);
+    expect(Tone.Transport.cancel).toHaveBeenCalledTimes(1);
     expect(releaseInstrumentSamplers).toHaveBeenCalledTimes(1);
     expect(releaseMetronomeSynths).toHaveBeenCalledTimes(1);
   });

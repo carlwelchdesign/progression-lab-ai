@@ -1,4 +1,5 @@
 import * as Tone from 'tone';
+import { applyTransportStopPolicy } from './TransportStopPolicy';
 
 export type StopAllAudioParams = {
   scheduledPlaybackTimeouts: ReturnType<typeof setTimeout>[];
@@ -33,26 +34,19 @@ export const stopAllAudioPlayback = ({
   releaseInstrumentSamplers,
   releaseMetronomeSynths,
 }: StopAllAudioParams): void => {
-  scheduledPlaybackTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
-  setScheduledPlaybackTimeouts([]);
-  activeMetronomePulseTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
-  setActiveMetronomePulseTimeouts([]);
-
-  Tone.Transport.stop();
-  Tone.Transport.cancel();
-
-  if (activePart) {
-    activePart.dispose();
-    setActivePart(null);
-  }
-
-  if (metronomeLoop) {
-    metronomeLoop.dispose();
-    setMetronomeLoop(null);
-    setMetronomeClickBeat(0);
-  }
-
-  releaseInstrumentSamplers();
-
-  releaseMetronomeSynths();
+  applyTransportStopPolicy({
+    scheduledPlaybackTimeouts,
+    setScheduledPlaybackTimeouts,
+    activeMetronomePulseTimeouts,
+    setActiveMetronomePulseTimeouts,
+    activePart,
+    setActivePart,
+    metronomeLoop,
+    setMetronomeLoop,
+    setMetronomeClickBeat,
+    stopTransport: () => Tone.Transport.stop(),
+    cancelTransport: () => Tone.Transport.cancel(),
+    releaseInstrumentSamplers,
+    releaseMetronomeSynths,
+  });
 };
