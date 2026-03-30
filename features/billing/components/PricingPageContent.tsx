@@ -140,29 +140,37 @@ export default function PricingPageContent() {
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
       <Stack spacing={4}>
-        <Stack
-          spacing={2}
-          alignItems="center"
-          sx={{ textAlign: 'center', maxWidth: 760, mx: 'auto', width: '100%' }}
-        >
-          <Chip
-            icon={<BoltIcon />}
-            label="Subscription plans"
-            color="primary"
-            variant="outlined"
-            sx={{ alignSelf: 'center' }}
-          />
-          <Typography variant="h3" component="h1" sx={{ width: '100%', textAlign: 'center' }}>
-            Pick the plan that matches your writing pace
-          </Typography>
-          <Typography
-            color="text.secondary"
-            sx={{ fontSize: '1.05rem', maxWidth: 700, width: '100%', textAlign: 'center' }}
+        <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <Stack
+            spacing={2}
+            alignItems="center"
+            sx={{ textAlign: 'center', maxWidth: 760, width: '100%' }}
           >
-            Session keeps the door open. Composer is the default paid tier. Studio is for users who
-            want the highest AI headroom and no storage friction.
-          </Typography>
-        </Stack>
+            <Chip
+              icon={<BoltIcon />}
+              label="Subscription plans"
+              color="primary"
+              variant="outlined"
+              sx={{ alignSelf: 'center' }}
+            />
+            <Typography
+              variant="h3"
+              component="h1"
+              align="center"
+              sx={{ width: '100%', textAlign: 'center' }}
+            >
+              Pick the plan that matches your writing pace
+            </Typography>
+            <Typography
+              color="text.secondary"
+              align="center"
+              sx={{ fontSize: '1.05rem', maxWidth: 700, width: '100%', textAlign: 'center' }}
+            >
+              Session keeps the door open. Composer is the default paid tier. Studio is for users
+              who want the highest AI headroom and no storage friction.
+            </Typography>
+          </Stack>
+        </Box>
 
         <Stack direction="row" spacing={1.5} justifyContent="center">
           <Button
