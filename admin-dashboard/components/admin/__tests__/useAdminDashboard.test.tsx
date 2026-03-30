@@ -3,11 +3,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import useAdminDashboard from '../useAdminDashboard';
 import {
   deleteProgression,
+  fetchUsers,
   fetchProgressionDetails,
   fetchProgressions,
   fetchSession,
   login,
   logout,
+  updateUserPlanOverride,
 } from '../adminApi';
 import type { AdminUser, ProgressionDetail, ProgressionRow } from '../types';
 
@@ -16,16 +18,20 @@ jest.mock('../adminApi', () => ({
   login: jest.fn(),
   logout: jest.fn(),
   fetchProgressions: jest.fn(),
+  fetchUsers: jest.fn(),
   fetchProgressionDetails: jest.fn(),
   deleteProgression: jest.fn(),
+  updateUserPlanOverride: jest.fn(),
 }));
 
 const mockedFetchSession = jest.mocked(fetchSession);
 const mockedLogin = jest.mocked(login);
 const mockedLogout = jest.mocked(logout);
 const mockedFetchProgressions = jest.mocked(fetchProgressions);
+const mockedFetchUsers = jest.mocked(fetchUsers);
 const mockedFetchProgressionDetails = jest.mocked(fetchProgressionDetails);
 const mockedDeleteProgression = jest.mocked(deleteProgression);
+const mockedUpdateUserPlanOverride = jest.mocked(updateUserPlanOverride);
 
 const adminUser: AdminUser = {
   id: 'user-1',
@@ -75,8 +81,19 @@ describe('useAdminDashboard', () => {
     jest.clearAllMocks();
     mockedFetchSession.mockResolvedValue(null);
     mockedFetchProgressions.mockResolvedValue({ items: [], total: 0 });
+    mockedFetchUsers.mockResolvedValue({
+      items: [],
+      total: 0,
+      summary: {
+        totalUsers: 0,
+        payingUsers: 0,
+        compedUsers: 0,
+        monthlyAiGenerations: 0,
+      },
+    });
     mockedFetchProgressionDetails.mockResolvedValue(detail);
     mockedDeleteProgression.mockResolvedValue();
+    mockedUpdateUserPlanOverride.mockResolvedValue();
     mockedLogin.mockResolvedValue();
     mockedLogout.mockResolvedValue();
     jest.spyOn(window, 'confirm').mockReturnValue(true);
@@ -102,6 +119,17 @@ describe('useAdminDashboard', () => {
 
     expect(result.current.user).toEqual(adminUser);
     expect(mockedFetchProgressions).toHaveBeenCalledWith({ page: 0, pageSize: 25 });
+    expect(mockedFetchUsers).toHaveBeenCalledWith({
+      page: 0,
+      pageSize: 25,
+      filters: {
+        query: '',
+        role: 'ALL',
+        resolvedPlan: 'ALL',
+        subscriptionStatus: 'ALL',
+        overrideState: 'ALL',
+      },
+    });
     expect(result.current.tableLabel).toBe('1-1 of 1');
   });
 
