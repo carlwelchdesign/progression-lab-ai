@@ -70,8 +70,43 @@ export async function GET(request: NextRequest) {
     );
     const { start, end } = getCurrentMonthWindow();
 
-    const [total, rows] = await Promise.all([
+    const [total, payingUsers, compedUsers, monthlyAiGenerations, rows] = await Promise.all([
       prisma.user.count(),
+      prisma.user.count({
+        where: {
+          subscription: {
+            is: {
+              status: {
+                in: [
+                  SubscriptionStatus.ACTIVE,
+                  SubscriptionStatus.TRIALING,
+                  SubscriptionStatus.PAST_DUE,
+                ],
+              },
+              plan: {
+                in: ['COMPOSER', 'STUDIO'],
+              },
+            },
+          },
+        },
+      }),
+      prisma.user.count({
+        where: {
+          planOverride: 'COMP',
+        },
+      }),
+      prisma.usageEvent.aggregate({
+        _sum: {
+          quantity: true,
+        },
+        where: {
+          eventType: AI_GENERATION_EVENT_TYPE,
+          createdAt: {
+            gte: start,
+            lt: end,
+          },
+        },
+      }),
       prisma.user.findMany({
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -111,6 +146,12 @@ export async function GET(request: NextRequest) {
       total,
       page,
       pageSize,
+      summary: {
+        totalUsers: total,
+        payingUsers,
+        compedUsers,
+        monthlyAiGenerations: monthlyAiGenerations._sum.quantity ?? 0,
+      },
       items: rows.map((row) => {
         const resolvedPlan = resolvePlan({
           planOverride: row.planOverride,

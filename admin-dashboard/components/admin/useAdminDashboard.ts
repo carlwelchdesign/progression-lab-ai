@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   AdminUser,
   AdminUserRow,
+  AdminUserSummary,
   ProgressionDetail,
   ProgressionRow,
   SubscriptionPlan,
@@ -33,6 +34,12 @@ export default function useAdminDashboard() {
 
   const [userRows, setUserRows] = useState<AdminUserRow[]>([]);
   const [userTotal, setUserTotal] = useState(0);
+  const [userSummary, setUserSummary] = useState<AdminUserSummary>({
+    totalUsers: 0,
+    payingUsers: 0,
+    compedUsers: 0,
+    monthlyAiGenerations: 0,
+  });
   const [userPage, setUserPage] = useState(0);
   const [userPageSize, setUserPageSize] = useState(25);
   const [isUsersLoading, setIsUsersLoading] = useState(false);
@@ -125,6 +132,7 @@ export default function useAdminDashboard() {
         const data = await fetchUsers({ page: nextPage, pageSize: nextPageSize });
         setUserRows(data.items);
         setUserTotal(data.total);
+        setUserSummary(data.summary);
       } catch (error) {
         setUsersError((error as Error).message);
       } finally {
@@ -177,6 +185,12 @@ export default function useAdminDashboard() {
     setTotal(0);
     setUserRows([]);
     setUserTotal(0);
+    setUserSummary({
+      totalUsers: 0,
+      payingUsers: 0,
+      compedUsers: 0,
+      monthlyAiGenerations: 0,
+    });
     setDetails(null);
     setDetailsOpen(false);
   };
@@ -260,6 +274,7 @@ export default function useAdminDashboard() {
     tableError,
     userRows,
     userTotal,
+    userSummary,
     userPage,
     userPageSize,
     isUsersLoading,

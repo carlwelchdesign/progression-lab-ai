@@ -1,6 +1,7 @@
 import type {
   AdminUser,
   AdminUserRow,
+  AdminUserSummary,
   ProgressionDetail,
   ProgressionRow,
   SubscriptionPlan,
@@ -102,7 +103,7 @@ export async function deleteProgression(id: string): Promise<void> {
 export async function fetchUsers(params: {
   page: number;
   pageSize: number;
-}): Promise<{ items: AdminUserRow[]; total: number }> {
+}): Promise<{ items: AdminUserRow[]; total: number; summary: AdminUserSummary }> {
   const searchParams = new URLSearchParams({
     page: String(params.page + 1),
     pageSize: String(params.pageSize),
@@ -120,6 +121,7 @@ export async function fetchUsers(params: {
   return (await response.json()) as {
     items: AdminUserRow[];
     total: number;
+    summary: AdminUserSummary;
   };
 }
 

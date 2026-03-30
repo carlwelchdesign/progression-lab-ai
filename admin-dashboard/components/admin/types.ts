@@ -55,3 +55,10 @@ export type AdminUserRow = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type AdminUserSummary = {
+  totalUsers: number;
+  payingUsers: number;
+  compedUsers: number;
+  monthlyAiGenerations: number;
+};

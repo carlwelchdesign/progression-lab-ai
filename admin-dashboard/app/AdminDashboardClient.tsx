@@ -1,6 +1,7 @@
 'use client';
 
 import { Alert, Container, Stack } from '@mui/material';
+import AdminSummaryCards from '../components/admin/AdminSummaryCards';
 import DashboardHeader from '../components/admin/DashboardHeader';
 import LoadingState from '../components/admin/LoadingState';
 import LoginCard from '../components/admin/LoginCard';
@@ -22,6 +23,7 @@ export default function AdminDashboardClient() {
     tableError,
     userRows,
     userTotal,
+    userSummary,
     userPage,
     userPageSize,
     isUsersLoading,
@@ -75,6 +77,8 @@ export default function AdminDashboardClient() {
 
         {tableError ? <Alert severity="error">{tableError}</Alert> : null}
         {usersError ? <Alert severity="error">{usersError}</Alert> : null}
+
+        <AdminSummaryCards summary={userSummary} />
 
         <UsersTable
           rows={userRows}
