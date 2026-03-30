@@ -18,6 +18,7 @@ import {
 import { applyChordPatternLifecyclePolicy } from './ChordPatternLifecyclePolicy';
 import { startPartPlayback } from './PartTransportPolicy';
 import { buildTransportTiming } from './TransportTimingPolicy';
+import { beginPlaybackSession } from './PlaybackSessionPolicy';
 import { triggerChordByStyle } from './ChordTrigger';
 
 interface ProgressionPlaybackDeps {
@@ -90,8 +91,7 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
     instrument = 'piano',
     octaveShift = 0,
   }: PlayChordVoicingParams): Promise<void> => {
-    await startAudio();
-    stopAllAudio();
+    await beginPlaybackSession({ startAudio, stopAllAudio });
 
     const audioInstrument = await resolveInstrument(instrument);
 
@@ -129,8 +129,7 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
     decay?: number,
     opts?: PlayProgressionOptions,
   ): Promise<void> => {
-    await startAudio();
-    stopAllAudio();
+    await beginPlaybackSession({ startAudio, stopAllAudio });
 
     const {
       velocity,
@@ -254,8 +253,7 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
       });
     }
 
-    await startAudio();
-    stopAllAudio();
+    await beginPlaybackSession({ startAudio, stopAllAudio });
 
     const audioInstrument = await resolveInstrument(instrument);
 
