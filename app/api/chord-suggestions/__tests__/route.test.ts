@@ -6,6 +6,7 @@ var mockGetSessionFromRequest = jest.fn();
 var mockGetAccessContextForSession = jest.fn();
 var mockGetCurrentMonthUsageCount = jest.fn();
 var mockRecordUsageEvent = jest.fn();
+var mockGetRenderedPrompt = jest.fn();
 
 jest.mock('openai', () => {
   return jest.fn().mockImplementation(() => ({
@@ -31,6 +32,10 @@ jest.mock('../../../../lib/entitlements', () => ({
 jest.mock('../../../../lib/usage', () => ({
   getCurrentMonthUsageCount: (...args: unknown[]) => mockGetCurrentMonthUsageCount(...args),
   recordUsageEvent: (...args: unknown[]) => mockRecordUsageEvent(...args),
+}));
+
+jest.mock('../../../../lib/promptVersionConfig', () => ({
+  getRenderedPrompt: (...args: unknown[]) => mockGetRenderedPrompt(...args),
 }));
 
 import { POST } from '../route';
@@ -106,6 +111,7 @@ describe('POST /api/chord-suggestions', () => {
       role: 'USER',
       plan: 'SESSION',
       entitlements: {
+        gptModel: 'gpt-5.4',
         aiGenerationsPerMonth: 10,
         maxSavedProgressions: 10,
         maxSavedArrangements: 5,
@@ -118,6 +124,13 @@ describe('POST /api/chord-suggestions', () => {
     });
     mockGetCurrentMonthUsageCount.mockResolvedValue(0);
     mockRecordUsageEvent.mockResolvedValue({ id: 'usage-1' });
+    mockGetRenderedPrompt.mockImplementation(({ outputLanguage }: { outputLanguage: string }) =>
+      Promise.resolve({
+        text: `Write all explanatory prose fields in ${outputLanguage}.`,
+        versionNumber: 7,
+        source: 'db',
+      }),
+    );
     console.error = jest.fn();
   });
 
@@ -199,7 +212,12 @@ describe('POST /api/chord-suggestions', () => {
     expect(mockRecordUsageEvent).toHaveBeenCalledWith({
       userId: 'user-1',
       eventType: 'AI_GENERATION',
-      metadata: { model: 'gpt-5.4' },
+      metadata: {
+        model: 'gpt-5.4',
+        promptKey: 'chord_suggestions',
+        promptVersion: 7,
+        promptSource: 'db',
+      },
     });
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -408,5 +426,43 @@ describe('POST /api/chord-suggestions', () => {
     expect(response.status).toBe(413);
     expect(body).toEqual({ error: 'Request body is too large' });
     expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('uses fallback prompt metadata when prompt service returns fallback source', async () => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    mockGetRenderedPrompt.mockResolvedValue({
+      text: 'Write all explanatory prose fields in English.',
+      versionNumber: null,
+      source: 'fallback',
+    });
+    mockCreate.mockResolvedValue({
+      output_text: JSON.stringify(validModelPayload),
+    });
+
+    const response = await POST({
+      text: async () =>
+        JSON.stringify({
+          seedChords: ['Fmaj7'],
+          mood: 'calm',
+          mode: 'ionian',
+          genre: 'pop',
+          styleReference: null,
+          instrument: 'both',
+          adventurousness: 'safe',
+          language: 'en',
+        }),
+    } as never);
+
+    expect(response.status).toBe(200);
+    expect(mockRecordUsageEvent).toHaveBeenCalledWith({
+      userId: 'user-1',
+      eventType: 'AI_GENERATION',
+      metadata: {
+        model: 'gpt-5.4',
+        promptKey: 'chord_suggestions',
+        promptVersion: null,
+        promptSource: 'fallback',
+      },
+    });
   });
 });
