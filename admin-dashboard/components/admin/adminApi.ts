@@ -4,6 +4,7 @@ import type {
   AdminUserFilters,
   AdminUserRow,
   AdminUserSummary,
+  AdminAuditLogItem,
   ProgressionDetail,
   ProgressionRow,
   SubscriptionPlan,
@@ -192,4 +193,19 @@ export async function updateSubscriptionTierConfig(
 
   const data = (await response.json()) as { item: SubscriptionTierConfig };
   return data.item;
+}
+
+export async function fetchAdminAuditLogs(limit = 100): Promise<AdminAuditLogItem[]> {
+  const searchParams = new URLSearchParams({ limit: String(limit) });
+  const response = await fetch(`/api/admin-audit-logs?${searchParams.toString()}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to fetch admin audit logs'));
+  }
+
+  const data = (await response.json()) as { items: AdminAuditLogItem[] };
+  return data.items;
 }

@@ -56,6 +56,7 @@ model User {
   arrangements Arrangement[]
   subscription Subscription?
   usageEvents  UsageEvent[]
+  adminAuditLogs AdminAuditLog[]
 }
 
 model Subscription {
@@ -102,6 +103,24 @@ model SubscriptionTierConfig {
   canSharePublicly       Boolean          @default(true)
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
+}
+
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actorEmail  String
+  actorRole   UserRole
+  action      String
+  targetType  String
+  targetId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([targetType, targetId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 model Progression {

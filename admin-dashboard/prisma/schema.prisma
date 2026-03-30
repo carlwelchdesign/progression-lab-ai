@@ -52,6 +52,7 @@ model User {
   progressions Progression[]
   subscription Subscription?
   usageEvents  UsageEvent[]
+  adminAuditLogs AdminAuditLog[]
 }
 
 model Subscription {
@@ -84,6 +85,38 @@ model UsageEvent {
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, eventType, createdAt])
+}
+
+model SubscriptionTierConfig {
+  plan                   SubscriptionPlan @id
+  gptModel               String
+  aiGenerationsPerMonth  Int?
+  maxSavedProgressions   Int?
+  maxSavedArrangements   Int?
+  maxPublicShares        Int?
+  canExportMidi          Boolean          @default(false)
+  canExportPdf           Boolean          @default(false)
+  canSharePublicly       Boolean          @default(true)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+}
+
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actorEmail  String
+  actorRole   UserRole
+  action      String
+  targetType  String
+  targetId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([targetType, targetId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 model Progression {

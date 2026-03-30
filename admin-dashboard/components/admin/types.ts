@@ -82,6 +82,17 @@ export type SubscriptionTierConfig = {
   canSharePublicly: boolean;
 };
 
+export type AdminAuditLogItem = {
+  id: string;
+  actorEmail: string;
+  actorRole: Role;
+  action: string;
+  targetType: string;
+  targetId: string;
+  updatedFields: string[];
+  createdAt: string;
+};
+
 export type UserRoleFilter = UserRole | 'ALL';
 export type UserResolvedPlanFilter = SubscriptionPlan | 'ALL';
 export type UserSubscriptionStatusFilter =

@@ -3,6 +3,7 @@
 import { Alert, Container, Stack, Box, Tabs, Tab } from '@mui/material';
 import { useState } from 'react';
 
+import AdminAuditLogTable from '../components/admin/AdminAuditLogTable';
 import AdminSummaryCards from '../components/admin/AdminSummaryCards';
 import DashboardHeader from '../components/admin/DashboardHeader';
 import LoadingState from '../components/admin/LoadingState';
@@ -14,9 +15,9 @@ import UsersTable from '../components/admin/UsersTable';
 import useAdminDashboard from '../components/admin/useAdminDashboard';
 
 export default function AdminDashboardClient() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'progressions' | 'tier-config'>(
-    'overview',
-  );
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'progressions' | 'tier-config' | 'audit-log'
+  >('overview');
 
   const {
     user,
@@ -94,12 +95,13 @@ export default function AdminDashboardClient() {
           <Tabs
             value={activeTab}
             onChange={(_, newValue) =>
-              setActiveTab(newValue as 'overview' | 'progressions' | 'tier-config')
+              setActiveTab(newValue as 'overview' | 'progressions' | 'tier-config' | 'audit-log')
             }
           >
             <Tab label="Users & Overview" value="overview" />
             <Tab label="Progressions" value="progressions" />
             {user.role === 'ADMIN' && <Tab label="Tier Configuration" value="tier-config" />}
+            <Tab label="Audit Log" value="audit-log" />
           </Tabs>
         </Box>
 
@@ -153,6 +155,8 @@ export default function AdminDashboardClient() {
         )}
 
         {activeTab === 'tier-config' && user.role === 'ADMIN' && <TierConfigTable />}
+
+        {activeTab === 'audit-log' && <AdminAuditLogTable />}
 
         <ProgressionDetailsDialog
           open={detailsOpen}

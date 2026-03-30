@@ -1,9 +1,10 @@
 import { SubscriptionPlan } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 
+import { recordTierConfigUpdateAuditLog } from '../../../../lib/adminAuditLog';
 import { getAdminUserFromRequest } from '../../../../lib/adminAccess';
 import { checkCsrfToken } from '../../../../lib/csrf';
-import { updateTierConfig } from '../../../../lib/subscriptionConfig';
+import { getTierConfig, updateTierConfig } from '../../../../lib/subscriptionConfig';
 
 /**
  * PATCH /api/subscription-tier-configs/:plan
@@ -32,10 +33,9 @@ export async function PATCH(
       return NextResponse.json({ message: 'Invalid subscription plan' }, { status: 400 });
     }
 
-    // Check CSRF token
-    const csrfValid = await checkCsrfToken(request);
-    if (!csrfValid) {
-      return NextResponse.json({ message: 'CSRF validation failed' }, { status: 403 });
+    const csrfError = checkCsrfToken(request);
+    if (csrfError) {
+      return csrfError;
     }
 
     const body = (await request.json()) as Record<string, unknown>;
@@ -103,10 +103,25 @@ export async function PATCH(
       return NextResponse.json({ message: 'No valid updates provided' }, { status: 400 });
     }
 
+    const previousConfig = await getTierConfig(plan as SubscriptionPlan);
+    const updatedFields = Object.keys(updates);
+
     const updated = await updateTierConfig(
       plan as SubscriptionPlan,
       updates as Parameters<typeof updateTierConfig>[1],
     );
+
+    try {
+      await recordTierConfigUpdateAuditLog({
+        actor: adminUser,
+        plan: plan as SubscriptionPlan,
+        updatedFields,
+        before: previousConfig,
+        after: updated,
+      });
+    } catch (auditLogError) {
+      console.error('Failed to record tier config audit log:', auditLogError);
+    }
 
     return NextResponse.json({ item: updated });
   } catch (error) {
