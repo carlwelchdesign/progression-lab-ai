@@ -16,6 +16,7 @@
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "test": "jest",
     "test:e2e": "playwright test",
+    "test:e2e:mobile": "playwright test --project=chromium-mobile",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:headed": "playwright test --headed",
     "test:coverage": "jest --coverage",
