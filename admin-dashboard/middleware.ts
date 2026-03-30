@@ -48,11 +48,11 @@ export function middleware() {
 
   // Strict Content Security Policy for admin panel
   // In development: allow unsafe-eval and unsafe-inline for React Fast Refresh
-  // In production: strict policy to prevent XSS attacks
+  // In production: allow Next.js inline bootstrap scripts
   const isDev = process.env.NODE_ENV !== 'production';
   const scriptSrc = isDev
     ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'" // Dev: needed for React Fast Refresh
-    : "script-src 'self'"; // Prod: no inline scripts for admin panel
+    : "script-src 'self' 'unsafe-inline'"; // Prod: allow Next inline bootstrap scripts
 
   const csp = [
     "default-src 'self'",
