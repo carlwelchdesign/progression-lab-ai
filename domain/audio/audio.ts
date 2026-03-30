@@ -71,6 +71,8 @@ export const createToneAudioEngine = (): AudioEngine => {
       getActiveMetronomePulseTimeouts: timelineState.getActiveMetronomePulseTimeouts,
       setActiveMetronomePulseTimeouts: timelineState.setActiveMetronomePulseTimeouts,
     },
+    createLoop: (cb, interval) => new Tone.Loop(cb, interval),
+    getTransportNow: () => Tone.now(),
   });
 
   const { playMetronomePulse, playMetronomeClick, startMetronomeLoop } = metronomePlayback;
