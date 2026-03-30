@@ -42,8 +42,6 @@ export const createToneAudioEngine = (): AudioEngine => {
   };
 
   const stopAllAudio = (): void => {
-    const { pianoSampler, rhodesSampler } = samplerBank.getSamplerRefs();
-
     stopAllAudioPlayback({
       scheduledPlaybackTimeouts: timelineState.getScheduledPlaybackTimeouts(),
       setScheduledPlaybackTimeouts: timelineState.setScheduledPlaybackTimeouts,
@@ -54,8 +52,7 @@ export const createToneAudioEngine = (): AudioEngine => {
       metronomeLoop: timelineState.getMetronomeLoop(),
       setMetronomeLoop: timelineState.setMetronomeLoop,
       setMetronomeClickBeat: timelineState.setMetronomeClickBeat,
-      pianoSampler,
-      rhodesSampler,
+      releaseInstrumentSamplers: samplerBank.releaseAllSamplers,
       releaseMetronomeSynths: metronomeSynthBank.releaseAll,
     });
   };

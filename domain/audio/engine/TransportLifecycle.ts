@@ -10,8 +10,7 @@ export type StopAllAudioParams = {
   metronomeLoop: Tone.Loop | null;
   setMetronomeLoop: (loop: Tone.Loop | null) => void;
   setMetronomeClickBeat: (beat: number) => void;
-  pianoSampler: Tone.Sampler | null;
-  rhodesSampler: Tone.Sampler | null;
+  releaseInstrumentSamplers: () => void;
   releaseMetronomeSynths: () => void;
 };
 
@@ -31,8 +30,7 @@ export const stopAllAudioPlayback = ({
   metronomeLoop,
   setMetronomeLoop,
   setMetronomeClickBeat,
-  pianoSampler,
-  rhodesSampler,
+  releaseInstrumentSamplers,
   releaseMetronomeSynths,
 }: StopAllAudioParams): void => {
   scheduledPlaybackTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
@@ -54,13 +52,7 @@ export const stopAllAudioPlayback = ({
     setMetronomeClickBeat(0);
   }
 
-  if (pianoSampler) {
-    pianoSampler.releaseAll();
-  }
-
-  if (rhodesSampler) {
-    rhodesSampler.releaseAll();
-  }
+  releaseInstrumentSamplers();
 
   releaseMetronomeSynths();
 };

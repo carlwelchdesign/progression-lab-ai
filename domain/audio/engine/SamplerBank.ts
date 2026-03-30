@@ -3,7 +3,7 @@ import * as Tone from 'tone';
 export type SamplerBank = {
   ensurePianoSamplerLoaded: () => Promise<Tone.Sampler>;
   ensureRhodesSamplerLoaded: () => Promise<Tone.Sampler>;
-  getSamplerRefs: () => { pianoSampler: Tone.Sampler | null; rhodesSampler: Tone.Sampler | null };
+  releaseAllSamplers: () => void;
 };
 
 type CreateSamplerBankParams = {
@@ -191,17 +191,14 @@ export const createSamplerBank = ({
     return sampler;
   };
 
-  const getSamplerRefs = (): {
-    pianoSampler: Tone.Sampler | null;
-    rhodesSampler: Tone.Sampler | null;
-  } => ({
-    pianoSampler,
-    rhodesSampler,
-  });
+  const releaseAllSamplers = (): void => {
+    pianoSampler?.releaseAll();
+    rhodesSampler?.releaseAll();
+  };
 
   return {
     ensurePianoSamplerLoaded,
     ensureRhodesSamplerLoaded,
-    getSamplerRefs,
+    releaseAllSamplers,
   };
 };
