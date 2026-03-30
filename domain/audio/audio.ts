@@ -24,14 +24,11 @@ import {
   getChordDurationSeconds,
   inferFallbackDrumDurationBeats,
   normalizeTempoBpm,
-  normalizeVelocity,
 } from './engine/AudioMath';
+import { triggerChordByStyle } from './engine/ChordTrigger';
 import { loadDrumPattern, normalizeDrumPatternPath } from './engine/DrumPatternRepository';
-import {
-  applyInversionLock,
-  shiftNotesByOctaves,
-  sortNotesLowToHigh,
-} from './engine/NoteTransforms';
+import { createMetronomeSynthBank } from './engine/MetronomeSynthBank';
+import { applyInversionLock, shiftNotesByOctaves } from './engine/NoteTransforms';
 
 export type {
   AudioEngine,
@@ -48,7 +45,6 @@ export type {
 export type { PadPattern, TimeSignature } from '../music/padPattern';
 export { PAD_PATTERN_LABELS, TIME_SIGNATURE_LABELS } from '../music/padPattern';
 
-const STRUM_STEP_SECONDS = 0.025;
 const REVERB_MIN_DECAY_SECONDS = 0.8;
 const REVERB_MAX_DECAY_SECONDS = 10;
 const MAX_HUMANIZE_TIMING_S = 0.05;
@@ -69,14 +65,9 @@ export const createToneAudioEngine = (): AudioEngine => {
   let scheduledPlaybackTimeouts: ReturnType<typeof setTimeout>[] = [];
   let activePart: Tone.Part | null = null;
   let metronomeLoop: Tone.Loop | null = null;
-  let metronomeSynth: Tone.Synth | null = null;
   let metronomeClickBeat = 0;
-  let metronomeKickSynth: Tone.MembraneSynth | null = null;
-  let metronomeSnareSynth: Tone.NoiseSynth | null = null;
-  let metronomeHatSynth: Tone.MetalSynth | null = null;
-  let metronomeTomSynth: Tone.MembraneSynth | null = null;
-  let metronomeCrashSynth: Tone.MetalSynth | null = null;
   let activeMetronomePulseTimeouts: ReturnType<typeof setTimeout>[] = [];
+  const metronomeSynthBank = createMetronomeSynthBank();
 
   let reverbEnabled = false;
   let reverbWet = 0;
@@ -719,100 +710,6 @@ export const createToneAudioEngine = (): AudioEngine => {
     return sampler;
   };
 
-  const triggerStrummedChord = ({
-    instrument,
-    notes,
-    duration,
-    startTime,
-    velocity,
-  }: {
-    instrument: Tone.Sampler;
-    notes: string[];
-    duration: Tone.Unit.Time;
-    startTime?: Tone.Unit.Time;
-    velocity?: number;
-  }): void => {
-    const orderedNotes = sortNotesLowToHigh(notes);
-    const normalizedVelocity = normalizeVelocity(velocity);
-
-    orderedNotes.forEach((note, index) => {
-      if (startTime !== undefined) {
-        const noteTime = Tone.Time(startTime).toSeconds() + index * STRUM_STEP_SECONDS;
-        instrument.triggerAttackRelease(note, duration, noteTime, normalizedVelocity);
-        return;
-      }
-
-      instrument.triggerAttackRelease(
-        note,
-        duration,
-        `+${index * STRUM_STEP_SECONDS}`,
-        normalizedVelocity,
-      );
-    });
-  };
-
-  const triggerBlockChord = ({
-    instrument,
-    notes,
-    duration,
-    startTime,
-    velocity,
-  }: {
-    instrument: Tone.Sampler;
-    notes: string[];
-    duration: Tone.Unit.Time;
-    startTime?: Tone.Unit.Time;
-    velocity?: number;
-  }): void => {
-    const orderedNotes = sortNotesLowToHigh(notes);
-    const normalizedVelocity = normalizeVelocity(velocity);
-
-    if (orderedNotes.length === 0) {
-      return;
-    }
-
-    if (startTime !== undefined) {
-      instrument.triggerAttackRelease(orderedNotes, duration, startTime, normalizedVelocity);
-      return;
-    }
-
-    instrument.triggerAttackRelease(orderedNotes, duration, undefined, normalizedVelocity);
-  };
-
-  const triggerChordByStyle = ({
-    style,
-    instrument,
-    notes,
-    duration,
-    startTime,
-    attack,
-    decay,
-    velocity,
-  }: {
-    style: PlaybackStyle;
-    instrument: Tone.Sampler;
-    notes: string[];
-    duration: Tone.Unit.Time;
-    startTime?: Tone.Unit.Time;
-    attack?: number;
-    decay?: number;
-    velocity?: number;
-  }): void => {
-    if (attack !== undefined) {
-      instrument.attack = attack;
-    }
-    if (decay !== undefined) {
-      instrument.release = decay;
-    }
-
-    if (style === 'block') {
-      triggerBlockChord({ instrument, notes, duration, startTime, velocity });
-      return;
-    }
-
-    triggerStrummedChord({ instrument, notes, duration, startTime, velocity });
-  };
-
   const startAudio = async (): Promise<void> => {
     if (Tone.context.state !== 'running') {
       await Tone.start();
@@ -847,11 +744,7 @@ export const createToneAudioEngine = (): AudioEngine => {
       rhodesSampler.releaseAll();
     }
 
-    metronomeKickSynth?.triggerRelease();
-    metronomeTomSynth?.triggerRelease();
-    metronomeSnareSynth?.triggerRelease();
-    metronomeHatSynth?.triggerRelease();
-    metronomeCrashSynth?.triggerRelease();
+    metronomeSynthBank.releaseAll();
   };
 
   const playChordVoicing = async ({
@@ -912,129 +805,6 @@ export const createToneAudioEngine = (): AudioEngine => {
     }
   };
 
-  const getMetronomeSynth = (): Tone.Synth => {
-    if (!metronomeSynth) {
-      metronomeSynth = new Tone.Synth({
-        oscillator: { type: 'triangle' },
-        envelope: { attack: 0.001, decay: 0.06, sustain: 0, release: 0.01 },
-      }).toDestination();
-    }
-    return metronomeSynth;
-  };
-
-  const getMetronomeKickSynth = (): Tone.MembraneSynth => {
-    if (!metronomeKickSynth) {
-      metronomeKickSynth = new Tone.MembraneSynth({
-        pitchDecay: 0.03,
-        octaves: 8,
-        oscillator: { type: 'sine' },
-        envelope: { attack: 0.001, decay: 0.18, sustain: 0, release: 0.08 },
-      }).toDestination();
-    }
-
-    return metronomeKickSynth;
-  };
-
-  const getMetronomeTomSynth = (): Tone.MembraneSynth => {
-    if (!metronomeTomSynth) {
-      metronomeTomSynth = new Tone.MembraneSynth({
-        pitchDecay: 0.04,
-        octaves: 5,
-        oscillator: { type: 'triangle' },
-        envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.08 },
-      }).toDestination();
-    }
-
-    return metronomeTomSynth;
-  };
-
-  const getMetronomeSnareSynth = (): Tone.NoiseSynth => {
-    if (!metronomeSnareSynth) {
-      metronomeSnareSynth = new Tone.NoiseSynth({
-        noise: { type: 'white' },
-        envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.03 },
-      }).toDestination();
-    }
-
-    return metronomeSnareSynth;
-  };
-
-  const getMetronomeHatSynth = (): Tone.MetalSynth => {
-    if (!metronomeHatSynth) {
-      metronomeHatSynth = new Tone.MetalSynth({
-        envelope: { attack: 0.001, decay: 0.05, release: 0.02 },
-        harmonicity: 5.1,
-        modulationIndex: 18,
-        resonance: 3000,
-        octaves: 1.5,
-      }).toDestination();
-    }
-
-    return metronomeHatSynth;
-  };
-
-  const getMetronomeCrashSynth = (): Tone.MetalSynth => {
-    if (!metronomeCrashSynth) {
-      metronomeCrashSynth = new Tone.MetalSynth({
-        envelope: { attack: 0.001, decay: 0.3, release: 0.18 },
-        harmonicity: 4.3,
-        modulationIndex: 20,
-        resonance: 2200,
-        octaves: 1.7,
-      }).toDestination();
-    }
-
-    return metronomeCrashSynth;
-  };
-
-  const triggerDrumHit = (
-    midi: number,
-    time: number,
-    durationSeconds: number,
-    velocity: number,
-  ) => {
-    const normalizedVelocity = Math.min(1, Math.max(0.05, velocity));
-
-    if (midi <= 36) {
-      const kick = getMetronomeKickSynth();
-      kick.volume.value = Tone.gainToDb(Math.max(0.0001, normalizedVelocity * 0.7));
-      kick.triggerAttackRelease('C1', Math.max(0.03, durationSeconds * 0.8), time);
-      return;
-    }
-
-    if (midi === 38 || midi === 40) {
-      const snare = getMetronomeSnareSynth();
-      snare.volume.value = Tone.gainToDb(Math.max(0.0001, normalizedVelocity * 0.6));
-      snare.triggerAttackRelease(Math.max(0.05, durationSeconds * 0.5), time, normalizedVelocity);
-      return;
-    }
-
-    if (midi === 49 || midi === 57) {
-      const crash = getMetronomeCrashSynth();
-      crash.volume.value = Tone.gainToDb(Math.max(0.0001, normalizedVelocity * 0.45));
-      crash.triggerAttackRelease('16n', time, normalizedVelocity);
-      return;
-    }
-
-    if (midi === 42 || midi === 44 || midi === 46) {
-      const hat = getMetronomeHatSynth();
-      hat.volume.value = Tone.gainToDb(Math.max(0.0001, normalizedVelocity * 0.38));
-      hat.triggerAttackRelease('32n', time, normalizedVelocity);
-      return;
-    }
-
-    if (midi >= 41 && midi <= 48) {
-      const tom = getMetronomeTomSynth();
-      tom.volume.value = Tone.gainToDb(Math.max(0.0001, normalizedVelocity * 0.45));
-      tom.triggerAttackRelease('G2', Math.max(0.04, durationSeconds * 0.7), time);
-      return;
-    }
-
-    const hat = getMetronomeHatSynth();
-    hat.volume.value = Tone.gainToDb(Math.max(0.0001, normalizedVelocity * 0.35));
-    hat.triggerAttackRelease('32n', time, normalizedVelocity);
-  };
-
   const playMetronomePulse = async (
     volume: number,
     isDownbeat: boolean,
@@ -1049,7 +819,7 @@ export const createToneAudioEngine = (): AudioEngine => {
     }
 
     if (source === 'click') {
-      const synth = getMetronomeSynth();
+      const synth = metronomeSynthBank.getClickSynth();
       synth.volume.value = Tone.gainToDb(normalizedVolume * 0.45);
       synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
       return;
@@ -1057,7 +827,7 @@ export const createToneAudioEngine = (): AudioEngine => {
 
     const drumPath = normalizeDrumPatternPath(opts?.drumPath);
     if (!drumPath) {
-      const synth = getMetronomeSynth();
+      const synth = metronomeSynthBank.getClickSynth();
       synth.volume.value = Tone.gainToDb(normalizedVolume * 0.45);
       synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
       return;
@@ -1065,7 +835,7 @@ export const createToneAudioEngine = (): AudioEngine => {
 
     const pattern = await loadDrumPattern(drumPath);
     if (!pattern) {
-      const synth = getMetronomeSynth();
+      const synth = metronomeSynthBank.getClickSynth();
       synth.volume.value = Tone.gainToDb(normalizedVolume * 0.45);
       synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
       return;
@@ -1091,7 +861,7 @@ export const createToneAudioEngine = (): AudioEngine => {
       const offsetBeats = eventBeatInPattern - beatStartInPattern;
       const eventTime = now + offsetBeats * beatDurationSeconds;
       const eventDurationSeconds = Math.max(0.02, event.durationBeats * beatDurationSeconds);
-      triggerDrumHit(
+      metronomeSynthBank.triggerDrumHit(
         event.midi,
         eventTime,
         eventDurationSeconds,
@@ -1127,7 +897,7 @@ export const createToneAudioEngine = (): AudioEngine => {
       }
       const isDownbeat = metronomeClickBeat % beatsPerBar === 0;
       if (source === 'click') {
-        const synth = getMetronomeSynth();
+        const synth = metronomeSynthBank.getClickSynth();
         synth.volume.value = volume > 0 ? Tone.gainToDb(volume * 0.45) : -Infinity;
         synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', time);
       } else {
