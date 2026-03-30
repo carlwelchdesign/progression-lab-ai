@@ -1,5 +1,4 @@
 import * as Tone from 'tone';
-import { Midi } from '@tonejs/midi';
 import type {
   AudioEngine,
   MetronomeSource,
@@ -17,6 +16,22 @@ import {
   TIME_SIGNATURE_NUMERATOR,
 } from '../music/padPattern';
 import type { TimeSignature } from '../music/padPattern';
+import {
+  CHORD_BEATS,
+  applyGate,
+  clampUnitValue,
+  getBeatDurationSeconds,
+  getChordDurationSeconds,
+  inferFallbackDrumDurationBeats,
+  normalizeTempoBpm,
+  normalizeVelocity,
+} from './engine/AudioMath';
+import { loadDrumPattern, normalizeDrumPatternPath } from './engine/DrumPatternRepository';
+import {
+  applyInversionLock,
+  shiftNotesByOctaves,
+  sortNotesLowToHigh,
+} from './engine/NoteTransforms';
 
 export type {
   AudioEngine,
@@ -33,218 +48,11 @@ export type {
 export type { PadPattern, TimeSignature } from '../music/padPattern';
 export { PAD_PATTERN_LABELS, TIME_SIGNATURE_LABELS } from '../music/padPattern';
 
-const DEFAULT_TEMPO_BPM = 100;
-const MIN_TEMPO_BPM = 40;
-const MAX_TEMPO_BPM = 240;
-const CHORD_BEATS = 2;
 const STRUM_STEP_SECONDS = 0.025;
 const REVERB_MIN_DECAY_SECONDS = 0.8;
 const REVERB_MAX_DECAY_SECONDS = 10;
 const MAX_HUMANIZE_TIMING_S = 0.05;
 const MAX_HUMANIZE_VELOCITY = 12;
-
-type DrumPatternEvent = {
-  beat: number;
-  durationBeats: number;
-  midi: number;
-  velocity: number;
-};
-
-type DrumPattern = {
-  path: string;
-  events: DrumPatternEvent[];
-  durationBeats: number;
-};
-
-const DRUM_PATTERN_CACHE = new Map<string, DrumPattern>();
-const DRUM_PATTERN_PROMISE_CACHE = new Map<string, Promise<DrumPattern | null>>();
-
-const getBeatDurationSeconds = (tempoBpm: number): number => 60 / normalizeTempoBpm(tempoBpm);
-
-const inferFallbackDrumDurationBeats = (timeSignature: TimeSignature): number => {
-  if (timeSignature === '6/8') {
-    return 6;
-  }
-  if (timeSignature === '3/4') {
-    return 3;
-  }
-  return 4;
-};
-
-const normalizeDrumPatternPath = (path: string | null | undefined): string | null => {
-  if (!path || typeof path !== 'string') {
-    return null;
-  }
-
-  const trimmed = path.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  if (trimmed.startsWith('/')) {
-    return trimmed;
-  }
-
-  return `/${trimmed}`;
-};
-
-const loadDrumPattern = async (path: string): Promise<DrumPattern | null> => {
-  const normalizedPath = normalizeDrumPatternPath(path);
-  if (!normalizedPath) {
-    return null;
-  }
-
-  const cached = DRUM_PATTERN_CACHE.get(normalizedPath);
-  if (cached) {
-    return cached;
-  }
-
-  const pending = DRUM_PATTERN_PROMISE_CACHE.get(normalizedPath);
-  if (pending) {
-    return pending;
-  }
-
-  const request = fetch(normalizedPath, { cache: 'force-cache' })
-    .then(async (response) => {
-      if (!response.ok) {
-        return null;
-      }
-
-      const midiBytes = await response.arrayBuffer();
-      const midi = new Midi(midiBytes);
-      const ppq = midi.header.ppq || 480;
-      const events: DrumPatternEvent[] = [];
-      let maxEndBeat = 0;
-
-      midi.tracks.forEach((track) => {
-        track.notes.forEach((note) => {
-          const beat = note.ticks / ppq;
-          const durationBeats = Math.max(0.05, note.durationTicks / ppq);
-          const endBeat = beat + durationBeats;
-
-          maxEndBeat = Math.max(maxEndBeat, endBeat);
-          events.push({
-            beat,
-            durationBeats,
-            midi: note.midi,
-            velocity: note.velocity,
-          });
-        });
-      });
-
-      if (events.length === 0) {
-        return null;
-      }
-
-      const pattern: DrumPattern = {
-        path: normalizedPath,
-        events,
-        durationBeats: Math.max(1, maxEndBeat),
-      };
-
-      DRUM_PATTERN_CACHE.set(normalizedPath, pattern);
-      return pattern;
-    })
-    .catch(() => null)
-    .finally(() => {
-      DRUM_PATTERN_PROMISE_CACHE.delete(normalizedPath);
-    });
-
-  DRUM_PATTERN_PROMISE_CACHE.set(normalizedPath, request);
-  return request;
-};
-
-const REGISTER_MIDI_RANGES: Record<
-  Exclude<PlaybackRegister, 'off'>,
-  { min: number; max: number }
-> = {
-  low: { min: 36, max: 59 },
-  mid: { min: 48, max: 71 },
-  high: { min: 60, max: 83 },
-};
-
-const applyInversionLock = (notes: string[], register: PlaybackRegister): string[] => {
-  if (register === 'off') return notes;
-  const range = REGISTER_MIDI_RANGES[register];
-  const center = (range.min + range.max) / 2;
-
-  return notes.map((note) => {
-    const baseMidi = Tone.Frequency(note).toMidi();
-    let bestMidi: number = baseMidi;
-    let bestDist = Infinity;
-
-    for (let shift = -4; shift <= 4; shift += 1) {
-      const candidate = baseMidi + shift * 12;
-      if (candidate >= range.min && candidate <= range.max) {
-        const dist = Math.abs(candidate - center);
-        if (dist < bestDist) {
-          bestDist = dist;
-          bestMidi = candidate;
-        }
-      }
-    }
-
-    if (bestDist === Infinity) {
-      for (let shift = -4; shift <= 4; shift += 1) {
-        const candidate = baseMidi + shift * 12;
-        const clampDist = Math.abs(Math.max(range.min, Math.min(range.max, candidate)) - center);
-        if (clampDist < bestDist) {
-          bestDist = clampDist;
-          bestMidi = candidate;
-        }
-      }
-    }
-
-    return Tone.Frequency(bestMidi, 'midi').toNote() as string;
-  });
-};
-
-const applyGate = (chordDurationSeconds: number, gate: number): number =>
-  chordDurationSeconds * (0.1 + gate * 0.85);
-
-const normalizeVelocity = (velocity?: number): number | undefined => {
-  if (!Number.isFinite(velocity)) {
-    return undefined;
-  }
-
-  return Math.min(1, Math.max(0.1, (velocity ?? 96) / 127));
-};
-
-const clampUnitValue = (value: number): number => Math.min(1, Math.max(0, value));
-
-const normalizeTempoBpm = (tempoBpm?: number): number => {
-  if (!Number.isFinite(tempoBpm)) {
-    return DEFAULT_TEMPO_BPM;
-  }
-
-  return Math.min(
-    MAX_TEMPO_BPM,
-    Math.max(MIN_TEMPO_BPM, Math.round(tempoBpm ?? DEFAULT_TEMPO_BPM)),
-  );
-};
-
-const getChordDurationSeconds = (tempoBpm?: number): number => {
-  const normalizedTempo = normalizeTempoBpm(tempoBpm);
-  return (60 / normalizedTempo) * CHORD_BEATS;
-};
-
-const shiftNotesByOctaves = (notes: string[], octaveShift: number): string[] => {
-  if (octaveShift === 0) return notes;
-
-  return notes.map((note) => {
-    const baseMidi = Tone.Frequency(note).toMidi();
-    const shiftedMidi = baseMidi + octaveShift * 12;
-    return Tone.Frequency(shiftedMidi, 'midi').toNote() as string;
-  });
-};
-
-const sortNotesLowToHigh = (notes: string[]): string[] => {
-  return [...notes].sort((a, b) => {
-    const midiA = Tone.Frequency(a).toMidi();
-    const midiB = Tone.Frequency(b).toMidi();
-    return midiA - midiB;
-  });
-};
 
 export const createToneAudioEngine = (): AudioEngine => {
   let pianoSampler: Tone.Sampler | null = null;
