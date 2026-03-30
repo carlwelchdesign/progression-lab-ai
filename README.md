@@ -136,6 +136,7 @@ yarn test:e2e
 yarn db:generate
 yarn db:push
 yarn db:studio
+yarn wiki:publish
 ```
 
 ## Contributing
