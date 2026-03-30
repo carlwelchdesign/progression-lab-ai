@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import type {
   AdminUser,
+  AdminLoginStatus,
   AdminProgressionFilters,
   AdminUserFilters,
   AdminUserRow,
@@ -13,6 +14,7 @@ import type {
 } from './types';
 import {
   deleteProgression,
+  enrollAdminWebAuthn,
   fetchUsers,
   fetchProgressionDetails,
   fetchProgressions,
@@ -20,6 +22,7 @@ import {
   login,
   logout,
   updateUserPlanOverride,
+  verifyAdminWebAuthn,
 } from './adminApi';
 
 const DEFAULT_USER_FILTERS: AdminUserFilters = {
@@ -39,6 +42,8 @@ export default function useAdminDashboard() {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [isSessionLoading, setIsSessionLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [loginStatus, setLoginStatus] = useState<AdminLoginStatus | null>(null);
+  const [mfaOptions, setMfaOptions] = useState<unknown>(null);
 
   const [rows, setRows] = useState<ProgressionRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -228,9 +233,59 @@ export default function useAdminDashboard() {
     setAuthError(null);
 
     try {
-      await login({ email, password });
-      await loadSession();
-      setPassword('');
+      const result = await login({ email, password });
+      setLoginStatus(result.status);
+
+      if (result.status === 'AUTHENTICATED') {
+        await loadSession();
+        setPassword('');
+        setMfaOptions(null);
+      } else {
+        setMfaOptions(result.options ?? null);
+      }
+    } catch (error) {
+      setAuthError((error as Error).message);
+    } finally {
+      setIsSubmittingLogin(false);
+    }
+  };
+
+  const handleWebAuthnAuthentication = async (
+    authResponse: import('@simplewebauthn/browser').AuthenticationResponseJSON,
+  ) => {
+    setIsSubmittingLogin(true);
+    setAuthError(null);
+
+    try {
+      const result = await verifyAdminWebAuthn({ response: authResponse });
+      if (result.status === 'AUTHENTICATED') {
+        await loadSession();
+        setPassword('');
+        setLoginStatus(null);
+        setMfaOptions(null);
+      }
+    } catch (error) {
+      setAuthError((error as Error).message);
+    } finally {
+      setIsSubmittingLogin(false);
+    }
+  };
+
+  const handleWebAuthnEnrollment = async (
+    regResponse: import('@simplewebauthn/browser').RegistrationResponseJSON,
+    label?: string | null,
+  ) => {
+    setIsSubmittingLogin(true);
+    setAuthError(null);
+
+    try {
+      const result = await enrollAdminWebAuthn({ response: regResponse, label });
+      if (result.status === 'AUTHENTICATED') {
+        await loadSession();
+        setPassword('');
+        setLoginStatus(null);
+        setMfaOptions(null);
+      }
     } catch (error) {
       setAuthError((error as Error).message);
     } finally {
@@ -255,6 +310,8 @@ export default function useAdminDashboard() {
     });
     setDetails(null);
     setDetailsOpen(false);
+    setLoginStatus(null);
+    setMfaOptions(null);
   };
 
   const handleOpenDetails = async (id: string) => {
@@ -376,6 +433,8 @@ export default function useAdminDashboard() {
     email,
     password,
     isSubmittingLogin,
+    loginStatus,
+    mfaOptions,
     canDelete,
     tableLabel,
     usersTableLabel,
@@ -388,6 +447,8 @@ export default function useAdminDashboard() {
     setDetailsOpen,
     handleLogin,
     handleLogout,
+    handleWebAuthnAuthentication,
+    handleWebAuthnEnrollment,
     handleOpenDetails,
     handleDelete,
     handlePageSizeChange,

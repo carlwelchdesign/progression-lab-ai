@@ -1,15 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import {
+  clearPendingAuthCookie,
+  createPendingAuthToken,
   createSessionToken,
   normalizeAuthPayload,
+  setPendingAuthCookie,
   setSessionCookie,
   validateAdminAuthPayload,
   verifyPassword,
 } from '../../../../lib/auth';
 import { issueCsrfToken } from '../../../../lib/csrf';
 import { createRateLimitResponse } from '../../../../lib/rateLimiting';
+import {
+  createAuthenticationOptions,
+  createRegistrationOptions,
+  listActiveCredentials,
+} from '../../../../lib/webauthn';
 import { prisma } from '../../../../lib/prisma';
+import { WebAuthnFlowType } from '@prisma/client';
+
+function hasActiveBypass(until: Date | null): boolean {
+  return until != null && until.getTime() > Date.now();
+}
 
 /**
  * Admin login endpoint with rate limiting to prevent brute force attacks.
@@ -17,7 +30,6 @@ import { prisma } from '../../../../lib/prisma';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Check rate limit first (5 attempts per 15 minutes)
     const rateLimitResponse = createRateLimitResponse(request);
     if (rateLimitResponse) {
       return rateLimitResponse;
@@ -25,7 +37,6 @@ export async function POST(request: NextRequest) {
 
     const credentials = normalizeAuthPayload(await request.json());
 
-    // Validate input format before database query
     if (!validateAdminAuthPayload(credentials)) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
@@ -42,17 +53,63 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
 
-    const response = NextResponse.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-    });
+    const requiresAdminWebAuthn = user.role === 'ADMIN' && !hasActiveBypass(user.mfaBypassUntil);
 
-    setSessionCookie(response, createSessionToken(user.id, user.email, user.role));
-    issueCsrfToken(response, request);
+    if (!requiresAdminWebAuthn) {
+      const response = NextResponse.json({
+        status: 'AUTHENTICATED',
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+      });
+
+      clearPendingAuthCookie(response);
+      setSessionCookie(response, createSessionToken(user.id, user.email, user.role));
+      issueCsrfToken(response, request);
+      return response;
+    }
+
+    const activeCredentials = await listActiveCredentials(user.id);
+    const response = NextResponse.json(
+      activeCredentials.length > 0
+        ? {
+            status: 'MFA_REQUIRED',
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+            },
+            options: await createAuthenticationOptions({
+              userId: user.id,
+              flowType: WebAuthnFlowType.ADMIN_AUTHENTICATION,
+            }),
+          }
+        : {
+            status: 'ENROLLMENT_REQUIRED',
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+            },
+            options: await createRegistrationOptions({
+              user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+              },
+              flowType: WebAuthnFlowType.ADMIN_BOOTSTRAP_REGISTRATION,
+              preferredAuthenticatorType: 'securityKey',
+              label: 'Admin security key',
+            }),
+          },
+    );
+
+    setPendingAuthCookie(response, createPendingAuthToken(user.id, user.email, user.role));
     return response;
   } catch (error) {
     console.error('Admin login failed:', error);

@@ -47,6 +47,8 @@ export default function AdminDashboardClient() {
     email,
     password,
     isSubmittingLogin,
+    loginStatus,
+    mfaOptions,
     canDelete,
     tableLabel,
     usersTableLabel,
@@ -59,6 +61,8 @@ export default function AdminDashboardClient() {
     setDetailsOpen,
     handleLogin,
     handleLogout,
+    handleWebAuthnAuthentication,
+    handleWebAuthnEnrollment,
     handleOpenDetails,
     handleDelete,
     handlePageSizeChange,
@@ -81,9 +85,13 @@ export default function AdminDashboardClient() {
         email={email}
         password={password}
         isSubmitting={isSubmittingLogin}
+        loginStatus={loginStatus}
+        mfaOptions={mfaOptions}
         onEmailChange={setEmail}
         onPasswordChange={setPassword}
         onSubmit={handleLogin}
+        onWebAuthnAuthentication={(resp) => void handleWebAuthnAuthentication(resp)}
+        onWebAuthnEnrollment={(resp, label) => void handleWebAuthnEnrollment(resp, label)}
       />
     );
   }

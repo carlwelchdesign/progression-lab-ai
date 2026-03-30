@@ -1,4 +1,5 @@
 import type {
+  AdminLoginResult,
   AdminUser,
   AdminProgressionFilters,
   AdminUserFilters,
@@ -15,6 +16,8 @@ import type {
   SubscriptionPlan,
   SubscriptionTierConfig,
 } from './types';
+
+import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
 
 import { createCsrfHeaders } from '../../lib/csrfClient';
 
@@ -38,7 +41,10 @@ export async function fetchSession(): Promise<AdminUser | null> {
   return data.user;
 }
 
-export async function login(credentials: { email: string; password: string }): Promise<void> {
+export async function login(credentials: {
+  email: string;
+  password: string;
+}): Promise<AdminLoginResult> {
   const response = await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -49,6 +55,43 @@ export async function login(credentials: { email: string; password: string }): P
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, 'Login failed'));
   }
+
+  return (await response.json()) as AdminLoginResult;
+}
+
+export async function verifyAdminWebAuthn(params: {
+  response: AuthenticationResponseJSON;
+}): Promise<AdminLoginResult> {
+  const response = await fetch('/api/auth/webauthn/authenticate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Security key verification failed'));
+  }
+
+  return (await response.json()) as AdminLoginResult;
+}
+
+export async function enrollAdminWebAuthn(params: {
+  response: RegistrationResponseJSON;
+  label?: string | null;
+}): Promise<AdminLoginResult> {
+  const response = await fetch('/api/auth/webauthn/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Security key enrollment failed'));
+  }
+
+  return (await response.json()) as AdminLoginResult;
 }
 
 export async function logout(): Promise<void> {

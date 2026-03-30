@@ -8,6 +8,14 @@ export type AdminUser = {
   role: Role;
 };
 
+export type AdminLoginStatus = 'AUTHENTICATED' | 'MFA_REQUIRED' | 'ENROLLMENT_REQUIRED';
+
+export type AdminLoginResult = {
+  status: AdminLoginStatus;
+  user: AdminUser;
+  options?: unknown;
+};
+
 export type ProgressionOwner = {
   id: string;
   name: string | null;
