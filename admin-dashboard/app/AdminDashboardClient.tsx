@@ -24,6 +24,7 @@ export default function AdminDashboardClient() {
     userRows,
     userTotal,
     userSummary,
+    userFilters,
     userPage,
     userPageSize,
     isUsersLoading,
@@ -38,6 +39,7 @@ export default function AdminDashboardClient() {
     canDelete,
     tableLabel,
     usersTableLabel,
+    hasActiveUserFilters,
     setEmail,
     setPassword,
     setPage,
@@ -49,6 +51,8 @@ export default function AdminDashboardClient() {
     handleDelete,
     handlePageSizeChange,
     handleUsersPageSizeChange,
+    handleUserFiltersChange,
+    handleResetUserFilters,
     handlePlanOverrideChange,
   } = useAdminDashboard();
 
@@ -86,11 +90,15 @@ export default function AdminDashboardClient() {
           page={userPage}
           pageSize={userPageSize}
           isLoading={isUsersLoading}
+          filters={userFilters}
+          hasActiveFilters={hasActiveUserFilters}
           tableLabel={usersTableLabel}
           canEditPlanOverride={user.role === 'ADMIN'}
           updatingUserId={updatingUserId}
           onPageChange={setUserPage}
           onPageSizeChange={handleUsersPageSizeChange}
+          onFiltersChange={handleUserFiltersChange}
+          onResetFilters={handleResetUserFilters}
           onPlanOverrideChange={(userId, planOverride) =>
             void handlePlanOverrideChange(userId, planOverride)
           }

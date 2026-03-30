@@ -1,8 +1,9 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import type {
   AdminUser,
+  AdminUserFilters,
   AdminUserRow,
   AdminUserSummary,
   ProgressionDetail,
@@ -19,6 +20,14 @@ import {
   logout,
   updateUserPlanOverride,
 } from './adminApi';
+
+const DEFAULT_USER_FILTERS: AdminUserFilters = {
+  query: '',
+  role: 'ALL',
+  resolvedPlan: 'ALL',
+  subscriptionStatus: 'ALL',
+  overrideState: 'ALL',
+};
 
 export default function useAdminDashboard() {
   const [user, setUser] = useState<AdminUser | null>(null);
@@ -40,6 +49,7 @@ export default function useAdminDashboard() {
     compedUsers: 0,
     monthlyAiGenerations: 0,
   });
+  const [userFilters, setUserFilters] = useState<AdminUserFilters>(DEFAULT_USER_FILTERS);
   const [userPage, setUserPage] = useState(0);
   const [userPageSize, setUserPageSize] = useState(25);
   const [isUsersLoading, setIsUsersLoading] = useState(false);
@@ -55,6 +65,25 @@ export default function useAdminDashboard() {
   const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
 
   const canDelete = user?.role === 'ADMIN';
+  const deferredUserQuery = useDeferredValue(userFilters.query);
+
+  const effectiveUserFilters = useMemo(
+    () => ({
+      ...userFilters,
+      query: deferredUserQuery.trim(),
+    }),
+    [deferredUserQuery, userFilters],
+  );
+
+  const hasActiveUserFilters = useMemo(
+    () =>
+      userFilters.query.trim().length > 0 ||
+      userFilters.role !== 'ALL' ||
+      userFilters.resolvedPlan !== 'ALL' ||
+      userFilters.subscriptionStatus !== 'ALL' ||
+      userFilters.overrideState !== 'ALL',
+    [userFilters],
+  );
 
   const tableLabel = useMemo(() => {
     if (total === 0) {
@@ -129,7 +158,11 @@ export default function useAdminDashboard() {
       setUsersError(null);
 
       try {
-        const data = await fetchUsers({ page: nextPage, pageSize: nextPageSize });
+        const data = await fetchUsers({
+          page: nextPage,
+          pageSize: nextPageSize,
+          filters: effectiveUserFilters,
+        });
         setUserRows(data.items);
         setUserTotal(data.total);
         setUserSummary(data.summary);
@@ -139,7 +172,7 @@ export default function useAdminDashboard() {
         setIsUsersLoading(false);
       }
     },
-    [user, userPage, userPageSize],
+    [effectiveUserFilters, user, userPage, userPageSize],
   );
 
   useEffect(() => {
@@ -185,6 +218,7 @@ export default function useAdminDashboard() {
     setTotal(0);
     setUserRows([]);
     setUserTotal(0);
+    setUserFilters({ ...DEFAULT_USER_FILTERS });
     setUserSummary({
       totalUsers: 0,
       payingUsers: 0,
@@ -242,6 +276,19 @@ export default function useAdminDashboard() {
     setUserPage(0);
   };
 
+  const handleUserFiltersChange = (nextFilters: Partial<AdminUserFilters>) => {
+    setUserFilters((currentFilters) => ({
+      ...currentFilters,
+      ...nextFilters,
+    }));
+    setUserPage(0);
+  };
+
+  const handleResetUserFilters = () => {
+    setUserFilters({ ...DEFAULT_USER_FILTERS });
+    setUserPage(0);
+  };
+
   const handlePlanOverrideChange = async (
     targetUserId: string,
     planOverride: SubscriptionPlan | null,
@@ -275,6 +322,7 @@ export default function useAdminDashboard() {
     userRows,
     userTotal,
     userSummary,
+    userFilters,
     userPage,
     userPageSize,
     isUsersLoading,
@@ -289,6 +337,7 @@ export default function useAdminDashboard() {
     canDelete,
     tableLabel,
     usersTableLabel,
+    hasActiveUserFilters,
     setEmail,
     setPassword,
     setPage,
@@ -300,6 +349,8 @@ export default function useAdminDashboard() {
     handleDelete,
     handlePageSizeChange,
     handleUsersPageSizeChange,
+    handleUserFiltersChange,
+    handleResetUserFilters,
     handlePlanOverrideChange,
   };
 }

@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  Box,
+  Button,
   Card,
   CardContent,
   LinearProgress,
@@ -14,10 +16,19 @@ import {
   TableHead,
   TablePagination,
   TableRow,
+  TextField,
   Typography,
 } from '@mui/material';
 
-import type { AdminUserRow, SubscriptionPlan } from './types';
+import type {
+  AdminUserFilters,
+  AdminUserRow,
+  SubscriptionPlan,
+  UserOverrideFilter,
+  UserResolvedPlanFilter,
+  UserRoleFilter,
+  UserSubscriptionStatusFilter,
+} from './types';
 
 type UsersTableProps = {
   rows: AdminUserRow[];
@@ -25,11 +36,15 @@ type UsersTableProps = {
   page: number;
   pageSize: number;
   isLoading: boolean;
+  filters: AdminUserFilters;
+  hasActiveFilters: boolean;
   tableLabel: string;
   canEditPlanOverride: boolean;
   updatingUserId: string | null;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
+  onFiltersChange: (filters: Partial<AdminUserFilters>) => void;
+  onResetFilters: () => void;
   onPlanOverrideChange: (userId: string, planOverride: SubscriptionPlan | null) => void;
 };
 
@@ -41,24 +56,150 @@ const PLAN_OPTIONS: Array<SubscriptionPlan | 'NONE'> = [
   'COMP',
 ];
 
+const ROLE_FILTER_OPTIONS: UserRoleFilter[] = ['ALL', 'ADMIN', 'AUDITOR', 'USER'];
+const RESOLVED_PLAN_FILTER_OPTIONS: UserResolvedPlanFilter[] = [
+  'ALL',
+  'SESSION',
+  'COMPOSER',
+  'STUDIO',
+  'COMP',
+];
+const SUBSCRIPTION_STATUS_FILTER_OPTIONS: UserSubscriptionStatusFilter[] = [
+  'ALL',
+  'ACTIVE',
+  'TRIALING',
+  'PAST_DUE',
+  'CANCELED',
+  'INCOMPLETE',
+  'INCOMPLETE_EXPIRED',
+  'UNPAID',
+  'NONE',
+];
+const OVERRIDE_FILTER_OPTIONS: UserOverrideFilter[] = ['ALL', 'OVERRIDDEN', 'NONE'];
+
+function formatFilterLabel(value: string) {
+  if (value === 'ALL') {
+    return 'All';
+  }
+
+  if (value === 'NONE') {
+    return 'None';
+  }
+
+  return value.replaceAll('_', ' ');
+}
+
 export default function UsersTable({
   rows,
   total,
   page,
   pageSize,
   isLoading,
+  filters,
+  hasActiveFilters,
   tableLabel,
   canEditPlanOverride,
   updatingUserId,
   onPageChange,
   onPageSizeChange,
+  onFiltersChange,
+  onResetFilters,
   onPlanOverrideChange,
 }: UsersTableProps) {
   return (
     <Card variant="outlined">
       <CardContent>
         <Stack spacing={2}>
-          <Typography variant="h6">Subscribers and access</Typography>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            justifyContent="space-between"
+            spacing={1.5}
+          >
+            <Typography variant="h6">Subscribers and access</Typography>
+            {hasActiveFilters ? (
+              <Button variant="text" onClick={onResetFilters}>
+                Reset filters
+              </Button>
+            ) : null}
+          </Stack>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                md: 'minmax(240px, 2fr) repeat(4, minmax(140px, 1fr))',
+              },
+              gap: 1.5,
+            }}
+          >
+            <TextField
+              label="Search email or name"
+              size="small"
+              value={filters.query}
+              onChange={(event) => onFiltersChange({ query: event.target.value })}
+            />
+            <TextField
+              select
+              label="Role"
+              size="small"
+              value={filters.role}
+              onChange={(event) => onFiltersChange({ role: event.target.value as UserRoleFilter })}
+            >
+              {ROLE_FILTER_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {formatFilterLabel(option)}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              label="Resolved plan"
+              size="small"
+              value={filters.resolvedPlan}
+              onChange={(event) =>
+                onFiltersChange({ resolvedPlan: event.target.value as UserResolvedPlanFilter })
+              }
+            >
+              {RESOLVED_PLAN_FILTER_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {formatFilterLabel(option)}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              label="Subscription"
+              size="small"
+              value={filters.subscriptionStatus}
+              onChange={(event) =>
+                onFiltersChange({
+                  subscriptionStatus: event.target.value as UserSubscriptionStatusFilter,
+                })
+              }
+            >
+              {SUBSCRIPTION_STATUS_FILTER_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {formatFilterLabel(option)}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              label="Override"
+              size="small"
+              value={filters.overrideState}
+              onChange={(event) =>
+                onFiltersChange({ overrideState: event.target.value as UserOverrideFilter })
+              }
+            >
+              {OVERRIDE_FILTER_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {formatFilterLabel(option)}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
 
           <TableContainer>
             <Table size="small">

@@ -62,3 +62,25 @@ export type AdminUserSummary = {
   compedUsers: number;
   monthlyAiGenerations: number;
 };
+
+export type UserRoleFilter = UserRole | 'ALL';
+export type UserResolvedPlanFilter = SubscriptionPlan | 'ALL';
+export type UserSubscriptionStatusFilter =
+  | 'ALL'
+  | 'ACTIVE'
+  | 'TRIALING'
+  | 'PAST_DUE'
+  | 'CANCELED'
+  | 'INCOMPLETE'
+  | 'INCOMPLETE_EXPIRED'
+  | 'UNPAID'
+  | 'NONE';
+export type UserOverrideFilter = 'ALL' | 'OVERRIDDEN' | 'NONE';
+
+export type AdminUserFilters = {
+  query: string;
+  role: UserRoleFilter;
+  resolvedPlan: UserResolvedPlanFilter;
+  subscriptionStatus: UserSubscriptionStatusFilter;
+  overrideState: UserOverrideFilter;
+};

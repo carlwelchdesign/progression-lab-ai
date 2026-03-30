@@ -1,5 +1,6 @@
 import type {
   AdminUser,
+  AdminUserFilters,
   AdminUserRow,
   AdminUserSummary,
   ProgressionDetail,
@@ -103,11 +104,20 @@ export async function deleteProgression(id: string): Promise<void> {
 export async function fetchUsers(params: {
   page: number;
   pageSize: number;
+  filters: AdminUserFilters;
 }): Promise<{ items: AdminUserRow[]; total: number; summary: AdminUserSummary }> {
   const searchParams = new URLSearchParams({
     page: String(params.page + 1),
     pageSize: String(params.pageSize),
+    role: params.filters.role,
+    resolvedPlan: params.filters.resolvedPlan,
+    subscriptionStatus: params.filters.subscriptionStatus,
+    overrideState: params.filters.overrideState,
   });
+
+  if (params.filters.query.trim()) {
+    searchParams.set('query', params.filters.query.trim());
+  }
 
   const response = await fetch(`/api/users?${searchParams.toString()}`, {
     credentials: 'include',
