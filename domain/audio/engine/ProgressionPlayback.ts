@@ -18,6 +18,7 @@ import {
   buildProgressionScheduledEvents,
   getBarDurationSeconds,
 } from './ProgressionSchedulingPolicy';
+import { applyChordPatternLifecyclePolicy } from './ChordPatternLifecyclePolicy';
 import { triggerChordByStyle } from './ChordTrigger';
 
 interface ProgressionPlaybackDeps {
@@ -297,21 +298,19 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
       });
     }, events);
 
-    if (loop) {
-      part.loop = true;
-      part.loopStart = 0;
-      part.loopEnd = barDurationSeconds;
-    } else {
-      // Stop Transport after one bar completes
-      const cleanupTimeout = setTimeout(
-        () => {
+    applyChordPatternLifecyclePolicy({
+      loop,
+      part,
+      barDurationSeconds,
+      scheduleCleanup: (cleanupDelayMs) => {
+        const cleanupTimeout = setTimeout(() => {
           stopAllAudio();
-        },
-        (barDurationSeconds + 0.15) * 1000,
-      );
-      const currentTimeouts = timeoutState.getScheduledPlaybackTimeouts();
-      timeoutState.setScheduledPlaybackTimeouts([...currentTimeouts, cleanupTimeout]);
-    }
+        }, cleanupDelayMs);
+
+        const currentTimeouts = timeoutState.getScheduledPlaybackTimeouts();
+        timeoutState.setScheduledPlaybackTimeouts([...currentTimeouts, cleanupTimeout]);
+      },
+    });
 
     partState.setActivePart(part);
     part.start(0);
