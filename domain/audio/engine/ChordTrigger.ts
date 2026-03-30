@@ -1,4 +1,4 @@
-import type * as Tone from 'tone';
+import * as Tone from 'tone';
 import type { PlaybackStyle } from '../audioEngine';
 import { normalizeVelocity } from './AudioMath';
 import { sortNotesLowToHigh } from './NoteTransforms';

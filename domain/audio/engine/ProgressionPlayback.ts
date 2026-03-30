@@ -1,5 +1,6 @@
 import * as Tone from 'tone';
 import type {
+  MetronomeSource,
   PlayChordVoicingParams,
   PlayChordPatternParams,
   PlayProgressionOptions,
@@ -11,6 +12,7 @@ import {
   TIME_SIGNATURE_BEATS_PER_BAR,
   TIME_SIGNATURE_NUMERATOR,
 } from '../../music/padPattern';
+import type { TimeSignature } from '../../music/padPattern';
 import { CHORD_BEATS, applyGate, getChordDurationSeconds, normalizeTempoBpm } from './AudioMath';
 import { triggerChordByStyle } from './ChordTrigger';
 import { applyInversionLock, shiftNotesByOctaves } from './NoteTransforms';
@@ -25,10 +27,10 @@ interface ProgressionPlaybackDeps {
   ensurePianoSamplerLoaded: () => Promise<Tone.Sampler>;
   startMetronomeLoop: (
     tempoBpm: number,
-    timeSignature: string,
+    timeSignature: TimeSignature,
     volume: number,
     totalDurationSeconds: number,
-    sourceType: string,
+    source: MetronomeSource,
     drumPath: string | null,
   ) => void;
   partState: {
