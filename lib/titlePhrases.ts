@@ -1,0 +1,98 @@
+const phrases = {
+  fun: [
+    'Giggly Vibes',
+    'Bounce House Dreams',
+    'Silly Groove',
+    'Playful Chaos',
+    'Goofy Spin',
+    'Happy Accident',
+    'Wacky Jam',
+    'Joyride',
+    'Quirky Kick',
+    'Whimsical Wandering',
+    'Cheeky Pulse',
+    'Wobbly Beats',
+    'Silly Sauce',
+    'Goofy Groove',
+    'Bouncy Bliss',
+  ],
+  cosmic: [
+    'Stellar Drift',
+    'Ethereal Journey',
+    'Void Whisper',
+    'Galaxy Spin',
+    'Transcendent Echo',
+    'Nebula Haze',
+    'Cosmic Wandering',
+    'Astral Plane',
+    'Universal Dreaming',
+    'Starlit Ambience',
+    'Infinite Horizon',
+    'Celestial Pulse',
+    'Otherworldly Realm',
+    'Space Echo',
+    'Dreamy Cosmos',
+  ],
+  dada: [
+    'Nonsense Protocol',
+    'Broken Logic',
+    'Absurd Machinery',
+    'Chaos Blueprint',
+    'Anti-Pattern',
+    'Nonsensical Flow',
+    'Reality Glitch',
+    'Absurdist Vision',
+    'Illogical Beauty',
+    'Paradox Engine',
+    'Surreal State',
+    'Contradiction Anthem',
+    'Meaningless Data',
+    'Twisted Narrative',
+    'Impossible Geometry',
+  ],
+  cyberpunk: [
+    'Neon Blade',
+    'Digital Decay',
+    'Synthetic Void',
+    'Chrome Echo',
+    'Dystopian Signal',
+    'Acid Rain',
+    'System Crash',
+    'Cyber Pulse',
+    'Binary Wasteland',
+    'Electric Nightmare',
+    'Dark Network',
+    'Glitch Protocol',
+    'Synthetic Dreams',
+    'Corrupt Data',
+    'Terminal Velocity',
+  ],
+  funky: [
+    'Groove Chamber',
+    'Soulful Strut',
+    'Rhythm Fever',
+    'Bass Authority',
+    'Funky Junction',
+    'Groove Ledge',
+    'Soulful Session',
+    'Uptempo Vibes',
+    'Tight Pocket',
+    'Funky Venture',
+    'Groove Nation',
+    'Rhythmic Soul',
+    'Steady Pocket',
+    'Jam Collective',
+    'Smooth Swagger',
+  ],
+};
+
+type Style = keyof typeof phrases;
+
+export function getRandomTitleSuggestion(style?: Style): string {
+  const styles: Style[] = ['fun', 'cosmic', 'dada', 'cyberpunk', 'funky'];
+  const selectedStyle = (
+    style && styles.includes(style) ? style : styles[Math.floor(Math.random() * styles.length)]
+  ) as Style;
+  const styleList = phrases[selectedStyle];
+  return styleList[Math.floor(Math.random() * styleList.length)];
+}

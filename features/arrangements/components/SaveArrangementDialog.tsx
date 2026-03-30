@@ -17,6 +17,7 @@ import {
 import AppTextField from '../../../components/ui/TextField';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import { useAuth } from '../../../components/providers/AuthProvider';
+import { getRandomTitleSuggestion } from '../../../lib/titlePhrases';
 import type {
   ArrangementPlaybackSnapshot,
   ArrangementTimeline,
@@ -60,6 +61,7 @@ export default function SaveArrangementDialog({
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { isSubmitting, errors },
   } = useForm<SaveArrangementFormData>({
     defaultValues: {
@@ -70,10 +72,12 @@ export default function SaveArrangementDialog({
   });
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setValue('title', getRandomTitleSuggestion());
+    } else {
       reset();
     }
-  }, [open, reset]);
+  }, [open, reset, setValue]);
 
   const onSubmit = async (data: SaveArrangementFormData) => {
     const payload: CreateArrangementRequest = {
