@@ -127,6 +127,7 @@ export type ArrangementEvent = {
   leftHand: string[];
   rightHand: string[];
   stepIndex: number;
+  durationSteps?: number;
   velocity?: number;
 };
 

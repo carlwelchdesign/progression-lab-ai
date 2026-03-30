@@ -112,7 +112,21 @@ export function getArrangementMidiEvents(arrangement: Arrangement): Array<{
   sortedSteps.forEach((stepIndex, index) => {
     const events = eventsByStep.get(stepIndex) ?? [];
     const nextStepIndex = sortedSteps[index + 1] ?? arrangement.timeline.totalSteps;
-    const durationSteps = Math.max(1, nextStepIndex - stepIndex);
+    const explicitDurationSteps = arrangement.timeline.events
+      .filter((event) => event.stepIndex === stepIndex)
+      .reduce<number | null>((current, event) => {
+        if (!Number.isFinite(event.durationSteps)) {
+          return current;
+        }
+
+        const normalized = Math.max(1, Math.floor(event.durationSteps ?? 1));
+        if (current === null) {
+          return normalized;
+        }
+
+        return Math.max(current, normalized);
+      }, null);
+    const durationSteps = explicitDurationSteps ?? Math.max(1, nextStepIndex - stepIndex);
     const startTick = stepIndex * ticksPerStep;
     const durationTicks = Math.max(TICKS_PER_QUARTER, durationSteps * ticksPerStep);
 

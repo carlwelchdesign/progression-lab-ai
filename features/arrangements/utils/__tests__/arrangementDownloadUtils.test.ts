@@ -199,6 +199,32 @@ describe('arrangementDownloadUtils', () => {
 
       expect(midiEvents).toHaveLength(0);
     });
+
+    it('uses explicit durationSteps when present', () => {
+      const durationArrangement: Arrangement = {
+        ...mockArrangement,
+        timeline: {
+          ...mockArrangement.timeline,
+          events: [
+            {
+              ...mockArrangement.timeline.events[0],
+              stepIndex: 0,
+              durationSteps: 1,
+            },
+            {
+              ...mockArrangement.timeline.events[1],
+              stepIndex: 8,
+              durationSteps: 6,
+            },
+          ],
+        },
+      };
+
+      const midiEvents = getArrangementMidiEvents(durationArrangement);
+      expect(midiEvents).toHaveLength(2);
+      expect(midiEvents[0]?.durationTicks).toBe(480);
+      expect(midiEvents[1]?.durationTicks).toBe(720);
+    });
   });
 
   describe('buildArrangementMidiBytes', () => {

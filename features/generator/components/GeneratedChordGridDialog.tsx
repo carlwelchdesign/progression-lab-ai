@@ -52,6 +52,7 @@ import { useAuthModal } from '../../../components/providers/AuthModalProvider';
 import { stopGlobalPlayback } from '../hooks/usePlaybackToggle';
 import SaveArrangementDialog from '../../arrangements/components/SaveArrangementDialog';
 import SequencerTrack from './SequencerTrack';
+import { createPadDragPayload, PAD_DRAG_MIME_TYPE } from './padDragPayload';
 import type {
   PlaybackSettings,
   PlaybackSettingsChangeHandlers,
@@ -88,6 +89,8 @@ const generateId = (): string => {
 
 const STEPS_PER_BEAT = 4;
 const RECORDING_LEAD_IN_BARS = 1;
+const TOUCH_LONG_PRESS_MS = 360;
+const TOUCH_MOVE_CANCEL_THRESHOLD_PX = 14;
 const LOOP_LENGTH_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 const PAD_TRIGGER_KEYS = [
   '1',
@@ -292,6 +295,7 @@ export default function GeneratedChordGridDialog({
   const [arrangementEvents, setArrangementEvents] = useState<ArrangementEvent[]>([]);
   const [saveArrangementDialogOpen, setSaveArrangementDialogOpen] = useState(false);
   const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null);
+  const [mobileTimelineInsertPadKey, setMobileTimelineInsertPadKey] = useState<string | null>(null);
   const activePadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sequencerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -310,6 +314,8 @@ export default function GeneratedChordGridDialog({
   const metronomeDrumPathRef = useRef(metronomeDrumPath);
   const beatsPerBarRef = useRef(4);
   const beatPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mobilePadLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mobilePadLongPressTriggeredRef = useRef(false);
   const [isBeatPulseVisible, setIsBeatPulseVisible] = useState(false);
   const [isDownbeatPulse, setIsDownbeatPulse] = useState(false);
   const [currentBeatInBar, setCurrentBeatInBar] = useState(1);
@@ -327,6 +333,13 @@ export default function GeneratedChordGridDialog({
       border: appColors.accent.chordPadActiveBorder,
     },
   } as const;
+
+  const clearMobilePadLongPressTimer = () => {
+    if (mobilePadLongPressTimerRef.current) {
+      clearTimeout(mobilePadLongPressTimerRef.current);
+      mobilePadLongPressTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -349,6 +362,8 @@ export default function GeneratedChordGridDialog({
       if (beatPulseTimeoutRef.current) {
         clearTimeout(beatPulseTimeoutRef.current);
       }
+
+      clearMobilePadLongPressTimer();
     };
   }, []);
 
@@ -416,7 +431,9 @@ export default function GeneratedChordGridDialog({
     currentStepRef.current = 0;
     setSelectedStepIndex(null);
     setCofFocusPadKey(null);
+    setMobileTimelineInsertPadKey(null);
     setHasInitializedAudio(false);
+    clearMobilePadLongPressTimer();
   }, [open]);
 
   const beatsPerBar = useMemo(() => getBeatsPerBar(timeSignature), [timeSignature]);
@@ -808,7 +825,39 @@ export default function GeneratedChordGridDialog({
     });
   };
 
+  const insertArrangementEvent = (
+    entry: ChordGridEntry,
+    stepIndex: number,
+    options?: { durationSteps?: number },
+  ) => {
+    const boundedStepIndex = Math.max(0, Math.min(totalSteps - 1, stepIndex));
+    const event: ArrangementEvent = {
+      id: generateId(),
+      padKey: entry.key,
+      chord: entry.chord,
+      source: entry.source,
+      leftHand: entry.leftHand,
+      rightHand: entry.rightHand,
+      stepIndex: boundedStepIndex,
+      velocity: padVelocity,
+      durationSteps: options?.durationSteps,
+    };
+
+    setArrangementEvents((previous) => {
+      const filtered = previous.filter(
+        (candidate) =>
+          !(candidate.stepIndex === event.stepIndex && candidate.padKey === event.padKey),
+      );
+      return [...filtered, event].sort((a, b) => a.stepIndex - b.stepIndex);
+    });
+    setSelectedStepIndex(boundedStepIndex);
+  };
+
   const onPadPress = (entry: ChordGridEntry) => {
+    if (mobileTimelineInsertPadKey) {
+      setMobileTimelineInsertPadKey(null);
+    }
+
     if (!hasInitializedAudio) {
       setHasInitializedAudio(true);
     }
@@ -823,25 +872,80 @@ export default function GeneratedChordGridDialog({
 
     if (isRecording) {
       const stepIndex = Math.min(currentStepRef.current, Math.max(0, totalSteps - 1));
-      const event: ArrangementEvent = {
-        id: generateId(),
-        padKey: entry.key,
-        chord: entry.chord,
-        source: entry.source,
-        leftHand: entry.leftHand,
-        rightHand: entry.rightHand,
-        stepIndex,
-        velocity: padVelocity,
-      };
-
-      setArrangementEvents((previous) => {
-        const filtered = previous.filter(
-          (candidate) =>
-            !(candidate.stepIndex === event.stepIndex && candidate.padKey === event.padKey),
-        );
-        return [...filtered, event].sort((a, b) => a.stepIndex - b.stepIndex);
-      });
+      insertArrangementEvent(entry, stepIndex);
     }
+  };
+
+  const armMobileTimelineInsert = (
+    entry: ChordGridEntry,
+    pointerDownEvent: React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    const pointerId = pointerDownEvent.pointerId;
+    const startX = pointerDownEvent.clientX;
+    const startY = pointerDownEvent.clientY;
+    mobilePadLongPressTriggeredRef.current = false;
+    clearMobilePadLongPressTimer();
+
+    const clearPointerListeners = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUpOrCancel);
+      window.removeEventListener('pointercancel', handlePointerUpOrCancel);
+    };
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId || mobilePadLongPressTriggeredRef.current) {
+        return;
+      }
+
+      const distance = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
+      if (distance > TOUCH_MOVE_CANCEL_THRESHOLD_PX) {
+        clearMobilePadLongPressTimer();
+      }
+    };
+
+    const handlePointerUpOrCancel = (endEvent: PointerEvent) => {
+      if (endEvent.pointerId !== pointerId) {
+        return;
+      }
+
+      const wasLongPress = mobilePadLongPressTriggeredRef.current;
+      clearPointerListeners();
+      clearMobilePadLongPressTimer();
+      mobilePadLongPressTriggeredRef.current = false;
+
+      if (!wasLongPress) {
+        onPadPress(entry);
+      }
+    };
+
+    mobilePadLongPressTimerRef.current = setTimeout(() => {
+      mobilePadLongPressTimerRef.current = null;
+      mobilePadLongPressTriggeredRef.current = true;
+      setMobileTimelineInsertPadKey(entry.key);
+    }, TOUCH_LONG_PRESS_MS);
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+    window.addEventListener('pointerup', handlePointerUpOrCancel, { passive: false });
+    window.addEventListener('pointercancel', handlePointerUpOrCancel, { passive: false });
+  };
+
+  const handleMobileTimelineInsert = (stepIndex: number) => {
+    if (!mobileTimelineInsertPadKey) {
+      return;
+    }
+
+    const entry = editableChords.find((candidate) => candidate.key === mobileTimelineInsertPadKey);
+    setMobileTimelineInsertPadKey(null);
+    if (!entry) {
+      return;
+    }
+
+    if (!hasInitializedAudio) {
+      setHasInitializedAudio(true);
+    }
+
+    triggerPad(entry);
+    insertArrangementEvent(entry, stepIndex, { durationSteps: 1 });
   };
 
   handleSequencerPlayToggleRef.current = handleSequencerPlayToggle;
@@ -1330,7 +1434,58 @@ export default function GeneratedChordGridDialog({
             setSelectedStepIndex((prev) => (prev === sourceStepIndex ? null : sourceStepIndex));
           }}
           onClipMove={moveClipStep}
+          onLaneClickStep={handleMobileTimelineInsert}
+          onPadDropAtStep={(padKey, stepIndex) => {
+            const entry = editableChords.find((candidate) => candidate.key === padKey);
+            if (!entry) {
+              return;
+            }
+
+            if (!hasInitializedAudio) {
+              setHasInitializedAudio(true);
+            }
+
+            triggerPad(entry);
+            insertArrangementEvent(entry, stepIndex, { durationSteps: 1 });
+            setMobileTimelineInsertPadKey(null);
+          }}
+          emptyTimelineHint={t('ui.chordGrid.dragOrRecordHint', {
+            defaultValue: 'Drag pads or record chords to place regions on the timeline',
+          })}
         />
+
+        {isMobile && mobileTimelineInsertPadKey ? (
+          <Box
+            sx={{
+              mb: 1.5,
+              p: 1.25,
+              borderRadius: 1.5,
+              bgcolor: appColors.surface.translucentPanel,
+              border: `1px solid ${appColors.surface.translucentPanelBorder}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+              {t('ui.chordGrid.mobileDragInsertHint', {
+                defaultValue: 'Tap the timeline to place {{chord}}.',
+                chord:
+                  editableChords.find((candidate) => candidate.key === mobileTimelineInsertPadKey)
+                    ?.chord ?? mobileTimelineInsertPadKey,
+              })}
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setMobileTimelineInsertPadKey(null)}
+              sx={{ textTransform: 'none' }}
+            >
+              {t('ui.buttons.cancel', { defaultValue: 'Cancel' })}
+            </Button>
+          </Box>
+        ) : null}
 
         {selectedStepIndex !== null && isMobile ? (
           <Box
@@ -1496,9 +1651,44 @@ export default function GeneratedChordGridDialog({
               <Button
                 key={entry.key}
                 variant="contained"
+                draggable={!isMobile}
+                onDragStart={(event) => {
+                  const payload = createPadDragPayload(entry.key);
+                  event.dataTransfer.setData(PAD_DRAG_MIME_TYPE, payload);
+                  event.dataTransfer.setData('text/plain', payload);
+                  event.dataTransfer.effectAllowed = 'copy';
+
+                  // Create a custom drag image: same height as timeline clips (42px), 50% pad width
+                  const dragImageEl = document.createElement('div');
+                  dragImageEl.style.width = '50px';
+                  dragImageEl.style.height = '42px';
+                  dragImageEl.style.backgroundColor = '#6b7280';
+                  dragImageEl.style.border = '2px solid #374151';
+                  dragImageEl.style.borderRadius = '4px';
+                  dragImageEl.style.display = 'flex';
+                  dragImageEl.style.alignItems = 'center';
+                  dragImageEl.style.justifyContent = 'center';
+                  dragImageEl.style.fontSize = '10px';
+                  dragImageEl.style.fontWeight = '700';
+                  dragImageEl.style.color = '#ffffff';
+                  dragImageEl.style.overflow = 'hidden';
+                  dragImageEl.style.position = 'absolute';
+                  dragImageEl.style.left = '-9999px';
+                  dragImageEl.style.top = '-9999px';
+                  dragImageEl.textContent = entry.chord;
+                  document.body.appendChild(dragImageEl);
+
+                  // Anchor drag hotspot to left-middle.
+                  event.dataTransfer.setDragImage(dragImageEl, 0, 21);
+
+                  // Clean up after drag ends
+                  setTimeout(() => dragImageEl.remove(), 0);
+                }}
                 onPointerDown={(event) => {
                   if (event.pointerType === 'touch') {
                     event.preventDefault();
+                    armMobileTimelineInsert(entry, event);
+                    return;
                   }
 
                   onPadPress(entry);

@@ -1,4 +1,6 @@
 import { render, screen } from '@testing-library/react';
+import { act } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 
 import AppThemeProvider from '../../../../components/providers/AppThemeProvider';
 import SequencerTrack from '../SequencerTrack';
@@ -34,7 +36,7 @@ const setMatchMedia = ({ mobile }: { mobile: boolean }) => {
   });
 };
 
-const renderTrack = () =>
+const renderTrack = (props?: Partial<ComponentProps<typeof SequencerTrack>>) =>
   render(
     <AppThemeProvider>
       <SequencerTrack
@@ -47,6 +49,7 @@ const renderTrack = () =>
         loopLengthBars={2}
         leadInBars={1}
         events={[]}
+        {...props}
       />
     </AppThemeProvider>,
   );
@@ -98,5 +101,88 @@ describe('SequencerTrack', () => {
     expect(screen.getByText('2 bars')).toBeInTheDocument();
     expect(screen.getByText('+1 bar lead-in')).toBeInTheDocument();
     expect(screen.queryByText('Arrange')).not.toBeInTheDocument();
+  });
+
+  it('maps dropped pad coordinates to timeline steps', () => {
+    setMatchMedia({ mobile: false });
+    const onPadDropAtStep = jest.fn();
+
+    renderTrack({ onPadDropAtStep });
+
+    const lane = screen.getByLabelText('Chord timeline lane');
+    Object.defineProperty(lane, 'getBoundingClientRect', {
+      writable: true,
+      value: () => ({ left: 0 }),
+    });
+
+    const dataTransfer = {
+      getData: (key: string) =>
+        key === 'application/x-ai-musician-pad' || key === 'text/plain' ? 'pad:pad-1' : '',
+      dropEffect: 'none',
+    } as unknown as DataTransfer;
+
+    act(() => {
+      const dragOverEvent = new Event('dragover', { bubbles: true, cancelable: true });
+      Object.defineProperty(dragOverEvent, 'clientX', { value: 325 });
+      Object.defineProperty(dragOverEvent, 'dataTransfer', { value: dataTransfer });
+      lane.dispatchEvent(dragOverEvent);
+    });
+
+    act(() => {
+      const dropEvent = new Event('drop', { bubbles: true, cancelable: true });
+      Object.defineProperty(dropEvent, 'clientX', { value: 325 });
+      Object.defineProperty(dropEvent, 'dataTransfer', { value: dataTransfer });
+      lane.dispatchEvent(dropEvent);
+    });
+
+    expect(onPadDropAtStep).toHaveBeenCalledWith('pad-1', 2);
+  });
+
+  it('ignores pad drops while playback is active', () => {
+    setMatchMedia({ mobile: false });
+    const onPadDropAtStep = jest.fn();
+
+    renderTrack({ onPadDropAtStep, isPlaying: true });
+
+    const lane = screen.getByLabelText('Chord timeline lane');
+    Object.defineProperty(lane, 'getBoundingClientRect', {
+      writable: true,
+      value: () => ({ left: 0 }),
+    });
+
+    const dataTransfer = {
+      getData: (key: string) =>
+        key === 'application/x-ai-musician-pad' || key === 'text/plain' ? 'pad:pad-1' : '',
+      dropEffect: 'none',
+    } as unknown as DataTransfer;
+
+    act(() => {
+      const dropEvent = new Event('drop', { bubbles: true, cancelable: true });
+      Object.defineProperty(dropEvent, 'clientX', { value: 325 });
+      Object.defineProperty(dropEvent, 'dataTransfer', { value: dataTransfer });
+      lane.dispatchEvent(dropEvent);
+    });
+
+    expect(onPadDropAtStep).not.toHaveBeenCalled();
+  });
+
+  it('maps empty-lane click to timeline step', () => {
+    setMatchMedia({ mobile: false });
+    const onLaneClickStep = jest.fn();
+
+    renderTrack({ onLaneClickStep });
+
+    const lane = screen.getByLabelText('Chord timeline lane');
+    Object.defineProperty(lane, 'getBoundingClientRect', {
+      writable: true,
+      value: () => ({ left: 0 }),
+    });
+
+    act(() => {
+      const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true, clientX: 360 });
+      lane.dispatchEvent(clickEvent);
+    });
+
+    expect(onLaneClickStep).toHaveBeenCalledWith(4);
   });
 });

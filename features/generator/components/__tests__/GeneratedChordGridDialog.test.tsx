@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 
@@ -12,6 +12,8 @@ import {
 
 const mockOpenAuthModal = jest.fn();
 let mockIsAuthenticated = true;
+let mockOnPadDropAtStep: ((padKey: string, stepIndex: number) => void) | undefined;
+let mockOnLaneClickStep: ((stepIndex: number) => void) | undefined;
 
 jest.mock('../../../../domain/audio/audio', () => ({
   getAudioClockSeconds: jest.fn(() => 0),
@@ -67,7 +69,15 @@ jest.mock('../PlaybackToggleButton', () => {
 });
 
 jest.mock('../SequencerTrack', () => {
-  return function MockSequencerTrack() {
+  return function MockSequencerTrack({
+    onPadDropAtStep,
+    onLaneClickStep,
+  }: {
+    onPadDropAtStep?: (padKey: string, stepIndex: number) => void;
+    onLaneClickStep?: (stepIndex: number) => void;
+  }) {
+    mockOnPadDropAtStep = onPadDropAtStep;
+    mockOnLaneClickStep = onLaneClickStep;
     return <div data-testid="sequencer-track" />;
   };
 });
@@ -154,6 +164,8 @@ describe('GeneratedChordGridDialog', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsAuthenticated = true;
+    mockOnPadDropAtStep = undefined;
+    mockOnLaneClickStep = undefined;
   });
 
   it('shows base and desktop shortcuts inside the tooltip on desktop', async () => {
@@ -371,5 +383,33 @@ describe('GeneratedChordGridDialog', () => {
         reason: 'save-arrangement',
       }),
     );
+  });
+
+  it('inserts a one-step event when a pad is dropped on the timeline', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <GeneratedChordGridDialog
+        open={true}
+        onClose={jest.fn()}
+        tempoBpm={120}
+        settings={PLAYBACK_SETTINGS_DEFAULTS}
+        onSettingsChange={mockHandlers}
+        onTempoBpmChange={jest.fn()}
+        chords={[mockChord]}
+      />,
+    );
+
+    await user.pointer({
+      target: screen.getByRole('button', { name: mockChord.chord }),
+      keys: '[MouseLeft]',
+    });
+
+    expect(mockOnPadDropAtStep).toBeDefined();
+    await act(async () => {
+      mockOnPadDropAtStep?.(mockChord.key, 3);
+    });
+
+    expect(screen.getByText(/1 event/i)).toBeInTheDocument();
   });
 });
