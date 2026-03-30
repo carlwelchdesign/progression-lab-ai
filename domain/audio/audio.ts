@@ -1,29 +1,10 @@
 import * as Tone from 'tone';
-import type {
-  AudioEngine,
-  PlayChordVoicingParams,
-  PlayChordPatternParams,
-  PlayMetronomePulseOptions,
-  PlaybackRegister,
-  PlaybackStyle,
-  PlayProgressionOptions,
-  ProgressionVoicing,
-} from './audioEngine';
-import {
-  getPadPatternBeats,
-  TIME_SIGNATURE_BEATS_PER_BAR,
-  TIME_SIGNATURE_NUMERATOR,
-} from '../music/padPattern';
-import {
-  CHORD_BEATS,
-  applyGate,
-  getChordDurationSeconds,
-  normalizeTempoBpm,
-} from './engine/AudioMath';
+import type { AudioEngine } from './audioEngine';
 import { loadDrumPattern, normalizeDrumPatternPath } from './engine/DrumPatternRepository';
 import { createEffectsChain } from './engine/EffectsChain';
 import { createEffectsControl } from './engine/EffectsControl';
 import { createAudioEngineRegistry, type AudioEngineScope } from './engine/AudioEngineRegistry';
+import { createAudioFacade } from './engine/AudioFacade';
 import { createMetronomePlayback } from './engine/MetronomePlayback';
 import { createMetronomeSynthBank } from './engine/MetronomeSynthBank';
 import { createProgressionPlayback } from './engine/ProgressionPlayback';
@@ -155,6 +136,12 @@ export type { AudioEngineScope };
 
 const audioEngineRegistry = createAudioEngineRegistry(createToneAudioEngine);
 
+const audioFacade = createAudioFacade({
+  getAudioEngine: () => audioEngineRegistry.getAudioEngine(),
+  setAudioEngine: (engine) => audioEngineRegistry.setAudioEngine(engine),
+  resetAudioEngine: () => audioEngineRegistry.resetAudioEngine(),
+});
+
 export const getAudioEngine = (): AudioEngine => audioEngineRegistry.getAudioEngine();
 
 export const setAudioEngine = (engine: AudioEngine): void => {
@@ -169,145 +156,43 @@ export const createAudioEngineScope = (engine?: AudioEngine): AudioEngineScope =
   return audioEngineRegistry.createAudioEngineScope(engine);
 };
 
-export const setReverbWet = (wet: number): void => {
-  getAudioEngine().setReverbWet(wet);
-};
+// Effects control delegation
+export const setReverbWet = audioFacade.setReverbWet;
+export const setChorusWet = audioFacade.setChorusWet;
+export const setReverbRoomSize = audioFacade.setReverbRoomSize;
+export const setReverbEnabled = audioFacade.setReverbEnabled;
+export const setChorusEnabled = audioFacade.setChorusEnabled;
+export const setChorusFrequency = audioFacade.setChorusFrequency;
+export const setChorusDelayTime = audioFacade.setChorusDelayTime;
+export const setChorusDepth = audioFacade.setChorusDepth;
+export const setFeedbackDelayEnabled = audioFacade.setFeedbackDelayEnabled;
+export const setFeedbackDelayWet = audioFacade.setFeedbackDelayWet;
+export const setFeedbackDelayTime = audioFacade.setFeedbackDelayTime;
+export const setFeedbackDelayFeedback = audioFacade.setFeedbackDelayFeedback;
+export const setTremoloEnabled = audioFacade.setTremoloEnabled;
+export const setTremoloWet = audioFacade.setTremoloWet;
+export const setTremoloFrequency = audioFacade.setTremoloFrequency;
+export const setTremoloDepth = audioFacade.setTremoloDepth;
+export const setVibratoEnabled = audioFacade.setVibratoEnabled;
+export const setVibratoWet = audioFacade.setVibratoWet;
+export const setVibratoFrequency = audioFacade.setVibratoFrequency;
+export const setVibratoDepth = audioFacade.setVibratoDepth;
+export const setPhaserEnabled = audioFacade.setPhaserEnabled;
+export const setPhaserWet = audioFacade.setPhaserWet;
+export const setPhaserFrequency = audioFacade.setPhaserFrequency;
+export const setPhaserOctaves = audioFacade.setPhaserOctaves;
+export const setPhaserQ = audioFacade.setPhaserQ;
 
-export const setChorusWet = (wet: number): void => {
-  getAudioEngine().setChorusWet(wet);
-};
-
-export const setReverbRoomSize = (roomSize: number): void => {
-  getAudioEngine().setReverbRoomSize(roomSize);
-};
-
-export const setReverbEnabled = (enabled: boolean): void => {
-  getAudioEngine().setReverbEnabled(enabled);
-};
-
-export const setChorusEnabled = (enabled: boolean): void => {
-  getAudioEngine().setChorusEnabled(enabled);
-};
-
-export const setChorusFrequency = (value: number): void => {
-  getAudioEngine().setChorusFrequency(value);
-};
-
-export const setChorusDelayTime = (value: number): void => {
-  getAudioEngine().setChorusDelayTime(value);
-};
-
-export const setChorusDepth = (value: number): void => {
-  getAudioEngine().setChorusDepth(value);
-};
-
-export const setFeedbackDelayEnabled = (enabled: boolean): void => {
-  getAudioEngine().setFeedbackDelayEnabled(enabled);
-};
-
-export const setFeedbackDelayWet = (wet: number): void => {
-  getAudioEngine().setFeedbackDelayWet(wet);
-};
-
-export const setFeedbackDelayTime = (value: number): void => {
-  getAudioEngine().setFeedbackDelayTime(value);
-};
-
-export const setFeedbackDelayFeedback = (value: number): void => {
-  getAudioEngine().setFeedbackDelayFeedback(value);
-};
-
-export const setTremoloEnabled = (enabled: boolean): void => {
-  getAudioEngine().setTremoloEnabled(enabled);
-};
-
-export const setTremoloWet = (wet: number): void => {
-  getAudioEngine().setTremoloWet(wet);
-};
-
-export const setTremoloFrequency = (value: number): void => {
-  getAudioEngine().setTremoloFrequency(value);
-};
-
-export const setTremoloDepth = (value: number): void => {
-  getAudioEngine().setTremoloDepth(value);
-};
-
-export const setVibratoEnabled = (enabled: boolean): void => {
-  getAudioEngine().setVibratoEnabled(enabled);
-};
-
-export const setVibratoWet = (wet: number): void => {
-  getAudioEngine().setVibratoWet(wet);
-};
-
-export const setVibratoFrequency = (value: number): void => {
-  getAudioEngine().setVibratoFrequency(value);
-};
-
-export const setVibratoDepth = (value: number): void => {
-  getAudioEngine().setVibratoDepth(value);
-};
-
-export const getAudioClockSeconds = (): number => Tone.now();
-
-export const setPhaserEnabled = (enabled: boolean): void => {
-  getAudioEngine().setPhaserEnabled(enabled);
-};
-
-export const setPhaserWet = (wet: number): void => {
-  getAudioEngine().setPhaserWet(wet);
-};
-
-export const setPhaserFrequency = (value: number): void => {
-  getAudioEngine().setPhaserFrequency(value);
-};
-
-export const setPhaserOctaves = (value: number): void => {
-  getAudioEngine().setPhaserOctaves(value);
-};
-
-export const setPhaserQ = (value: number): void => {
-  getAudioEngine().setPhaserQ(value);
-};
-
-export const startAudio = async (): Promise<void> => {
-  await getAudioEngine().startAudio();
-};
-
+// Lifecycle delegation
+export const startAudio = audioFacade.startAudio;
+export const stopAllAudio = audioFacade.stopAllAudio;
 export const isAudioInitialized = (): boolean => Tone.context.state === 'running';
 
-export const playMetronomeClick = async (volume: number, isDownbeat: boolean): Promise<void> => {
-  await getAudioEngine().playMetronomeClick(volume, isDownbeat);
-};
+// Playback delegation
+export const playMetronomeClick = audioFacade.playMetronomeClick;
+export const playMetronomePulse = audioFacade.playMetronomePulse;
+export const playChordVoicing = audioFacade.playChordVoicing;
+export const playProgression = audioFacade.playProgression;
+export const playChordPattern = audioFacade.playChordPattern;
 
-export const playMetronomePulse = async (
-  volume: number,
-  isDownbeat: boolean,
-  opts?: PlayMetronomePulseOptions,
-): Promise<void> => {
-  await getAudioEngine().playMetronomePulse(volume, isDownbeat, opts);
-};
-
-export const stopAllAudio = (): void => {
-  getAudioEngine().stopAllAudio();
-};
-
-export const playChordVoicing = async (params: PlayChordVoicingParams): Promise<void> => {
-  await getAudioEngine().playChordVoicing(params);
-};
-
-export const playProgression = async (
-  voicings: ProgressionVoicing[],
-  tempoBpm?: number,
-  playbackStyle: PlaybackStyle = 'strum',
-  attack?: number,
-  decay?: number,
-  opts?: PlayProgressionOptions,
-): Promise<void> => {
-  await getAudioEngine().playProgression(voicings, tempoBpm, playbackStyle, attack, decay, opts);
-};
-
-export const playChordPattern = async (params: PlayChordPatternParams): Promise<void> => {
-  await getAudioEngine().playChordPattern(params);
-};
+export const getAudioClockSeconds = (): number => Tone.now();
