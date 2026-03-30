@@ -1,6 +1,6 @@
 # ProgressionLab
 
-> An AI-assisted harmony and songwriting workspace — generate chord progressions, hear them instantly, and share them with the world.
+> An AI-assisted harmony and songwriting workspace. Generate chord progressions, hear them instantly, and share them with the world.
 
 [![Storybook](https://img.shields.io/badge/Storybook-FF4785?style=flat&logo=storybook&logoColor=white)](https://storybook-progression-lab-ai.vercel.app)
 [![Next.js](https://img.shields.io/badge/Next.js_15-black?style=flat&logo=next.js)](https://nextjs.org)
@@ -8,80 +8,77 @@
 [![MUI](https://img.shields.io/badge/MUI_v7-007FFF?style=flat&logo=mui&logoColor=white)](https://mui.com)
 
 - Production: [https://progressionlab.app/](https://progressionlab.app/)
-- Storybook Docs: [https://storybook-progression-lab-ai.vercel.app](https://storybook-progression-lab-ai.vercel.app)
+- Storybook: [https://storybook-progression-lab-ai.vercel.app](https://storybook-progression-lab-ai.vercel.app)
+- Documentation Wiki: [https://github.com/carlwelchdesign/progression-lab-ai/wiki](https://github.com/carlwelchdesign/progression-lab-ai/wiki)
+
+<img width="1221" height="1310" alt="image" src="https://github.com/user-attachments/assets/3bfbfba4-b2d5-4e60-9a86-8bdb4765ed48" />
+
+## What It Does
+
+ProgressionLab turns harmonic intent into playable music. Describe a mood, style reference, and mode, then the AI returns next chords, progression ideas, and structure suggestions, each with practical piano and guitar voicings.
+
+## Core Features
+
+- Generator: seed chords, mood tags, mode, genre, style reference, and adventurousness controls.
+- Randomize: one-click creative input generation.
+- Playback: BPM-aware preview with humanized timing and gated playback behavior.
+- Diagrams: inline piano and guitar chord diagrams.
+- Export: MIDI and PDF export.
+- Library: save and filter progressions by tags and harmonic context.
+- Sharing: public progression links via `shareId` pages.
+- Auth: session-based auth for protected actions while preserving a public browse flow.
 
 ## Separate Admin Deployment
 
-This repository now includes a dedicated standalone admin app in [admin-dashboard](admin-dashboard).
+This repository includes a standalone admin app in [admin-dashboard](admin-dashboard) that is deployed independently from the main app.
 
 - Admin local dev: `yarn admin:dev`
 - Admin lint: `yarn admin:lint`
 - Admin build: `yarn admin:build`
 
-The admin app is intended to be deployed as a separate project from the main app and Storybook.
-See [admin-dashboard/README.md](admin-dashboard/README.md) for setup and deployment details.
+See [admin-dashboard/README.md](admin-dashboard/README.md) for admin setup and deployment details.
 
----
+## Quick Start
 
-<img width="1221" height="1310" alt="image" src="https://github.com/user-attachments/assets/3bfbfba4-b2d5-4e60-9a86-8bdb4765ed48" />
+1. Install dependencies.
 
----
+```bash
+yarn install
+```
 
-## Overview
+2. Create your local environment file.
 
-ProgressionLab turns harmonic intent into playable music. Describe a mood, a style reference, a mode — and the AI returns chord suggestions, full progression ideas, and structure recommendations, each with piano and guitar voicings ready to play or export.
+```bash
+cp .env.local.example .env.local
+```
 
----
+3. Start local services and database.
 
-## Features
+```bash
+docker-compose up -d
+yarn db:push
+yarn db:seed
+```
 
-### Generator
+4. Run the app.
 
-- Structured input form: seed chords, mood tags, mode, genre, style reference, and adventurousness level
-- **Randomize** action generates a full set of varied inputs in one click (1–7 seed chords and mood tags)
-- AI returns three output sections simultaneously:
-  - **Next Chord Suggestions** — individual chord recommendations with roman numeral, tension level, confidence score, and a voicing hint
-  - **Progression Ideas** — complete chord sequences with a descriptive feel and performance tip
-  - **Structure Suggestions** — song section layout (verse/chorus/bridge) mapped to bar counts and harmonic ideas
+```bash
+yarn dev
+```
 
-### Playback
+Main app: `http://localhost:3000`
 
-- BPM-controlled playback for individual chords and full progressions
-- Piano sampler powered by Tone.js with Salamander grand piano samples
-- Humanized strum timing for a more natural chord attack
-- Playback is gated — starting a new chord stops any currently playing audio
+5. Optional billing webhook forwarding.
 
-### Visual Diagrams
+```bash
+./scripts/stripe-listen-local.sh
+```
 
-- **Piano chord diagrams** rendered inline via `piano-chart`
-- **Guitar chord diagrams** rendered via `svguitar`, fully theme-aware (light/dark)
-- Sticky instrument toggle (piano/guitar) with frosted-glass styling and smooth scroll restoration
+Print webhook secret only:
 
-### Export
-
-- Download individual chords or full progressions as `.mid` files
-- BPM from the generator is baked into MIDI timing
-- PDF export for chord charts
-
-### Progression Library
-
-- Save progressions with title, chords, voicings, feel, scale, mode, genre, notes, tags, and visibility
-- **My Progressions** — authenticated view with chip-based tag/key filters
-- **Public Feed** — browsable without an account; filterable by tag and first chord
-- One-click restore: load any saved or shared progression back into the generator with all form values pre-filled
-
-### Sharing
-
-- Every saved progression gets a unique `shareId`
-- Public share URLs (`/p/[shareId]`) with full Open Graph and Twitter Card metadata for rich link previews
-
-### Auth & Access Control
-
-- Session-based authentication (register, login, logout)
-- Unauthenticated users can browse the public feed
-- Contextual registration prompt when an unauth user tries to access protected features
-
----
+```bash
+./scripts/stripe-listen-local.sh --print-secret
+```
 
 ## Tech Stack
 
@@ -90,338 +87,82 @@ ProgressionLab turns harmonic intent into playable music. Describe a mood, a sty
 | Framework | Next.js 15 (App Router) |
 | Language | TypeScript |
 | UI | React 19, Material UI v7 |
-| Forms | react-hook-form |
-| AI | OpenAI API — structured JSON output via `json_schema` |
+| AI | OpenAI Responses API with strict JSON schema output |
 | ORM | Prisma + PostgreSQL |
 | Audio | Tone.js (Salamander samples) |
-| Diagrams | piano-chart, svguitar |
-| PDF | jsPDF + jspdf-autotable |
 | Testing | Jest, React Testing Library, Playwright |
-| Component Docs | Storybook 10 (deployed via Vercel) |
-| Error Monitoring | Sentry |
+| Observability | Sentry |
 
----
+Deep technical docs now live in the wiki: [Architecture](https://github.com/carlwelchdesign/progression-lab-ai/wiki/Architecture).
 
 ## Project Structure
 
-```
-app/
-  page.tsx                         # Main generator UI
-  progressions/page.tsx            # My / Public progression browser
-  p/[shareId]/page.tsx             # Shared progression landing page
-  api/
-    chord-suggestions/route.ts     # AI generation endpoint
-    auth/                          # register, login, logout, me
-    progressions/                  # Authenticated CRUD
-    shared/                        # Public read endpoints
-features/
-  generator/                       # Generator form, playback, diagrams
-  progressions/                    # Progression list and cards
-components/
-  ui/                              # Primitive UI components
-lib/
-  audio.ts                         # Tone.js playback engine
-  midi.ts                          # MIDI file generation
-  pdf.ts                           # PDF chart export
-  auth.ts / authContext.tsx        # Session helpers
-  prisma.ts                        # Prisma client singleton
-prisma/
-  schema.prisma                    # Data model
-  migrations/                      # Migration history
+```text
+app/                  # Next.js app routes and API handlers
+features/             # Feature-level UI and logic modules
+components/           # Shared UI primitives and wrappers
+lib/                  # Runtime utilities (auth, db, billing, AI helpers)
+prisma/               # Database schema and migrations
+admin-dashboard/      # Standalone admin application
 ```
 
----
+## Key Documentation
 
-## AI Design
-
-The AI layer is a **strict-contract integration**, not free-form text generation.
-
-1. The client submits a normalized payload to `POST /api/chord-suggestions`
-2. The route calls the OpenAI Responses API with harmonic system instructions
-3. The response is constrained with `text.format = { type: 'json_schema', strict: true }`
-4. The parsed output maps directly to typed UI sections — no post-processing heuristics
-
-**Schema guarantees:**
-
-| Field | Description |
+| Topic | Link |
 |---|---|
-| `inputSummary` | Echo of normalized request context |
-| `nextChordSuggestions` | Chord, roman numeral, tension (1–5), confidence (1–5), optional piano + guitar voicings |
-| `progressionIdeas` | Chord sequence, feel description, performance tip, piano voicings |
-| `structureSuggestions` | Section name, bar count, harmonic idea |
+| Wiki Home | https://github.com/carlwelchdesign/progression-lab-ai/wiki |
+| Architecture | https://github.com/carlwelchdesign/progression-lab-ai/wiki/Architecture |
+| API Reference | https://github.com/carlwelchdesign/progression-lab-ai/wiki/API |
+| Database Schema | https://github.com/carlwelchdesign/progression-lab-ai/wiki/Database |
+| Development Setup | https://github.com/carlwelchdesign/progression-lab-ai/wiki/Development |
+| Deployment Guide | [DEPLOYMENT.md](DEPLOYMENT.md) |
+| Prompt Versioning Runbook | [PROMPT_VERSIONING_RUNBOOK.md](PROMPT_VERSIONING_RUNBOOK.md) |
+| Security Overview | https://github.com/carlwelchdesign/progression-lab-ai/wiki/Security |
+| Security Audit | [SECURITY_AUDIT_2025.md](SECURITY_AUDIT_2025.md) |
+| Security Deployment Checklist | [SECURITY_DEPLOYMENT.md](SECURITY_DEPLOYMENT.md) |
 
-<details>
-<summary>Example request / response</summary>
-
-**Request:**
-```json
-{
-  "seedChords": ["Fmaj7", "F#m7"],
-  "mood": "dreamy, uplifting",
-  "mode": "dorian",
-  "genre": "piano house",
-  "styleReference": "Barry Harris",
-  "instrument": "both",
-  "adventurousness": "balanced"
-}
-```
-
-**Response (abbreviated):**
-```json
-{
-  "nextChordSuggestions": [
-    {
-      "chord": "Gmaj7",
-      "romanNumeral": "IImaj7",
-      "functionExplanation": "Lifts the progression while keeping modal color.",
-      "tensionLevel": 3,
-      "confidence": 4,
-      "pianoVoicing": {
-        "leftHand": ["G2", "D3"],
-        "rightHand": ["F#3", "B3", "D4", "G4"]
-      }
-    }
-  ],
-  "progressionIdeas": [
-    {
-      "label": "Lift and Resolve",
-      "chords": ["Fmaj7", "F#m7", "Gmaj7", "Aadd9"],
-      "feel": "Airy and modern",
-      "performanceTip": "Accent the offbeats in the right hand."
-    }
-  ],
-  "structureSuggestions": [
-    {
-      "section": "verse",
-      "bars": 8,
-      "harmonicIdea": "Cycle through the first 4 chords with sparse voicings."
-    }
-  ]
-}
-```
-</details>
-
----
-
-## API Reference
-
-### Auth
-| Method | Endpoint |
-|---|---|
-| `POST` | `/api/auth/register` |
-| `POST` | `/api/auth/login` |
-| `POST` | `/api/auth/logout` |
-| `GET` | `/api/auth/me` |
-
-### AI Generation
-| Method | Endpoint |
-|---|---|
-| `POST` | `/api/chord-suggestions` |
-
-### Progressions (authenticated)
-| Method | Endpoint |
-|---|---|
-| `GET` | `/api/progressions` |
-| `POST` | `/api/progressions` |
-| `GET` | `/api/progressions/[id]` |
-| `PUT` | `/api/progressions/[id]` |
-| `DELETE` | `/api/progressions/[id]` |
-
-### Public / Sharing
-| Method | Endpoint | Query params |
-|---|---|---|
-| `GET` | `/api/shared` | `tag` (comma-separated), `key` (comma-separated first chord) |
-| `GET` | `/api/shared/[shareId]` | — |
-
----
-
-## Data Model
-
-```prisma
-model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
-  name         String?
-  passwordHash String
-  progressions Progression[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-}
-
-model Progression {
-  id            String   @id @default(cuid())
-  shareId       String   @unique @default(cuid())
-  userId        String
-  title         String
-  chords        Json
-  pianoVoicings Json?
-  feel          String?
-  scale         String?
-  genre         String?
-  notes         String?
-  tags          String[]
-  isPublic      Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-```
-
----
-
-## Local Development
-
-**1. Clone and install**
-```bash
-yarn install
-```
-
-**2. Configure environment**
-```bash
-cp .env.local.example .env.local
-```
-
-```dotenv
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4o
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/progression_lab
-AUTH_SECRET=      # generate with: openssl rand -base64 32
-```
-
-**3. Start the database**
-```bash
-docker-compose up -d
-```
-
-**4. Run migrations and seed**
-```bash
-yarn db:push
-yarn db:seed
-```
-
-**5. Start the dev server**
-```bash
-yarn dev
-```
-
-App runs at `http://localhost:3000`.
-
-**6. Forward Stripe webhooks locally (billing flows)**
-```bash
-./scripts/stripe-listen-local.sh
-```
-
-Optional: print a webhook signing secret for local config updates:
-
-```bash
-./scripts/stripe-listen-local.sh --print-secret
-```
-
-The helper reads `STRIPE_SECRET_KEY` from your shell or `.env.local`, and supports both quoted and unquoted `.env.local` formats.
-For webhook secret rotation, set optional `STRIPE_WEBHOOK_SECRETS` as a comma-separated list of fallback `whsec_...` values.
-
----
-
-## Testing
-
-```bash
-# Unit + component tests
-yarn test
-
-# Watch mode
-yarn test:watch
-
-# Coverage
-yarn test:coverage
-
-# End-to-end (Playwright)
-yarn playwright install chromium
-yarn test:e2e
-```
-
----
-
-## Storybook
-
-Component documentation is co-located with source files and published via Vercel.
-
-```bash
-# Dev server
-yarn storybook          # http://localhost:6006
-
-# Static build
-yarn build-storybook    # output: storybook-static/
-```
-
-Start local Postgres via Docker:
-
-```bash
-make docker-up
-```
-
-Generate Prisma client and apply migrations:
-
-```bash
-yarn db:generate
-npx prisma migrate deploy
-```
-
-Run the app:
-
-```bash
-yarn dev
-```
-
-Open http://localhost:3000
+The migration map for moved README sections is tracked in [docs/README_TO_WIKI_MAP.md](docs/README_TO_WIKI_MAP.md).
 
 ## Common Commands
 
-- yarn dev
-- yarn build
-- yarn start
-- yarn lint:check
-- yarn lint:fix
-- yarn test
-- yarn db:generate
-- yarn db:push
-- yarn db:studio
+```bash
+yarn dev
+yarn build
+yarn start
+yarn lint:check
+yarn lint:fix
+yarn test
+yarn test:e2e
+yarn db:generate
+yarn db:push
+yarn db:studio
+yarn wiki:publish
+```
 
-Makefile shortcuts are also available for install/dev/build/deploy workflows.
+## Contributing
 
-## Build and Deployment Notes
-
-- Production builds run best after Prisma client generation and migration deploy.
-- Recommended production sequence:
+1. Create a feature branch.
+2. Make your changes with tests where applicable.
+3. Run checks before opening a PR.
 
 ```bash
-npx prisma generate
-npx prisma migrate deploy
+yarn lint:check
+yarn test
 yarn build
 ```
 
-- Vercel helpers exist in Makefile:
-	- make vercel-link
-	- make vercel-pull
-	- make vercel-preview
-	- make vercel-prod
-	- make vercel-prod-with-migrate
+4. Open a pull request with a clear summary and validation notes.
 
-## Testing
-
-- Jest + React Testing Library are configured.
-- Primary coverage includes generator behavior and API route validation patterns.
-
-## TODO / Roadmap
+## Roadmap Snapshot
 
 Completed recently:
 
 - [x] Expanded playback controls (tempo-aware playback + stop behavior)
-- [x] Export options (MIDI download for chords/progressions)
-- [x] Rich social previews (Open Graph + Twitter images)
-- [x] Footer social links with icon actions
+- [x] MIDI and PDF export support
+- [x] Rich social previews
 
 Next up:
 
 - [ ] Saved progression edit flow
 - [ ] Pagination for large progression libraries
-- [ ] Additional playback controls (loop toggle / dedicated stop UI)
-- [ ] Optional DAW workflow improvements (for example drag/drop helpers where supported)
+- [ ] Additional playback controls (loop toggle and dedicated stop UI)
