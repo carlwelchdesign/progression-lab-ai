@@ -2,13 +2,9 @@ import * as Tone from 'tone';
 import type { MetronomeSource, PlayMetronomePulseOptions } from '../audioEngine';
 import type { TimeSignature } from '../../music/padPattern';
 import { TIME_SIGNATURE_BEATS_PER_BAR } from '../../music/padPattern';
-import {
-  clampUnitValue,
-  getBeatDurationSeconds,
-  inferFallbackDrumDurationBeats,
-  normalizeTempoBpm,
-} from './AudioMath';
+import { clampUnitValue, getBeatDurationSeconds } from './AudioMath';
 import type { DrumPattern } from './DrumPatternRepository';
+import { createMetronomePulsePolicy } from './MetronomePulsePolicy';
 import type { MetronomeSynthBank } from './MetronomeSynthBank';
 
 type LoopState = {
@@ -52,74 +48,10 @@ export const createMetronomePlayback = ({
   loadPattern,
   loopState,
 }: CreateMetronomePlaybackParams): MetronomePlayback => {
-  const triggerClickPulse = ({
-    volume,
-    isDownbeat,
-    time,
-  }: {
-    volume: number;
-    isDownbeat: boolean;
-    time: number;
-  }): void => {
-    const synth = synthBank.getClickSynth();
-    synth.volume.value = volume > 0 ? Tone.gainToDb(volume * 0.45) : -Infinity;
-    synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', time);
-  };
-
-  const playDrumPulse = async ({
-    volume,
-    isDownbeat,
-    drumPath,
-    timeSignature,
-    tempoBpm,
-    beatIndex,
-  }: {
-    volume: number;
-    isDownbeat: boolean;
-    drumPath: string | null;
-    timeSignature: TimeSignature;
-    tempoBpm?: number;
-    beatIndex: number;
-  }): Promise<boolean> => {
-    if (!drumPath) {
-      return false;
-    }
-
-    const pattern = await loadPattern(drumPath);
-    if (!pattern) {
-      return false;
-    }
-
-    const tempo = normalizeTempoBpm(tempoBpm);
-    const beatDurationSeconds = getBeatDurationSeconds(tempo);
-    const safeBeatIndex = Math.max(0, beatIndex);
-    const patternDuration = Math.max(
-      pattern.durationBeats,
-      inferFallbackDrumDurationBeats(timeSignature),
-    );
-    const beatStartInPattern = safeBeatIndex % patternDuration;
-    const now = Tone.now();
-
-    pattern.events.forEach((event) => {
-      const eventBeatInPattern =
-        ((event.beat % patternDuration) + patternDuration) % patternDuration;
-      if (eventBeatInPattern < beatStartInPattern || eventBeatInPattern >= beatStartInPattern + 1) {
-        return;
-      }
-
-      const offsetBeats = eventBeatInPattern - beatStartInPattern;
-      const eventTime = now + offsetBeats * beatDurationSeconds;
-      const eventDurationSeconds = Math.max(0.02, event.durationBeats * beatDurationSeconds);
-      synthBank.triggerDrumHit(
-        event.midi,
-        eventTime,
-        eventDurationSeconds,
-        event.velocity * volume,
-      );
-    });
-
-    return true;
-  };
+  const { triggerClickPulse, playDrumPulse } = createMetronomePulsePolicy({
+    synthBank,
+    loadPattern,
+  });
 
   const playMetronomePulse = async (
     volume: number,
@@ -142,7 +74,6 @@ export const createMetronomePlayback = ({
     const drumPath = normalizeDrumPatternPath(opts?.drumPath);
     const played = await playDrumPulse({
       volume: normalizedVolume,
-      isDownbeat,
       drumPath,
       timeSignature: opts?.timeSignature ?? '4/4',
       tempoBpm: opts?.tempoBpm,
