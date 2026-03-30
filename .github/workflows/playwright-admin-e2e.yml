@@ -1,0 +1,54 @@
+name: Playwright Admin E2E
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'admin-dashboard/**'
+      - '.github/workflows/playwright-admin-e2e.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'admin-dashboard/**'
+      - '.github/workflows/playwright-admin-e2e.yml'
+
+jobs:
+  admin-e2e:
+    name: Admin E2E (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - chromium
+          - chromium-mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run admin Playwright tests
+        run: npx playwright test -c admin-dashboard/playwright.config.ts --project=${{ matrix.project }}
+
+      - name: Upload admin Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-playwright-report-${{ matrix.project }}
+          path: |
+            admin-dashboard/playwright-report/
+            admin-dashboard/test-results/
+          if-no-files-found: ignore

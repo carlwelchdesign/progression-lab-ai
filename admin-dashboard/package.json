@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3010",
     "lint": "next lint",
-    "db:generate": "prisma generate --schema ./prisma/schema.prisma"
+    "db:generate": "prisma generate --schema ./prisma/schema.prisma",
+    "test:e2e": "playwright test -c playwright.config.ts",
+    "test:e2e:mobile": "playwright test -c playwright.config.ts --project=chromium-mobile"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

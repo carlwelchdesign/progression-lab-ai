@@ -19,6 +19,8 @@
     "test:e2e:mobile": "playwright test --project=chromium-mobile",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:headed": "playwright test --headed",
+    "admin:test:e2e": "playwright test -c admin-dashboard/playwright.config.ts",
+    "admin:test:e2e:mobile": "playwright test -c admin-dashboard/playwright.config.ts --project=chromium-mobile",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
     "db:push": "prisma db push",
