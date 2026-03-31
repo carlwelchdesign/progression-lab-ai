@@ -3,127 +3,98 @@
  * Provides curated progressions for different skill levels and musical genres.
  */
 
-import type { Progression } from './types';
-
 export type UserPersona = 'beginner' | 'intermediate' | 'professional';
 
-export interface SampleProgressionSet {
-  persona: UserPersona;
-  progressions: Progression[];
+/** A curated sample progression shown in the showcase and onboarding UI. */
+export interface SampleProgression {
+  /** Display name shown in UI cards. */
+  name: string;
+  /** Short description of the harmonic concept. */
   description: string;
+  /** Comma-separated chord string, ready to paste into the generator seedChords field. */
+  chords: string;
 }
 
-/**
- * Sample progressions curated for different user personas.
- * These are designed to encourage initial exploration and reduce first-use friction.
- */
-export const SAMPLE_PROGRESSIONS: Record<UserPersona, Progression[]> = {
+const SAMPLE_PROGRESSIONS: Record<UserPersona, SampleProgression[]> = {
   beginner: [
     {
-      id: 'sample_beginner_001',
-      nameOverride: 'Classic I-V-vi-IV',
-      chords: ['C', 'G', 'Am', 'F'],
-      tags: ['popular', 'pop', 'folk'],
-      isPublished: true,
+      name: 'Classic I-V-vi-IV',
+      description: 'The most universal pop progression — instantly recognizable and very singable.',
+      chords: 'C, G, Am, F',
     },
     {
-      id: 'sample_beginner_002',
-      nameOverride: 'Jazz Blues Basic',
-      chords: ['Cmaj7', 'Fmaj7', 'Cmaj7', 'Gdom7'],
-      tags: ['jazz', 'blues'],
-      isPublished: true,
+      name: 'Jazz Blues Intro',
+      description: 'A gentle jazz-blues opening built on major 7ths — smooth and open-sounding.',
+      chords: 'Cmaj7, Fmaj7, Cmaj7, G7',
     },
     {
-      id: 'sample_beginner_003',
-      nameOverride: 'Simple Minor',
-      chords: ['Am', 'F', 'C', 'G'],
-      tags: ['minor', 'rock'],
-      isPublished: true,
+      name: 'Simple Minor',
+      description: 'A clean four-chord minor loop with a strong sense of resolution.',
+      chords: 'Am, F, C, G',
     },
   ],
   intermediate: [
     {
-      id: 'sample_inter_001',
-      nameOverride: 'Extended Diatonic Movement',
-      chords: ['Cmaj7', 'Dm7', 'G7', 'Cmaj7', 'Am7', 'Dm7', 'G7', 'Cmaj7'],
-      tags: ['jazz', 'modal', 'sophisticated'],
-      isPublished: true,
+      name: 'Extended Diatonic Movement',
+      description:
+        'A full diatonic ii-V-I cycle using extended chords — foundational jazz vocabulary.',
+      chords: 'Cmaj7, Dm7, G7, Cmaj7, Am7, Dm7, G7, Cmaj7',
     },
     {
-      id: 'sample_inter_002',
-      nameOverride: 'Ascending Chromatic',
-      chords: ['C', 'Csharp', 'D', 'Dsharp', 'E', 'F', 'Fsharp', 'G'],
-      tags: ['chromatic', 'modern'],
-      isPublished: true,
+      name: 'Ascending Chromatic',
+      description: 'Stepwise chromatic motion — creates tension and momentum across the bar.',
+      chords: 'C, C#, D, D#, E, F, F#, G',
     },
     {
-      id: 'sample_inter_003',
-      nameOverride: 'Mixolydian Funk',
-      chords: ['Gdom7', 'C', 'Gdom7', 'Bb'],
-      tags: ['funk', 'modern', 'groove'],
-      isPublished: true,
+      name: 'Mixolydian Funk',
+      description: 'A two-chord dominant groove rooted in the Mixolydian mode — very rhythmic.',
+      chords: 'G7, C, G7, Bb',
     },
   ],
   professional: [
     {
-      id: 'sample_pro_001',
-      nameOverride: 'Tritone Substitution Workout',
-      chords: ['Cmaj7', 'Dm7', 'G7alt', 'Cmaj7', 'Fsharp7alt', 'B7alt', 'Cmaj7'],
-      tags: ['jazz', 'advanced', 'harmonic-substitution'],
-      isPublished: true,
+      name: 'Tritone Substitution Workout',
+      description:
+        'Replaces the dominant with its tritone sub — advanced reharmonisation technique.',
+      chords: 'Cmaj7, Dm7, G7alt, Cmaj7, F#7alt, B7alt, Cmaj7',
     },
     {
-      id: 'sample_pro_002',
-      nameOverride: 'Augmented Harmony',
-      chords: ['Caug', 'Eaug', 'Gaug', 'Caug'],
-      tags: ['classical', 'augmented', 'symmetrical'],
-      isPublished: true,
+      name: 'Augmented Symmetry',
+      description: 'Three augmented triads a major third apart — symmetrical harmonic space.',
+      chords: 'Caug, Eaug, G#aug, Caug',
     },
     {
-      id: 'sample_pro_003',
-      nameOverride: 'Polytonality Exploration',
-      chords: ['C', 'Gm', 'Bb', 'F', 'C', 'Am', 'F', 'C'],
-      tags: ['contemporary', 'polytonality', 'advanced'],
-      isPublished: true,
+      name: 'Polytonal Exploration',
+      description: 'Two tonal centres operating simultaneously — complex but rewarding tension.',
+      chords: 'C, Gm, Bb, F, C, Am, F, C',
     },
   ],
 };
 
-/**
- * Get sample progressions for a specific persona.
- */
-export function getSamplesForPersona(persona: UserPersona): Progression[] {
-  return SAMPLE_PROGRESSIONS[persona] || [];
+/** Get sample progressions for a specific persona. */
+export function getSampleProgressionsByPersona(persona: UserPersona): SampleProgression[] {
+  return SAMPLE_PROGRESSIONS[persona] ?? SAMPLE_PROGRESSIONS.beginner;
 }
 
-/**
- * Get all available personas.
- */
+/** Alias kept for backward compatibility. */
+export const getSamplesForPersona = getSampleProgressionsByPersona;
+
+/** Get all available personas. */
 export function getAvailablePersonas(): UserPersona[] {
   return ['beginner', 'intermediate', 'professional'];
 }
 
-/**
- * Get persona description for UI display.
- */
+/** Detect suggested persona based on user behaviour or explicit selection. */
+export function getSuggestedPersona(): UserPersona {
+  return 'beginner';
+}
+
+/** Get a human-readable description for a persona. */
 export function getPersonaDescription(persona: UserPersona): string {
   const descriptions: Record<UserPersona, string> = {
     beginner: 'Simple, popular progressions to get started',
     intermediate: 'Sophisticated harmonies for exploring advanced concepts',
     professional: 'Complex harmonic structures for expert musicians',
   };
-  return descriptions[persona] || '';
-}
-
-/**
- * Detect suggested persona based on user behavior or explicit selection.
- * In a real implementation, this would use analytics and engagement data.
- */
-export function getSuggestedPersona(): UserPersona {
-  // Default suggestion; in production, this would consider:
-  // - User signup time
-  // - Number of progressions created
-  // - Harmonic complexity of created progressions
-  // - Feature usage patterns
-  return 'beginner';
+  return descriptions[persona] ?? '';
 }

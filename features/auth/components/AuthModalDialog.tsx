@@ -21,9 +21,11 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../components/providers/AuthProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import TextField from '../../../components/ui/TextField';
+import OnboardingSampleSelector from '../../home/components/OnboardingSampleSelector';
 import WebAuthnEnrollmentModal from './WebAuthnEnrollmentModal';
 import { fetchPublishedMarketingContent } from '../../../lib/marketingContentClient';
 import { trackEvent } from '../../../lib/analytics';
+import { getSampleProgressionsByPersona, type UserPersona } from '../../../lib/sampleContent';
 
 export type AuthMode = 'login' | 'register';
 export type AuthDialogReason = 'my-progressions' | 'save-arrangement' | 'upgrade-plan' | 'generic';
@@ -51,7 +53,7 @@ type AuthFlowCopy = {
 type AuthModalDialogProps = {
   open: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (seedChords?: string) => void;
   initialMode?: AuthMode;
   reason?: AuthDialogReason;
 };
@@ -76,6 +78,7 @@ export default function AuthModalDialog({
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [apiError, setApiError] = useState('');
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
+  const [showPersonaModal, setShowPersonaModal] = useState(false);
   const [authCopy, setAuthCopy] = useState<AuthFlowCopy | null>(null);
   const reasonKey = getReasonKey(reason);
 
@@ -185,6 +188,22 @@ export default function AuthModalDialog({
 
   const handleEnrollmentClose = () => {
     setShowEnrollmentModal(false);
+    setShowPersonaModal(true);
+  };
+
+  const handlePersonaSelect = (persona: string) => {
+    const samples = getSampleProgressionsByPersona(persona as UserPersona);
+    const seedChords = samples[0]?.chords ?? '';
+    if (seedChords && typeof window !== 'undefined') {
+      sessionStorage.setItem('onboarding_seed_chords', seedChords);
+    }
+    setShowPersonaModal(false);
+    onClose();
+    onSuccess?.(seedChords);
+  };
+
+  const handlePersonaSkip = () => {
+    setShowPersonaModal(false);
     onClose();
     onSuccess?.();
   };
@@ -322,6 +341,15 @@ export default function AuthModalDialog({
         </DialogContent>
       </Dialog>
       <WebAuthnEnrollmentModal open={showEnrollmentModal} onClose={handleEnrollmentClose} />
+      <Dialog open={showPersonaModal} onClose={handlePersonaSkip} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('onboarding.selectYourLevel')}</DialogTitle>
+        <DialogContent>
+          <OnboardingSampleSelector
+            onPersonaSelect={handlePersonaSelect}
+            onSkip={handlePersonaSkip}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

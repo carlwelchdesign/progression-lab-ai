@@ -6,6 +6,7 @@ export const PUBLIC_MARKETING_CONTENT_KEYS = [
   'pricing',
   'global_marketing_chrome',
   'public_progressions',
+  'auth_flow_copy',
 ] as const;
 
 export type PublicMarketingContentKey = (typeof PUBLIC_MARKETING_CONTENT_KEYS)[number];

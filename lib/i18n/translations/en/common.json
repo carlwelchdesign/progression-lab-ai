@@ -307,6 +307,27 @@
       }
     }
   },
+  "beginner": "Beginner",
+  "intermediate": "Intermediate",
+  "professional": "Professional",
+  "chords": "Chords",
+  "skip": "Skip",
+  "sample_loaded": "\"{{name}}\" loaded into generator",
+  "onboarding": {
+    "selectYourLevel": "What's your experience level?",
+    "levelDescription": "We'll show you relevant sample progressions so you can see what's possible before you start.",
+    "beginnerDescription": "New to chord theory — simple, recognizable progressions to get started.",
+    "intermediateDescription": "Comfortable with diatonic harmony — ready to explore extended chords and borrowed tones.",
+    "professionalDescription": "Advanced harmony — tritone subs, altered dominants, and polytonal structures.",
+    "sampleProgressions": "Sample progressions at this level",
+    "continue": "Start with these samples"
+  },
+  "home": {
+    "sampleProgressions": {
+      "title": "Try a sample progression",
+      "description": "Click any card to load it straight into the generator and start building from there."
+    }
+  },
   "arrangements": {
     "list": {
       "empty": "No saved arrangements yet. Record a loop in the Chord Playground and save it.",

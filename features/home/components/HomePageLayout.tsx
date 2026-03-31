@@ -1,7 +1,7 @@
 'use client';
 
 import { Box, Container, Stack, Typography } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import GeneratorPageContent from '../../generator/components/layout/GeneratorPageContent';
 import SampleProgressionsShowcase from './SampleProgressionsShowcase';
@@ -50,6 +50,16 @@ type HomePageSections = {
 export default function HomePageLayout() {
   const { i18n } = useTranslation();
   const [sections, setSections] = useState<HomePageSections | null>(null);
+  const [selectedSampleChords, setSelectedSampleChords] = useState<string | undefined>();
+  const generatorRef = useRef<HTMLDivElement>(null);
+
+  const handleSampleSelect = (chords: string) => {
+    setSelectedSampleChords(chords);
+    // Scroll to generator smoothly so the user sees the loaded chords
+    setTimeout(() => {
+      generatorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
 
   useEffect(() => {
     const loadHomepageSections = async () => {
@@ -379,12 +389,13 @@ export default function HomePageLayout() {
           description={sections.featuredProgressions.description}
           variant="homepage"
           maxItemsDisplayed={3}
+          onSampleSelect={handleSampleSelect}
         />
       )}
 
       {/* Generator Section */}
-      <Box sx={{ py: { xs: 2, md: 4 } }}>
-        <GeneratorPageContent />
+      <Box ref={generatorRef} sx={{ py: { xs: 2, md: 4 } }}>
+        <GeneratorPageContent initialSeedChords={selectedSampleChords} />
       </Box>
     </Box>
   );

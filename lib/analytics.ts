@@ -15,6 +15,9 @@ export type AnalyticsEventType =
   | 'cms_section_viewed'
   | 'cms_cta_clicked'
   | 'sample_content_selected'
+  | 'sample_progression_selected'
+  | 'onboarding_persona_selected'
+  | 'onboarding_persona_skipped'
   | 'export_requested';
 
 export type AnalyticsEventProperties = Record<string, string | number | boolean | null | undefined>;

@@ -3,7 +3,7 @@
 import { Box, Button, Stack, Typography, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getSampleProgressionsByPersona } from '../../../lib/sampleContent';
+import { getSampleProgressionsByPersona, type SampleProgression } from '../../../lib/sampleContent';
 import { trackEvent } from '../../../lib/analytics';
 
 type Persona = 'beginner' | 'intermediate' | 'professional';
@@ -17,13 +17,13 @@ export default function OnboardingSampleSelector({
   onPersonaSelect,
   onSkip,
 }: OnboardingSampleSelectorProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('common');
   const [selectedPersona, setSelectedPersona] = useState<Persona>('beginner');
 
   const personaDescriptions = {
-    beginner: t('onboarding:beginner_description'),
-    intermediate: t('onboarding:intermediate_description'),
-    professional: t('onboarding:professional_description'),
+    beginner: t('onboarding.beginnerDescription'),
+    intermediate: t('onboarding.intermediateDescription'),
+    professional: t('onboarding.professionalDescription'),
   };
 
   const samples = getSampleProgressionsByPersona(selectedPersona);
@@ -53,10 +53,10 @@ export default function OnboardingSampleSelector({
     <Stack spacing={4} sx={{ maxWidth: 600, mx: 'auto', py: 4 }}>
       <Box sx={{ textAlign: 'center' }}>
         <Typography variant="h4" sx={{ fontWeight: 600, mb: 2 }}>
-          {t('onboarding:select_your_level')}
+          {t('onboarding.selectYourLevel')}
         </Typography>
         <Typography variant="body1" sx={{ opacity: 0.85, mb: 3 }}>
-          {t('onboarding:level_description')}
+          {t('onboarding.levelDescription')}
         </Typography>
       </Box>
 
@@ -86,10 +86,10 @@ export default function OnboardingSampleSelector({
       {samples.length > 0 && (
         <Box>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
-            {t('onboarding:sample_progressions')}
+            {t('onboarding.sampleProgressions')}
           </Typography>
           <Stack spacing={1}>
-            {samples.slice(0, 2).map((sample) => (
+            {samples.slice(0, 2).map((sample: SampleProgression) => (
               <Typography key={sample.name} variant="body2" sx={{ opacity: 0.75 }}>
                 • {sample.name}
               </Typography>
@@ -100,10 +100,10 @@ export default function OnboardingSampleSelector({
 
       <Stack direction="row" spacing={2}>
         <Button variant="contained" fullWidth onClick={handleSelect}>
-          {t('onboarding:continue')}
+          {t('onboarding.continue')}
         </Button>
         <Button variant="outlined" fullWidth onClick={handleSkip}>
-          {t('common:skip')}
+          {t('skip')}
         </Button>
       </Stack>
     </Stack>

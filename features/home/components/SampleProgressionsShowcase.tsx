@@ -24,9 +24,8 @@ export default function SampleProgressionsShowcase({
   onSampleSelect,
   maxItemsDisplayed = 3,
 }: SampleProgressionsShowcaseProps) {
-  const { t } = useTranslation();
-  const { user } = useAuth();
-  const { showSnackbar } = useAppSnackbar();
+  const { t } = useTranslation('common');
+  const { showInfo } = useAppSnackbar();
 
   // Detect user persona based on context or use beginner as default
   const personaForDisplay = useMemo(() => {
@@ -35,7 +34,9 @@ export default function SampleProgressionsShowcase({
   }, []);
 
   const samples = useMemo(() => {
-    const allSamples = getSampleProgressionsByPersona(personaForDisplay);
+    const allSamples = getSampleProgressionsByPersona(
+      personaForDisplay as import('../../../lib/sampleContent').UserPersona,
+    );
     return allSamples.slice(0, maxItemsDisplayed);
   }, [personaForDisplay, maxItemsDisplayed]);
 
@@ -50,14 +51,14 @@ export default function SampleProgressionsShowcase({
       if (onSampleSelect) {
         onSampleSelect(progressionName);
       } else {
-        showSnackbar(t('common:sample_loaded', { name: progressionName }), 'info');
+        showInfo(t('sample_loaded', { name: progressionName }));
       }
     },
-    [personaForDisplay, variant, onSampleSelect, t, showSnackbar],
+    [personaForDisplay, variant, onSampleSelect, t, showInfo],
   );
 
-  const displayTitle = title || t('home:sample_progressions_title');
-  const displayDescription = description || t('home:sample_progressions_description');
+  const displayTitle = title || t('home.sampleProgressions.title');
+  const displayDescription = description || t('home.sampleProgressions.description');
 
   return (
     <Box
@@ -110,63 +111,65 @@ export default function SampleProgressionsShowcase({
                 mt: 3,
               }}
             >
-              {samples.map((sample, idx) => (
-                <Card
-                  key={idx}
-                  sx={{
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      boxShadow: 3,
-                      transform: 'translateY(-4px)',
-                    },
-                  }}
-                  onClick={() => handleSampleSelect(sample.name)}
-                >
-                  <CardContent>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 600,
-                        mb: 1,
-                      }}
-                    >
-                      {sample.name}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        lineHeight: 1.6,
-                        opacity: 0.85,
-                        mb: 2,
-                      }}
-                    >
-                      {sample.description}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        opacity: 0.7,
-                        display: 'block',
-                        mb: 2,
-                      }}
-                    >
-                      {t('common:chords')}: {sample.chords}
-                    </Typography>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      fullWidth
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSampleSelect(sample.name);
-                      }}
-                    >
-                      {t('home:try_progression')}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+              {samples.map(
+                (sample: import('../../../lib/sampleContent').SampleProgression, idx: number) => (
+                  <Card
+                    key={idx}
+                    sx={{
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        boxShadow: 3,
+                        transform: 'translateY(-4px)',
+                      },
+                    }}
+                    onClick={() => handleSampleSelect(sample.name)}
+                  >
+                    <CardContent>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 600,
+                          mb: 1,
+                        }}
+                      >
+                        {sample.name}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          lineHeight: 1.6,
+                          opacity: 0.85,
+                          mb: 2,
+                        }}
+                      >
+                        {sample.description}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          opacity: 0.7,
+                          display: 'block',
+                          mb: 2,
+                        }}
+                      >
+                        {t('chords')}: {sample.chords}
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        fullWidth
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSampleSelect(sample.name);
+                        }}
+                      >
+                        {t('home:try_progression')}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ),
+              )}
             </Box>
           )}
 
