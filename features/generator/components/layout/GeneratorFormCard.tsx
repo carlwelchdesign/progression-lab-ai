@@ -67,6 +67,8 @@ type GeneratorFormCardProps = {
   errors: FieldErrors<GeneratorFormData>;
   errorMessage: string;
   onRandomize: () => void;
+  canUseAdvancedVoicingControls: boolean;
+  onUpgradeAdvancedVoicing: () => void;
 };
 
 /**
@@ -81,6 +83,8 @@ export default function GeneratorFormCard({
   errors,
   errorMessage,
   onRandomize,
+  canUseAdvancedVoicingControls,
+  onUpgradeAdvancedVoicing,
 }: GeneratorFormCardProps) {
   const { t } = useTranslation('generator');
   const translateMoodOption = (option: string) => t(MOOD_LABEL_KEY_BY_VALUE[option] ?? option);
@@ -324,67 +328,84 @@ export default function GeneratorFormCard({
               {t('form.advanced.title')}
             </AccordionSummary>
             <AccordionDetails>
-              <Stack spacing={2}>
-                <Controller
-                  name="voicingProfiles"
-                  control={control}
-                  render={({ field: { value, onChange } }) => (
-                    <Autocomplete<string, true, false, false>
-                      multiple
-                      options={VOICING_PROFILE_OPTIONS.map((option) => option)}
-                      value={value ?? []}
-                      onChange={(_, newValue) => onChange(newValue)}
-                      disabled={isSubmitting || loading}
-                      getOptionLabel={translateVoicingProfile}
-                      renderTags={(tagValue, getTagProps) =>
-                        tagValue.map((option, index) => {
-                          const { key, ...tagProps } = getTagProps({ index });
-                          return (
-                            <Chip
-                              key={key}
-                              label={translateVoicingProfile(option)}
-                              size="small"
-                              {...tagProps}
-                            />
-                          );
-                        })
-                      }
-                      renderInput={(params) => (
-                        <MuiTextField
-                          {...params}
-                          label={t('form.advanced.voicingProfiles.label')}
-                          placeholder={t('form.advanced.voicingProfiles.placeholder')}
-                          helperText={t('form.advanced.voicingProfiles.helperText')}
-                          fullWidth
-                          variant="outlined"
-                          InputLabelProps={{ shrink: true }}
-                        />
-                      )}
-                    />
-                  )}
-                />
+              {canUseAdvancedVoicingControls ? (
+                <Stack spacing={2}>
+                  <Controller
+                    name="voicingProfiles"
+                    control={control}
+                    render={({ field: { value, onChange } }) => (
+                      <Autocomplete<string, true, false, false>
+                        multiple
+                        options={VOICING_PROFILE_OPTIONS.map((option) => option)}
+                        value={value ?? []}
+                        onChange={(_, newValue) => onChange(newValue)}
+                        disabled={isSubmitting || loading}
+                        getOptionLabel={translateVoicingProfile}
+                        renderTags={(tagValue, getTagProps) =>
+                          tagValue.map((option, index) => {
+                            const { key, ...tagProps } = getTagProps({ index });
+                            return (
+                              <Chip
+                                key={key}
+                                label={translateVoicingProfile(option)}
+                                size="small"
+                                {...tagProps}
+                              />
+                            );
+                          })
+                        }
+                        renderInput={(params) => (
+                          <MuiTextField
+                            {...params}
+                            label={t('form.advanced.voicingProfiles.label')}
+                            placeholder={t('form.advanced.voicingProfiles.placeholder')}
+                            helperText={t('form.advanced.voicingProfiles.helperText')}
+                            fullWidth
+                            variant="outlined"
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        )}
+                      />
+                    )}
+                  />
 
-                <Controller
-                  name="customVoicingInstructions"
-                  control={control}
-                  render={({ field: { value, onChange } }) => (
-                    <MuiTextField
-                      value={value ?? ''}
-                      onChange={onChange}
-                      label={t('form.advanced.customVoicingInstructions.label')}
-                      placeholder={t('form.advanced.customVoicingInstructions.placeholder')}
-                      helperText={t('form.advanced.customVoicingInstructions.helperText')}
-                      fullWidth
-                      multiline
-                      minRows={2}
-                      maxRows={5}
-                      disabled={isSubmitting || loading}
-                      variant="outlined"
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  )}
-                />
-              </Stack>
+                  <Controller
+                    name="customVoicingInstructions"
+                    control={control}
+                    render={({ field: { value, onChange } }) => (
+                      <MuiTextField
+                        value={value ?? ''}
+                        onChange={onChange}
+                        label={t('form.advanced.customVoicingInstructions.label')}
+                        placeholder={t('form.advanced.customVoicingInstructions.placeholder')}
+                        helperText={t('form.advanced.customVoicingInstructions.helperText')}
+                        fullWidth
+                        multiline
+                        minRows={2}
+                        maxRows={5}
+                        disabled={isSubmitting || loading}
+                        variant="outlined"
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    )}
+                  />
+                </Stack>
+              ) : (
+                <Alert
+                  severity="info"
+                  action={
+                    <Button size="small" variant="contained" onClick={onUpgradeAdvancedVoicing}>
+                      {t('form.advanced.subscriptionLocked.action', {
+                        defaultValue: 'Upgrade',
+                      })}
+                    </Button>
+                  }
+                >
+                  {t('form.advanced.subscriptionLocked.message', {
+                    defaultValue: 'Advanced voicing controls are available on paid plans.',
+                  })}
+                </Alert>
+              )}
             </AccordionDetails>
           </Accordion>
         </Box>

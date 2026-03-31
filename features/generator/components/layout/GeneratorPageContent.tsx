@@ -187,6 +187,7 @@ export default function GeneratorPageContent() {
   } = playbackSettings;
 
   const [isGeneratedChordGridOpen, setIsGeneratedChordGridOpen] = useState(false);
+  const [canUseAdvancedVoicingControls, setCanUseAdvancedVoicingControls] = useState(false);
   const [vocalEntitlements, setVocalEntitlements] = useState<VocalFeatureEntitlements>({
     canUseVocalTrackRecording: true,
     maxVocalTakesPerArrangement: 1,
@@ -207,6 +208,68 @@ export default function GeneratorPageContent() {
   const progressiveRevealTimerRef = useRef<number | null>(null);
   const inFlightRequestControllerRef = useRef<AbortController | null>(null);
   const { showError } = useAppSnackbar();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCanUseAdvancedVoicingControls(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadGeneratorEntitlements = async () => {
+      try {
+        const response = await fetch('/api/billing/status', {
+          credentials: 'include',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const body = (await response.json()) as {
+          entitlements?: {
+            canUseAdvancedVoicingControls?: boolean;
+            canUseVocalTrackRecording?: boolean;
+            maxVocalTakesPerArrangement?: number | null;
+          };
+        };
+
+        setCanUseAdvancedVoicingControls(body.entitlements?.canUseAdvancedVoicingControls === true);
+        setVocalEntitlements((previous) => ({
+          canUseVocalTrackRecording:
+            body.entitlements?.canUseVocalTrackRecording ?? previous.canUseVocalTrackRecording,
+          maxVocalTakesPerArrangement:
+            body.entitlements?.maxVocalTakesPerArrangement ?? previous.maxVocalTakesPerArrangement,
+        }));
+      } catch {
+        // Keep fallback entitlements if billing status request fails.
+      }
+    };
+
+    void loadGeneratorEntitlements();
+
+    return () => {
+      controller.abort();
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (canUseAdvancedVoicingControls) {
+      return;
+    }
+
+    setValue('voicingProfiles', [], {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setValue('customVoicingInstructions', '', {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+  }, [canUseAdvancedVoicingControls, setValue]);
 
   useEffect(() => {
     if (!isGeneratedChordGridOpen) {
@@ -550,8 +613,10 @@ export default function GeneratorPageContent() {
           styleReference: formData.styleReference.trim() || null,
           instrument: 'both',
           adventurousness: formData.adventurousness,
-          voicingProfiles: formData.voicingProfiles,
-          customVoicingInstructions: formData.customVoicingInstructions,
+          voicingProfiles: canUseAdvancedVoicingControls ? formData.voicingProfiles : [],
+          customVoicingInstructions: canUseAdvancedVoicingControls
+            ? formData.customVoicingInstructions
+            : '',
           language: locale,
         }),
       });
@@ -755,6 +820,15 @@ export default function GeneratorPageContent() {
     },
   ];
 
+  const handleUpgradeAdvancedVoicing = useCallback(() => {
+    if (!isAuthenticated) {
+      openAuthModal({ mode: 'login', reason: 'generic' });
+      return;
+    }
+
+    window.location.assign('/pricing');
+  }, [isAuthenticated, openAuthModal]);
+
   if (isRestoringState) {
     return (
       <Container component="main" maxWidth="lg" sx={{ py: 6 }}>
@@ -817,6 +891,8 @@ export default function GeneratorPageContent() {
           errors={errors}
           errorMessage={error}
           onRandomize={handleRandomize}
+          canUseAdvancedVoicingControls={canUseAdvancedVoicingControls}
+          onUpgradeAdvancedVoicing={handleUpgradeAdvancedVoicing}
         />
 
         {loading && (

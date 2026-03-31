@@ -332,6 +332,21 @@ function buildModelInput(body: ChordSuggestionRequestBody): ChordSuggestionModel
   };
 }
 
+function applyAdvancedVoicingEntitlements(
+  modelInput: ChordSuggestionModelInput,
+  canUseAdvancedVoicingControls: boolean,
+): ChordSuggestionModelInput {
+  if (canUseAdvancedVoicingControls) {
+    return modelInput;
+  }
+
+  return {
+    ...modelInput,
+    voicingProfiles: [],
+    customVoicingInstructions: null,
+  };
+}
+
 /**
  * Generates chord suggestions, progression ideas, and structure ideas via OpenAI.
  */
@@ -376,7 +391,11 @@ export async function POST(req: NextRequest) {
     const rawBody = await req.text();
     const body = parseRequestBody(rawBody);
     const modelInput = buildModelInput(body);
-    const input = JSON.stringify(modelInput);
+    const entitledModelInput = applyAdvancedVoicingEntitlements(
+      modelInput,
+      accessContext.entitlements.canUseAdvancedVoicingControls,
+    );
+    const input = JSON.stringify(entitledModelInput);
     const localeDefinition = getLocaleDefinition(modelInput.language);
     const requestedModel = accessContext.entitlements.gptModel;
     const model = resolveModelForResponsesApi(requestedModel);

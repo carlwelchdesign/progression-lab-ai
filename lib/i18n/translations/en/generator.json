@@ -61,6 +61,10 @@
         "label": "Custom voicing instructions",
         "placeholder": "Example: prefer wide right-hand voicings with minimal doubling",
         "helperText": "Optional free text override for voicing style."
+      },
+      "subscriptionLocked": {
+        "message": "Advanced voicing controls are available on paid plans.",
+        "action": "Upgrade"
       }
     },
     "actions": {
