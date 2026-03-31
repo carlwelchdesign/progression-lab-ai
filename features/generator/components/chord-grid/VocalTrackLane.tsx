@@ -16,6 +16,7 @@ import TimelineTrackSurface, {
   TRACK_RULER_HEIGHT,
   type TimelineTrackBar,
 } from './TimelineTrackSurface';
+import useTimelinePlaybackMotion from './useTimelinePlaybackMotion';
 
 type VocalTrackLaneProps = {
   takes: VocalTake[];
@@ -26,6 +27,8 @@ type VocalTrackLaneProps = {
   tempoBpm: number;
   loopLengthBars: number;
   leadInBars?: number;
+  scrollToStep?: number;
+  scrollRequestKey?: number;
   isPlaying: boolean;
   isRecording: boolean;
   selectedTakeId: string | null;
@@ -47,6 +50,8 @@ export default function VocalTrackLane({
   tempoBpm,
   loopLengthBars,
   leadInBars = 0,
+  scrollToStep,
+  scrollRequestKey,
   isPlaying,
   isRecording,
   selectedTakeId,
@@ -59,16 +64,33 @@ export default function VocalTrackLane({
   const { appColors } = theme.palette;
   const isDesktopPointer = useMediaQuery('(hover: hover) and (pointer: fine)');
   const isDarkMode = theme.palette.mode === 'dark';
+  const {
+    scrollRef,
+    playheadRef,
+    normalizedLeadInBars,
+    leadInSteps,
+    displayCurrentStep,
+    displayTotalSteps,
+    extendedTrackWidth,
+    playheadAnchorPx,
+    isCenteredOverlayActive,
+  } = useTimelinePlaybackMotion({
+    currentStep,
+    totalSteps,
+    stepsPerBar,
+    beatsPerBar,
+    tempoBpm,
+    isPlaying,
+    leadInBars,
+    scrollToStep,
+    scrollRequestKey,
+    pixelsPerStep: PIXELS_PER_STEP,
+  });
   const rulerCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const laneCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const selectedTake = takes.find((take) => take.id === selectedTakeId) ?? null;
-  const normalizedLeadInBars = Math.max(0, leadInBars);
-  const leadInSteps = normalizedLeadInBars * stepsPerBar;
   const stepsPerBeat = stepsPerBar / beatsPerBar;
-  const displayCurrentStep = !isPlaying && currentStep === 0 ? 0 : currentStep + leadInSteps;
-  const displayTotalSteps = totalSteps + leadInSteps;
-  const extendedTrackWidth = Math.max(displayTotalSteps * PIXELS_PER_STEP, 360);
   const clipTop = (TRACK_LANE_HEIGHT - CLIP_HEIGHT) / 2;
   const playheadColor = appColors.accent.chordPadActiveBorder;
   const loopSummary = `${loopLengthBars} bar${loopLengthBars === 1 ? '' : 's'}`;
@@ -201,7 +223,11 @@ export default function VocalTrackLane({
         displayCurrentStep={displayCurrentStep}
         displayTotalSteps={displayTotalSteps}
         extendedTrackWidth={extendedTrackWidth}
+        playheadAnchorPx={playheadAnchorPx}
         playheadColor={playheadColor}
+        isCenteredOverlayActive={isCenteredOverlayActive}
+        scrollRef={scrollRef}
+        playheadRef={playheadRef}
         rulerCanvasRef={rulerCanvasRef}
         laneCanvasRef={laneCanvasRef}
         laneAriaLabel="Vocal timeline lane"

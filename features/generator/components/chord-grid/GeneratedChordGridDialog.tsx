@@ -337,6 +337,29 @@ export default function GeneratedChordGridDialog({
       : (timeline$.eventsByStep.get(timeline$.selectedStepIndex)?.length ?? 0);
 
   const showRecordingLeadIn = engine$.isCountInActive || engine$.isRecording;
+  const showMicPermissionHelp = vocal$.permissionStatus === 'denied';
+  const canRetryMicPermission = vocal$.permissionStatus !== 'unsupported';
+  const microphonePermissionHelpVariant = useMemo<'chrome-mac' | 'safari-mac' | 'generic'>(() => {
+    if (typeof navigator === 'undefined') {
+      return 'generic';
+    }
+
+    const userAgent = navigator.userAgent;
+    const isMac = /Macintosh|Mac OS X/i.test(userAgent);
+    const isChrome = /Chrome|Chromium/i.test(userAgent) && !/Edg|OPR|Brave/i.test(userAgent);
+    const isSafari =
+      /Safari/i.test(userAgent) && !/Chrome|Chromium|CriOS|Edg|OPR|Brave/i.test(userAgent);
+
+    if (isMac && isChrome) {
+      return 'chrome-mac';
+    }
+
+    if (isMac && isSafari) {
+      return 'safari-mac';
+    }
+
+    return 'generic';
+  }, []);
 
   const handleVocalRecordToggle = () => {
     if (!resolvedVocalEntitlements.canUseVocalTrackRecording || vocalTakeLimitReached) {
@@ -521,6 +544,8 @@ export default function GeneratedChordGridDialog({
           tempoBpm={tempoBpm}
           loopLengthBars={loopLengthBars}
           leadInBars={showRecordingLeadIn ? RECORDING_LEAD_IN_BARS : 0}
+          scrollToStep={showRecordingLeadIn ? stepsPerBar * RECORDING_LEAD_IN_BARS : 0}
+          scrollRequestKey={trackScrollRequestKey}
           isPlaying={engine$.isSequencerPlaying || engine$.isCountInActive}
           isRecording={vocal$.isVocalRecording}
           selectedTakeId={vocal$.selectedTakeId}
@@ -563,8 +588,43 @@ export default function GeneratedChordGridDialog({
         ) : null}
 
         {vocal$.errorMessage ? (
-          <Alert severity="warning" sx={{ mb: 1.5 }}>
-            {vocal$.errorMessage}
+          <Alert
+            severity="warning"
+            sx={{ mb: 1.5 }}
+            action={
+              canRetryMicPermission ? (
+                <Button
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                  onClick={handleVocalRecordToggle}
+                >
+                  {t('ui.chordGrid.retryMicrophoneAccess', {
+                    defaultValue: 'Allow microphone',
+                  })}
+                </Button>
+              ) : undefined
+            }
+          >
+            <Typography variant="body2">{vocal$.errorMessage}</Typography>
+            {showMicPermissionHelp ? (
+              <Typography variant="caption" component="div" sx={{ mt: 0.75 }}>
+                {microphonePermissionHelpVariant === 'chrome-mac'
+                  ? t('ui.chordGrid.microphonePermissionHelpChromeMac', {
+                      defaultValue:
+                        'On Chrome (macOS), click the sliders icon in the address bar, set Microphone to Allow for this site, then press "Allow microphone".',
+                    })
+                  : microphonePermissionHelpVariant === 'safari-mac'
+                    ? t('ui.chordGrid.microphonePermissionHelpSafariMac', {
+                        defaultValue:
+                          'On Safari (macOS), open Safari > Settings for This Website and allow Microphone, then press "Allow microphone".',
+                      })
+                    : t('ui.chordGrid.microphonePermissionHelp', {
+                        defaultValue:
+                          'Use your browser site controls near the address bar to set Microphone to Allow, then press "Allow microphone".',
+                      })}
+              </Typography>
+            ) : null}
           </Alert>
         ) : null}
 
