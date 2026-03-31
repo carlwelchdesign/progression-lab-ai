@@ -5,6 +5,12 @@ import ProgressionsPage from '../page-objects/progressions-page';
 import { authenticatedUser, generatorResponse, publicProgressions } from './mock-data';
 import type { ChordSuggestionResponse, Progression } from '../../lib/types';
 
+interface PublishedMarketingContent {
+  surface: string;
+  locale: string;
+  content: Record<string, unknown>;
+}
+
 async function fulfillJson(route: Route, body: unknown, status = 200) {
   await route.fulfill({
     status,
@@ -44,6 +50,30 @@ class ApiMocker {
   async mockPublicProgressions(response: Progression[] = publicProgressions) {
     await this.page.route('**/api/shared**', async (route) => {
       await fulfillJson(route, response);
+    });
+  }
+
+  async mockAdminUser() {
+    await this.page.route('**/api/auth/me', async (route) => {
+      await fulfillJson(route, {
+        ...authenticatedUser,
+        role: 'admin',
+      });
+    });
+  }
+
+  async mockPublishedMarketingContent(content: PublishedMarketingContent) {
+    await this.page.route('**/api/marketing-content/public**', async (route) => {
+      // Match the query params for surface and locale
+      const searchParams = new URL(route.request().url()).searchParams;
+      const requestSurface = searchParams.get('surface');
+      const requestLocale = searchParams.get('locale');
+
+      if (requestSurface === content.surface && requestLocale === content.locale) {
+        await fulfillJson(route, content);
+      } else {
+        await fulfillJson(route, { error: 'Not found' }, 404);
+      }
     });
   }
 }
