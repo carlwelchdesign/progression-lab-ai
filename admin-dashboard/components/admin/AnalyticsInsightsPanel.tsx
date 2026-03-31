@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   FormControlLabel,
   FormLabel,
@@ -39,6 +40,7 @@ function formatProperties(value: unknown): string {
 type MarketingFocus = {
   contentKey: string;
   locale?: string;
+  section?: string;
 };
 
 type AnalyticsInsightsPanelProps = {
@@ -78,6 +80,38 @@ function getImprovementTarget(
   }
 
   return 'homepage';
+}
+
+function getDayDeltaRows(summary: AnalyticsSummary | null) {
+  const trend = summary?.dailyFunnelTrend ?? [];
+  if (trend.length < 2) {
+    return null;
+  }
+
+  const latest = trend[trend.length - 1];
+  const previous = trend[trend.length - 2];
+
+  return {
+    pageViews: latest.pageViews - previous.pageViews,
+    authStarted: latest.authStarted - previous.authStarted,
+    authCompleted: latest.authCompleted - previous.authCompleted,
+    upgradeCompleted: latest.upgradeCompleted - previous.upgradeCompleted,
+  };
+}
+
+function renderDeltaChip(label: string, delta: number) {
+  if (delta === 0) {
+    return <Chip size="small" label={`${label}: 0`} color="default" variant="outlined" />;
+  }
+
+  return (
+    <Chip
+      size="small"
+      label={`${label}: ${delta > 0 ? '+' : ''}${delta}`}
+      color={delta > 0 ? 'success' : 'error'}
+      variant="outlined"
+    />
+  );
 }
 
 export default function AnalyticsInsightsPanel({ onJumpToMarketing }: AnalyticsInsightsPanelProps) {
@@ -155,6 +189,7 @@ export default function AnalyticsInsightsPanel({ onJumpToMarketing }: AnalyticsI
       (a, b) => a.upgradeCompletionRateFromIntent - b.upgradeCompletionRateFromIntent,
     )[0];
   }, [summary?.breakdownByPersona]);
+  const dailyDelta = useMemo(() => getDayDeltaRows(summary), [summary]);
 
   return (
     <Stack spacing={2}>
@@ -304,6 +339,11 @@ export default function AnalyticsInsightsPanel({ onJumpToMarketing }: AnalyticsI
                         {(summary?.funnel.authStarted ?? 0).toLocaleString()} /{' '}
                         {(summary?.funnel.pageViews ?? 0).toLocaleString()}
                       </Typography>
+                      {dailyDelta ? (
+                        <Box sx={{ mt: 1 }}>
+                          {renderDeltaChip('DoD starts', dailyDelta.authStarted)}
+                        </Box>
+                      ) : null}
                     </CardContent>
                   </Card>
                   <Card variant="outlined">
@@ -318,6 +358,11 @@ export default function AnalyticsInsightsPanel({ onJumpToMarketing }: AnalyticsI
                         {(summary?.funnel.authCompleted ?? 0).toLocaleString()} /{' '}
                         {(summary?.funnel.authStarted ?? 0).toLocaleString()}
                       </Typography>
+                      {dailyDelta ? (
+                        <Box sx={{ mt: 1 }}>
+                          {renderDeltaChip('DoD completions', dailyDelta.authCompleted)}
+                        </Box>
+                      ) : null}
                     </CardContent>
                   </Card>
                   <Card variant="outlined">
@@ -346,6 +391,11 @@ export default function AnalyticsInsightsPanel({ onJumpToMarketing }: AnalyticsI
                         {(summary?.funnel.upgradeCompleted ?? 0).toLocaleString()} /{' '}
                         {(summary?.funnel.upgradeIntent ?? 0).toLocaleString()}
                       </Typography>
+                      {dailyDelta ? (
+                        <Box sx={{ mt: 1 }}>
+                          {renderDeltaChip('DoD upgrades', dailyDelta.upgradeCompleted)}
+                        </Box>
+                      ) : null}
                     </CardContent>
                   </Card>
                 </Box>
@@ -377,6 +427,7 @@ export default function AnalyticsInsightsPanel({ onJumpToMarketing }: AnalyticsI
                                 contentKey: 'pricing',
                                 locale:
                                   weakestLocale.key === 'unknown' ? undefined : weakestLocale.key,
+                                section: 'upgradeFlow',
                               })
                             }
                           >
@@ -407,7 +458,12 @@ export default function AnalyticsInsightsPanel({ onJumpToMarketing }: AnalyticsI
                           <Button
                             size="small"
                             variant="outlined"
-                            onClick={() => onJumpToMarketing?.({ contentKey: 'pricing' })}
+                            onClick={() =>
+                              onJumpToMarketing?.({
+                                contentKey: 'pricing',
+                                section: 'upgradeFlow',
+                              })
+                            }
                           >
                             Tune pricing copy
                           </Button>

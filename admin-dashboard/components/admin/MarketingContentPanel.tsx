@@ -34,6 +34,7 @@ type MarketingContentPanelProps = {
   role: Role;
   initialContentKey?: string;
   initialLocale?: string;
+  initialSection?: string;
 };
 
 function stringifyContent(content: Record<string, unknown>): string {
@@ -147,6 +148,32 @@ function getStarterTemplate(contentKey: string): Record<string, unknown> {
   return {};
 }
 
+function getSectionStarter(contentKey: string, section: string): Record<string, unknown> {
+  if (contentKey !== 'pricing') {
+    return {};
+  }
+
+  if (section === 'upgradeFlow') {
+    return {
+      upgradeFlow: {
+        signInHint: 'Create an account to start a paid plan and manage billing in one place.',
+        composerCta: 'Start Composer',
+        studioCta: 'Start Studio',
+        checkoutPendingLabel: 'Preparing checkout...',
+      },
+    };
+  }
+
+  if (section === 'comparisonIntro') {
+    return {
+      comparisonIntro:
+        'Compare plans quickly. Keep the core generator free and unlock advanced workflow features as needed.',
+    };
+  }
+
+  return {};
+}
+
 function getPreviewLines(contentKey: string, content: Record<string, unknown>): string[] {
   if (contentKey === 'homepage') {
     const hero = content.hero as Record<string, unknown> | undefined;
@@ -191,6 +218,7 @@ export default function MarketingContentPanel({
   role,
   initialContentKey,
   initialLocale,
+  initialSection,
 }: MarketingContentPanelProps) {
   const [state, setState] = useState<MarketingContentState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -202,6 +230,7 @@ export default function MarketingContentPanel({
   const [selectedContentKey, setSelectedContentKey] = useState(initialContentKey ?? '');
   const [sourceLocale, setSourceLocale] = useState('en');
   const [selectedLocale, setSelectedLocale] = useState(initialLocale ?? 'en');
+  const [focusSection, setFocusSection] = useState(initialSection ?? '');
   const [draftContent, setDraftContent] = useState('');
   const [draftNotes, setDraftNotes] = useState('');
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -250,12 +279,45 @@ export default function MarketingContentPanel({
   }, [initialContentKey, initialLocale]);
 
   useEffect(() => {
+    if (initialSection) {
+      setFocusSection(initialSection);
+    }
+  }, [initialSection]);
+
+  useEffect(() => {
     if (!selectedContentKey || !selectedLocale || !sourceLocale) {
       return;
     }
 
     void loadState(selectedContentKey, selectedLocale, sourceLocale);
   }, [loadState, selectedContentKey, selectedLocale, sourceLocale]);
+
+  useEffect(() => {
+    if (!focusSection || selectedContentKey !== 'pricing') {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(draftContent) as Record<string, unknown>;
+      if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+        return;
+      }
+
+      const sectionExists = Object.prototype.hasOwnProperty.call(parsed, focusSection);
+      if (sectionExists) {
+        return;
+      }
+
+      const sectionStarter = getSectionStarter(selectedContentKey, focusSection);
+      if (Object.keys(sectionStarter).length === 0) {
+        return;
+      }
+
+      setDraftContent(stringifyContent({ ...parsed, ...sectionStarter }));
+    } catch {
+      // Keep current draft untouched when JSON is invalid.
+    }
+  }, [draftContent, focusSection, selectedContentKey]);
 
   const versions = useMemo(() => state?.versions ?? [], [state?.versions]);
   const parsedDraftPreview = useMemo(() => {
@@ -454,6 +516,7 @@ export default function MarketingContentPanel({
           translation draft was generated.
         </Alert>
       ) : null}
+      {focusSection ? <Alert severity="info">Focused section: {focusSection}</Alert> : null}
 
       <Card>
         <CardContent>

@@ -32,7 +32,7 @@ export default function AdminDashboardClient() {
     | 'audit-log'
   >('overview');
   const [marketingFocus, setMarketingFocus] = useState<
-    { contentKey: string; locale?: string } | undefined
+    { contentKey: string; locale?: string; section?: string } | undefined
   >(undefined);
 
   const {
@@ -203,6 +203,7 @@ export default function AdminDashboardClient() {
             role={user.role}
             initialContentKey={marketingFocus?.contentKey}
             initialLocale={marketingFocus?.locale}
+            initialSection={marketingFocus?.section}
           />
         )}
 
