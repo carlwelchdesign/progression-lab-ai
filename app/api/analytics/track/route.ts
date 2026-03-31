@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { prisma } from '../../../../lib/prisma';
@@ -20,11 +21,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           return null;
         }
 
-        const properties =
+        const properties: Prisma.InputJsonValue =
           event.properties &&
           typeof event.properties === 'object' &&
           !Array.isArray(event.properties)
-            ? (event.properties as Record<string, unknown>)
+            ? (event.properties as Prisma.InputJsonObject)
             : {};
 
         const sessionId =
