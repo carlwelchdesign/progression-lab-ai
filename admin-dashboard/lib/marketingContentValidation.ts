@@ -19,7 +19,35 @@ function isOptionalStringArray(value: unknown): boolean {
   );
 }
 
+function isOptionalBoolean(value: unknown): boolean {
+  return value === undefined || value === null || typeof value === 'boolean';
+}
+
+function isOptionalArray<T>(value: unknown, itemValidator: (item: unknown) => boolean): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    (Array.isArray(value) && value.every((item) => itemValidator(item)))
+  );
+}
+
 function validateHomepage(content: Record<string, unknown>, errors: string[]) {
+  // Validate section visibility
+  if (!isOptionalBoolean(content.showHero)) {
+    errors.push('homepage.showHero must be a boolean');
+  }
+  if (!isOptionalBoolean(content.showProofStrip)) {
+    errors.push('homepage.showProofStrip must be a boolean');
+  }
+  if (!isOptionalBoolean(content.showHowItWorks)) {
+    errors.push('homepage.showHowItWorks must be a boolean');
+  }
+  if (!isOptionalBoolean(content.showBenefits)) {
+    errors.push('homepage.showBenefits must be a boolean');
+  }
+  if (!isOptionalBoolean(content.showFaq)) {
+    errors.push('homepage.showFaq must be a boolean');
+  }
   const hero = content.hero;
   if (hero !== undefined && !isRecord(hero)) {
     errors.push('homepage.hero must be an object');
@@ -56,6 +84,53 @@ function validateHomepage(content: Record<string, unknown>, errors: string[]) {
     }
     if (!isOptionalStringArray(howItWorks.steps)) {
       errors.push('homepage.howItWorks.steps must be an array of strings');
+    }
+  }
+
+  // Validate benefits section
+  const benefits = content.benefits;
+  if (benefits !== undefined && !isRecord(benefits)) {
+    errors.push('homepage.benefits must be an object');
+  }
+  if (isRecord(benefits)) {
+    if (!isOptionalString(benefits.title)) {
+      errors.push('homepage.benefits.title must be a string');
+    }
+    if (!isOptionalString(benefits.description)) {
+      errors.push('homepage.benefits.description must be a string');
+    }
+    const items = benefits.items;
+    if (
+      items !== undefined &&
+      !isOptionalArray(
+        items,
+        (item) =>
+          isRecord(item) && isOptionalString(item.title) && isOptionalString(item.description),
+      )
+    ) {
+      errors.push('homepage.benefits.items must be an array of objects with title and description');
+    }
+  }
+
+  // Validate FAQ section
+  const faq = content.faq;
+  if (faq !== undefined && !isRecord(faq)) {
+    errors.push('homepage.faq must be an object');
+  }
+  if (isRecord(faq)) {
+    if (!isOptionalString(faq.title)) {
+      errors.push('homepage.faq.title must be a string');
+    }
+    const items = faq.items;
+    if (
+      items !== undefined &&
+      !isOptionalArray(
+        items,
+        (item) =>
+          isRecord(item) && isOptionalString(item.question) && isOptionalString(item.answer),
+      )
+    ) {
+      errors.push('homepage.faq.items must be an array of objects with question and answer');
     }
   }
 }
