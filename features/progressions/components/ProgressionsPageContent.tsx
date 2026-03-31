@@ -46,7 +46,7 @@ import { getSampleProgressionsByPersona, type UserPersona } from '../../../lib/s
 import { trackEvent } from '../../../lib/analytics';
 
 type ViewMode = 'mine' | 'public';
-type SortMode = 'recent' | 'oldest' | 'title' | 'chord_count';
+type SortMode = 'trending' | 'recent' | 'oldest' | 'title' | 'chord_count';
 
 type FilterFormData = {
   tagQuery: string[];
@@ -89,6 +89,18 @@ function getFirstChordName(progression: Progression): string {
   return '';
 }
 
+function getTrendingScore(progression: Progression): number {
+  const now = Date.now();
+  const updatedAt = new Date(progression.updatedAt).getTime();
+  const ageHours = Math.max(0, (now - updatedAt) / (1000 * 60 * 60));
+  const recencyBoost = Math.max(0, 96 - ageHours);
+  const chordRichness = (progression.chords?.length ?? 0) * 4;
+  const tagDepth = (progression.tags?.length ?? 0) * 2;
+  const titleSignal = Math.min((progression.title?.trim().length ?? 0) / 10, 3);
+
+  return recencyBoost + chordRichness + tagDepth + titleSignal;
+}
+
 export default function ProgressionsPageContent() {
   const { t, i18n } = useTranslation('common');
   const router = useRouter();
@@ -105,7 +117,7 @@ export default function ProgressionsPageContent() {
   const [deletingProgressionId, setDeletingProgressionId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [instrument] = useState<AudioInstrument>('piano');
-  const [sortMode, setSortMode] = useState<SortMode>('recent');
+  const [sortMode, setSortMode] = useState<SortMode>('trending');
   const [spotlightPersona, setSpotlightPersona] = useState<UserPersona>('beginner');
   const [canExportMidi, setCanExportMidi] = useState(false);
   const [canExportPdf, setCanExportPdf] = useState(false);
@@ -272,6 +284,11 @@ export default function ProgressionsPageContent() {
   const displayedProgressions = viewMode === 'mine' ? filteredMyProgressions : publicProgressions;
   const sortedDisplayedProgressions = useMemo(() => {
     const items = [...displayedProgressions];
+
+    if (sortMode === 'trending') {
+      items.sort((a, b) => getTrendingScore(b) - getTrendingScore(a));
+      return items;
+    }
 
     if (sortMode === 'title') {
       items.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
@@ -548,6 +565,9 @@ export default function ProgressionsPageContent() {
                 });
               }}
             >
+              <MenuItem value="trending">
+                {t('progressions.filters.sortTrending', { defaultValue: 'Trending now' })}
+              </MenuItem>
               <MenuItem value="recent">
                 {t('progressions.filters.sortRecent', { defaultValue: 'Recently updated' })}
               </MenuItem>
