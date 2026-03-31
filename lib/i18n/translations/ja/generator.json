@@ -47,6 +47,26 @@
       "randomizeInputs": "入力をランダム化",
       "generateIdeas": "アイデアを生成",
       "generating": "生成中..."
+    },
+    "advanced": {
+      "title": "Advanced voicing controls",
+      "voicingProfiles": {
+        "label": "Voicing profiles",
+        "placeholder": "Pick one or more voicing profiles",
+        "helperText": "Applies global voicing tendencies across all piano suggestions.",
+        "options": {
+          "close": "Close",
+          "spread": "Spread",
+          "rootless": "Rootless",
+          "drop2": "Drop 2",
+          "openAdd9": "Open add9"
+        }
+      },
+      "customVoicingInstructions": {
+        "label": "Custom voicing instructions",
+        "placeholder": "Example: prefer wide right-hand voicings with minimal doubling",
+        "helperText": "Optional free text override for voicing style."
+      }
     }
   },
   "optionGroups": {
