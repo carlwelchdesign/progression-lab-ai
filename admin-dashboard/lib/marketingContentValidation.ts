@@ -23,7 +23,7 @@ function isOptionalBoolean(value: unknown): boolean {
   return value === undefined || value === null || typeof value === 'boolean';
 }
 
-function isOptionalArray<_T>(value: unknown, itemValidator: (item: unknown) => boolean): boolean {
+function isOptionalArray(value: unknown, itemValidator: (item: unknown) => boolean): boolean {
   return (
     value === undefined ||
     value === null ||
@@ -308,6 +308,40 @@ function validatePublicProgressions(content: Record<string, unknown>, errors: st
   }
 }
 
+function validateFeaturedProgressions(content: Record<string, unknown>, errors: string[]) {
+  // Validate show flag
+  if (!isOptionalBoolean(content.show)) {
+    errors.push('featured_progressions.show must be a boolean');
+  }
+
+  // Validate title and description
+  if (!isOptionalString(content.title)) {
+    errors.push('featured_progressions.title must be a string');
+  }
+  if (!isOptionalString(content.description)) {
+    errors.push('featured_progressions.description must be a string');
+  }
+
+  // Validate personas
+  const personas = content.personas;
+  if (
+    personas !== undefined &&
+    !isOptionalArray(
+      personas,
+      (item) => isRecord(item) && isOptionalString(item.name) && typeof item.maxItems === 'number',
+    )
+  ) {
+    errors.push(
+      'featured_progressions.personas must be an array of objects with name and maxItems',
+    );
+  }
+
+  // Validate CTA labels
+  if (!isOptionalString(content.ctaLabel)) {
+    errors.push('featured_progressions.ctaLabel must be a string');
+  }
+}
+
 export function validateMarketingContentShape(
   contentKey: string,
   content: unknown,
@@ -336,6 +370,9 @@ export function validateMarketingContentShape(
       break;
     case 'auth_flow_copy':
       validateAuthFlowCopy(content, errors);
+      break;
+    case 'featured_progressions':
+      validateFeaturedProgressions(content, errors);
       break;
     default:
       errors.push('Unsupported marketing content key');

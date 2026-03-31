@@ -1,11 +1,11 @@
 'use client';
 
-import { Box, Container, Stack, Typography, Button } from '@mui/material';
+import { Box, Container, Stack, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import GeneratorPageContent from '../../generator/components/layout/GeneratorPageContent';
+import SampleProgressionsShowcase from './SampleProgressionsShowcase';
 import { fetchPublishedMarketingContent } from '../../../lib/marketingContentClient';
-import type { MarketingContentVersion } from '../../../admin-dashboard/components/admin/types';
 
 type HomePageSections = {
   showHero?: boolean;
@@ -40,17 +40,20 @@ type HomePageSections = {
       answer?: string;
     }>;
   };
+  featuredProgressions?: {
+    show?: boolean;
+    title?: string;
+    description?: string;
+  };
 };
 
 export default function HomePageLayout() {
   const { i18n } = useTranslation();
   const [sections, setSections] = useState<HomePageSections | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadHomepageSections = async () => {
       try {
-        setIsLoading(true);
         const content = await fetchPublishedMarketingContent('homepage', i18n.language);
         if (content) {
           const typedContent = content as Record<string, unknown>;
@@ -65,12 +68,13 @@ export default function HomePageLayout() {
             howItWorks: typedContent.howItWorks as HomePageSections['howItWorks'] | undefined,
             benefits: typedContent.benefits as HomePageSections['benefits'] | undefined,
             faq: typedContent.faq as HomePageSections['faq'] | undefined,
+            featuredProgressions: typedContent.featuredProgressions as
+              | HomePageSections['featuredProgressions']
+              | undefined,
           });
         }
       } catch (error) {
         console.error('Failed to load homepage marketing sections:', error);
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -366,6 +370,16 @@ export default function HomePageLayout() {
             )}
           </Stack>
         </Container>
+      )}
+
+      {/* Featured Progressions Section */}
+      {sections?.featuredProgressions?.show !== false && sections?.featuredProgressions && (
+        <SampleProgressionsShowcase
+          title={sections.featuredProgressions.title}
+          description={sections.featuredProgressions.description}
+          variant="homepage"
+          maxItemsDisplayed={3}
+        />
       )}
 
       {/* Generator Section */}
