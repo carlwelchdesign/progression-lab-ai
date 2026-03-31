@@ -39,6 +39,10 @@ type UseSequencerEngineProps = {
   onPlayEntry: (entry: PlayEntryArg, options?: PlayEntryOptions) => void;
   /** Called synchronously at the start of count-in (before the first click fires). */
   onCountInBegin?: () => void;
+  /** Called once when the transport is fully stopped. */
+  onStop?: () => void;
+  /** Called each time looping wraps from end back to step 0. */
+  onLoopRestart?: () => void;
 };
 
 export type UseSequencerEngineReturn = {
@@ -81,6 +85,8 @@ export function useSequencerEngine({
   eventsByStepRef,
   onPlayEntry,
   onCountInBegin,
+  onStop,
+  onLoopRestart,
 }: UseSequencerEngineProps): UseSequencerEngineReturn {
   const [isSequencerPlaying, setIsSequencerPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -110,6 +116,8 @@ export function useSequencerEngine({
   const timeSignatureRef = useRef(timeSignature);
   const metronomeVolumeRef = useRef(metronomeVolume);
   const stepsPerBarRef = useRef(stepsPerBar);
+  const onStopRef = useRef(onStop);
+  const onLoopRestartRef = useRef(onLoopRestart);
 
   useEffect(() => {
     totalStepsRef.current = totalSteps;
@@ -147,6 +155,12 @@ export function useSequencerEngine({
   useEffect(() => {
     stepsPerBarRef.current = stepsPerBar;
   }, [stepsPerBar]);
+  useEffect(() => {
+    onStopRef.current = onStop;
+  }, [onStop]);
+  useEffect(() => {
+    onLoopRestartRef.current = onLoopRestart;
+  }, [onLoopRestart]);
 
   // Cleanup all timers on unmount.
   useEffect(() => {
@@ -229,6 +243,7 @@ export function useSequencerEngine({
     }
 
     stopAllAudio();
+    onStopRef.current?.();
   };
 
   const resetStep = () => {
@@ -300,6 +315,7 @@ export function useSequencerEngine({
       if (nextStep >= totalStepsRef.current) {
         if (isLoopEnabledRef.current) {
           currentStepRef.current = 0;
+          onLoopRestartRef.current?.();
           scheduleNextStep();
           return;
         }

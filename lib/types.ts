@@ -131,6 +131,22 @@ export type ArrangementEvent = {
   velocity?: number;
 };
 
+export type VocalTake = {
+  id: string;
+  startStep: number;
+  durationSteps: number;
+  blob: Blob;
+  url: string;
+  gainValue: number;
+  isMuted: boolean;
+  audioBuffer?: AudioBuffer;
+};
+
+export type VocalFeatureEntitlements = {
+  canUseVocalTrackRecording: boolean;
+  maxVocalTakesPerArrangement: number | null;
+};
+
 export type ArrangementTimeline = {
   stepsPerBar: number;
   loopLengthBars: number;
@@ -188,6 +204,7 @@ export type ArrangementPayload = {
   title?: string;
   timeline: ArrangementTimeline;
   playbackSnapshot: ArrangementPlaybackSnapshot;
+  vocalTakeCount?: number;
   sourceChords?: Array<{
     key: string;
     chord: string;
@@ -210,6 +227,7 @@ export type Arrangement = {
   title: string;
   timeline: ArrangementTimeline;
   playbackSnapshot: ArrangementPlaybackSnapshot;
+  vocalTakeCount?: number;
   sourceChords?: Array<{
     key: string;
     chord: string;

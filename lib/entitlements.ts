@@ -12,6 +12,8 @@ export type PlanEntitlements = {
   canExportMidi: boolean;
   canExportPdf: boolean;
   canSharePublicly: boolean;
+  canUseVocalTrackRecording: boolean;
+  maxVocalTakesPerArrangement: number | null;
   canUsePremiumAiModel: boolean;
   gptModel: string;
 };
@@ -40,6 +42,8 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canExportMidi: false,
     canExportPdf: false,
     canSharePublicly: true,
+    canUseVocalTrackRecording: true,
+    maxVocalTakesPerArrangement: 1,
     canUsePremiumAiModel: false,
     gptModel: 'gpt-3.5-turbo',
   },
@@ -51,6 +55,8 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canExportMidi: true,
     canExportPdf: true,
     canSharePublicly: true,
+    canUseVocalTrackRecording: true,
+    maxVocalTakesPerArrangement: 4,
     canUsePremiumAiModel: false,
     gptModel: 'gpt-3.5-turbo',
   },
@@ -62,6 +68,8 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canExportMidi: true,
     canExportPdf: true,
     canSharePublicly: true,
+    canUseVocalTrackRecording: true,
+    maxVocalTakesPerArrangement: null,
     canUsePremiumAiModel: true,
     gptModel: 'gpt-4o',
   },
@@ -73,6 +81,8 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canExportMidi: true,
     canExportPdf: true,
     canSharePublicly: true,
+    canUseVocalTrackRecording: true,
+    maxVocalTakesPerArrangement: null,
     canUsePremiumAiModel: true,
     gptModel: 'gpt-4o',
   },
@@ -84,6 +94,8 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canExportMidi: true,
     canExportPdf: true,
     canSharePublicly: false,
+    canUseVocalTrackRecording: true,
+    maxVocalTakesPerArrangement: 4,
     canUsePremiumAiModel: false,
     gptModel: 'gpt-3.5-turbo',
   },
@@ -164,6 +176,8 @@ export async function getAccessContextForSession(session: {
     canExportMidi: tierConfig.canExportMidi,
     canExportPdf: tierConfig.canExportPdf,
     canSharePublicly: tierConfig.canSharePublicly,
+    canUseVocalTrackRecording: PLAN_ENTITLEMENTS[plan].canUseVocalTrackRecording,
+    maxVocalTakesPerArrangement: PLAN_ENTITLEMENTS[plan].maxVocalTakesPerArrangement,
     canUsePremiumAiModel: tierConfig.gptModel !== 'gpt-3.5-turbo',
     gptModel: tierConfig.gptModel,
   };

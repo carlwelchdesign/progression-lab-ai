@@ -2,7 +2,7 @@ import type {
   PlaybackSettings,
   PlaybackSettingsChangeHandlers,
 } from '../../lib/playbackSettingsModel';
-import type { ArrangementEvent } from '../../../../lib/types';
+import type { ArrangementEvent, VocalFeatureEntitlements } from '../../../../lib/types';
 
 /**
  * Render-ready chord data for each playable grid pad.
@@ -36,6 +36,7 @@ export type GeneratedChordGridDialogProps = {
   pendingLoad?: PendingArrangementLoad | null;
   /** Called after an arrangement is successfully saved, so callers can refresh lists. */
   onSaveSuccess?: () => void;
+  vocalEntitlements?: VocalFeatureEntitlements;
 };
 
 export const STEPS_PER_BEAT = 4;

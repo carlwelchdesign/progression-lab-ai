@@ -14,6 +14,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
 import LoopIcon from '@mui/icons-material/Loop';
+import MicIcon from '@mui/icons-material/Mic';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 
@@ -50,6 +51,10 @@ type TransportBarProps = {
   onLoopLengthChange: (bars: (typeof LOOP_LENGTH_OPTIONS)[number]) => void;
   onRecordingModeChange: (mode: RecordingMode) => void;
   onSingleShotCursorStepChange: (step: number | null) => void;
+  isVocalRecording: boolean;
+  canUseVocalTrackRecording: boolean;
+  isVocalTakeLimitReached: boolean;
+  onVocalRecordToggle: () => void;
 };
 
 /**
@@ -84,6 +89,10 @@ export default function TransportBar({
   onLoopLengthChange,
   onRecordingModeChange,
   onSingleShotCursorStepChange,
+  isVocalRecording,
+  canUseVocalTrackRecording,
+  isVocalTakeLimitReached,
+  onVocalRecordToggle,
 }: TransportBarProps) {
   const { t } = useTranslation('generator');
   const theme = useTheme();
@@ -186,16 +195,10 @@ export default function TransportBar({
             },
           }}
         >
-          <ToggleButton
-            value="continuous"
-            aria-label={t('ui.chordGrid.recordingModeContinuous')}
-          >
+          <ToggleButton value="continuous" aria-label={t('ui.chordGrid.recordingModeContinuous')}>
             {t('ui.chordGrid.recordingModeContinuous')}
           </ToggleButton>
-          <ToggleButton
-            value="single-shot"
-            aria-label={t('ui.chordGrid.recordingModeSingleShot')}
-          >
+          <ToggleButton value="single-shot" aria-label={t('ui.chordGrid.recordingModeSingleShot')}>
             {t('ui.chordGrid.recordingModeSingleShot')}
           </ToggleButton>
         </ToggleButtonGroup>
@@ -212,6 +215,35 @@ export default function TransportBar({
             sx={getTransportIconButtonSx(isLoopEnabled)}
           >
             <LoopIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip
+          title={
+            !canUseVocalTrackRecording
+              ? t('ui.chordGrid.vocalUnavailableOnPlan', {
+                  defaultValue: 'Upgrade to unlock vocal recording',
+                })
+              : isVocalTakeLimitReached
+                ? t('ui.chordGrid.vocalTakeLimitReached', {
+                    defaultValue: 'Take limit reached for this plan',
+                  })
+                : isVocalRecording
+                  ? t('ui.chordGrid.stopVocalRecording', { defaultValue: 'Stop vocal recording' })
+                  : t('ui.chordGrid.recordVocalTrack', { defaultValue: 'Record vocal take' })
+          }
+        >
+          <IconButton
+            size="small"
+            aria-label={
+              isVocalRecording
+                ? t('ui.chordGrid.stopVocalRecording', { defaultValue: 'Stop vocal recording' })
+                : t('ui.chordGrid.recordVocalTrack', { defaultValue: 'Record vocal take' })
+            }
+            onClick={onVocalRecordToggle}
+            sx={getTransportIconButtonSx(isVocalRecording, 'error')}
+          >
+            <MicIcon fontSize="small" />
           </IconButton>
         </Tooltip>
 

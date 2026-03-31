@@ -46,6 +46,8 @@ type PricingTierConfig = {
   canExportPdf: boolean;
   canSharePublicly: boolean;
   canUsePremiumAiModel: boolean;
+  canUseVocalTrackRecording?: boolean;
+  maxVocalTakesPerArrangement?: number | null;
 };
 
 type PricingTier = {
@@ -151,9 +153,29 @@ function getAiAccessFeature(config: PricingTierConfig): string {
   return isPremiumModel ? 'Premium AI model access' : 'Standard AI model access';
 }
 
-function buildFeatures(baseFeatures: readonly string[], config?: PricingTierConfig): string[] {
+function getVocalFeature(plan: PublicPlan, config?: PricingTierConfig): string {
+  if (config?.canUseVocalTrackRecording === false) {
+    return 'Vocal recording unavailable';
+  }
+
+  const maxTakes =
+    config?.maxVocalTakesPerArrangement ??
+    (plan === 'SESSION' ? 1 : plan === 'COMPOSER' ? 4 : null);
+
+  if (maxTakes === null) {
+    return 'Unlimited vocal takes per arrangement';
+  }
+
+  return `${maxTakes} vocal take${maxTakes === 1 ? '' : 's'} per arrangement`;
+}
+
+function buildFeatures(
+  plan: PublicPlan,
+  baseFeatures: readonly string[],
+  config?: PricingTierConfig,
+): string[] {
   if (!config) {
-    return [...baseFeatures];
+    return [...baseFeatures, getVocalFeature(plan)];
   }
 
   const features = [
@@ -164,6 +186,7 @@ function buildFeatures(baseFeatures: readonly string[], config?: PricingTierConf
       ? formatLimit(config.maxPublicShares, 'public shares')
       : 'Public sharing disabled',
     getExportFeature(config),
+    getVocalFeature(plan, config),
     getAiAccessFeature(config),
   ];
 
@@ -291,7 +314,7 @@ export default function PricingPageContent() {
         priceYearly,
         summary: config?.description || defaults.summary,
         description: defaults.description,
-        features: buildFeatures(defaults.features, config),
+        features: buildFeatures(tier.plan, defaults.features, config),
         cta: defaults.cta,
         badge: defaults.badge,
       };

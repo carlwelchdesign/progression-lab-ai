@@ -39,6 +39,8 @@ type BillingStatusResponse = {
     canExportPdf: boolean;
     canSharePublicly: boolean;
     canUsePremiumAiModel: boolean;
+    canUseVocalTrackRecording?: boolean;
+    maxVocalTakesPerArrangement?: number | null;
   };
   planOverride: SubscriptionPlan | null;
   planOverrideExpiresAt: string | null;
@@ -449,6 +451,21 @@ export default function BillingPageContent() {
                       status: billingStatus.entitlements.canSharePublicly
                         ? t('billing.enabled')
                         : t('billing.locked'),
+                    })}
+                  </Typography>
+                  <Typography color="text.secondary">
+                    {t('billing.vocalRecordingStatus', {
+                      status: billingStatus.entitlements.canUseVocalTrackRecording
+                        ? t('billing.enabled')
+                        : t('billing.locked'),
+                    })}
+                  </Typography>
+                  <Typography color="text.secondary">
+                    {t('billing.vocalTakeLimitStatus', {
+                      value:
+                        billingStatus.entitlements.maxVocalTakesPerArrangement === null
+                          ? t('billing.unlimited')
+                          : String(billingStatus.entitlements.maxVocalTakesPerArrangement ?? 1),
                     })}
                   </Typography>
                 </Stack>

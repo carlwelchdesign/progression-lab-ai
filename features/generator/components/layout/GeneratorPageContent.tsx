@@ -51,6 +51,7 @@ import type {
   ChordSuggestionResponse,
   GeneratorSnapshot,
   GuitarVoicing,
+  VocalFeatureEntitlements,
 } from '../../../../lib/types';
 
 const MAX_RANDOM_SELECTIONS = 7;
@@ -184,6 +185,10 @@ export default function GeneratorPageContent() {
   } = playbackSettings;
 
   const [isGeneratedChordGridOpen, setIsGeneratedChordGridOpen] = useState(false);
+  const [vocalEntitlements, setVocalEntitlements] = useState<VocalFeatureEntitlements>({
+    canUseVocalTrackRecording: true,
+    maxVocalTakesPerArrangement: 1,
+  });
   const [pendingArrangementLoad, setPendingArrangementLoad] = useState<{
     key: string;
     events: Arrangement['timeline']['events'];
@@ -200,6 +205,53 @@ export default function GeneratorPageContent() {
   const progressiveRevealTimerRef = useRef<number | null>(null);
   const inFlightRequestControllerRef = useRef<AbortController | null>(null);
   const { showError } = useAppSnackbar();
+
+  useEffect(() => {
+    if (!isGeneratedChordGridOpen) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setVocalEntitlements({
+        canUseVocalTrackRecording: true,
+        maxVocalTakesPerArrangement: 1,
+      });
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadVocalEntitlements = async () => {
+      try {
+        const response = await fetch('/api/billing/status', {
+          credentials: 'include',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const body = (await response.json()) as {
+          entitlements?: Partial<VocalFeatureEntitlements>;
+        };
+
+        setVocalEntitlements({
+          canUseVocalTrackRecording: body.entitlements?.canUseVocalTrackRecording ?? true,
+          maxVocalTakesPerArrangement: body.entitlements?.maxVocalTakesPerArrangement ?? 1,
+        });
+      } catch {
+        // Keep fallback entitlements if billing status request fails.
+      }
+    };
+
+    void loadVocalEntitlements();
+
+    return () => {
+      controller.abort();
+    };
+  }, [isAuthenticated, isGeneratedChordGridOpen]);
 
   const abortInFlightRequest = useCallback(() => {
     inFlightRequestControllerRef.current?.abort();
@@ -975,6 +1027,7 @@ export default function GeneratorPageContent() {
                       setShowArrangementsSection(true);
                       setArrangementsRefreshSignal((prev) => prev + 1);
                     }}
+                    vocalEntitlements={vocalEntitlements}
                   />
                 </>
               );
