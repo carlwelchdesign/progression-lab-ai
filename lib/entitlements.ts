@@ -14,6 +14,7 @@ export type PlanEntitlements = {
   canSharePublicly: boolean;
   canUseVocalTrackRecording: boolean;
   maxVocalTakesPerArrangement: number | null;
+  canUseAdvancedVoicingControls: boolean;
   canUsePremiumAiModel: boolean;
   gptModel: string;
 };
@@ -44,6 +45,7 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canSharePublicly: true,
     canUseVocalTrackRecording: true,
     maxVocalTakesPerArrangement: 1,
+    canUseAdvancedVoicingControls: false,
     canUsePremiumAiModel: false,
     gptModel: 'gpt-3.5-turbo',
   },
@@ -57,6 +59,7 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canSharePublicly: true,
     canUseVocalTrackRecording: true,
     maxVocalTakesPerArrangement: 4,
+    canUseAdvancedVoicingControls: true,
     canUsePremiumAiModel: false,
     gptModel: 'gpt-3.5-turbo',
   },
@@ -70,6 +73,7 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canSharePublicly: true,
     canUseVocalTrackRecording: true,
     maxVocalTakesPerArrangement: null,
+    canUseAdvancedVoicingControls: true,
     canUsePremiumAiModel: true,
     gptModel: 'gpt-4o',
   },
@@ -83,6 +87,7 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canSharePublicly: true,
     canUseVocalTrackRecording: true,
     maxVocalTakesPerArrangement: null,
+    canUseAdvancedVoicingControls: true,
     canUsePremiumAiModel: true,
     gptModel: 'gpt-4o',
   },
@@ -96,6 +101,7 @@ export const PLAN_ENTITLEMENTS: Record<SubscriptionPlan, PlanEntitlements> = {
     canSharePublicly: false,
     canUseVocalTrackRecording: true,
     maxVocalTakesPerArrangement: 4,
+    canUseAdvancedVoicingControls: true,
     canUsePremiumAiModel: false,
     gptModel: 'gpt-3.5-turbo',
   },
@@ -178,6 +184,7 @@ export async function getAccessContextForSession(session: {
     canSharePublicly: tierConfig.canSharePublicly,
     canUseVocalTrackRecording: PLAN_ENTITLEMENTS[plan].canUseVocalTrackRecording,
     maxVocalTakesPerArrangement: PLAN_ENTITLEMENTS[plan].maxVocalTakesPerArrangement,
+    canUseAdvancedVoicingControls: tierConfig.canUseAdvancedVoicingControls,
     canUsePremiumAiModel: tierConfig.gptModel !== 'gpt-3.5-turbo',
     gptModel: tierConfig.gptModel,
   };

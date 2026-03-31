@@ -70,6 +70,8 @@ export type SavedGeneratorFormData = {
   customGenre: string;
   styleReference: string;
   adventurousness: Adventurousness;
+  voicingProfiles?: Array<'close' | 'spread' | 'rootless' | 'drop2' | 'openAdd9'>;
+  customVoicingInstructions?: string;
   tempoBpm: number;
 };
 

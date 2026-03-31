@@ -13,7 +13,7 @@ import type {
   ChordSuggestionResponse,
   GeneratorSnapshot,
 } from '../../../lib/types';
-import type { GeneratorFormData } from '../types';
+import type { GeneratorFormData, VoicingProfile } from '../types';
 import {
   applyPlaybackSettings,
   type PlaybackSettings,
@@ -38,6 +38,8 @@ type GeneratorCache = {
   customGenre: string;
   styleReference?: string;
   adventurousness: Adventurousness;
+  voicingProfiles?: VoicingProfile[];
+  customVoicingInstructions?: string;
   tempoBpm?: number;
   playbackSettings?: Partial<PlaybackSettings>;
   // Backward compatibility for the prior cache format.
@@ -133,8 +135,22 @@ const parseLoadedProgressionPayload = (
   const parsed = parseJsonObject(rawLoadedProgression) as LoadedProgressionPayload;
 
   if (parsed.generatorSnapshot) {
+    const savedFormData = parsed.generatorSnapshot.formData;
+
     return {
-      resetPayload: parsed.generatorSnapshot.formData,
+      resetPayload: {
+        seedChords: savedFormData.seedChords,
+        mood: savedFormData.mood,
+        mode: savedFormData.mode,
+        customMode: savedFormData.customMode,
+        genre: savedFormData.genre,
+        customGenre: savedFormData.customGenre,
+        styleReference: savedFormData.styleReference,
+        adventurousness: savedFormData.adventurousness,
+        voicingProfiles: savedFormData.voicingProfiles ?? [],
+        customVoicingInstructions: savedFormData.customVoicingInstructions ?? '',
+        tempoBpm: savedFormData.tempoBpm,
+      },
       restoredData: parsed.generatorSnapshot.data,
       isLoadedFromSavedProgression: false,
     };
@@ -159,6 +175,8 @@ const parseLoadedProgressionPayload = (
       customGenre,
       styleReference: '',
       adventurousness: 'balanced',
+      voicingProfiles: [],
+      customVoicingInstructions: '',
       tempoBpm: 100,
     },
     restoredData: {
@@ -209,6 +227,10 @@ const parseGeneratorCachePayload = (rawGeneratorCache: string): ParsedGeneratorC
       customGenre: parsedCache.customGenre,
       styleReference: parsedCache.styleReference ?? '',
       adventurousness: parsedCache.adventurousness,
+      voicingProfiles: Array.isArray(parsedCache.voicingProfiles)
+        ? parsedCache.voicingProfiles
+        : [],
+      customVoicingInstructions: parsedCache.customVoicingInstructions ?? '',
       tempoBpm: parsedCache.tempoBpm ?? 100,
     },
     data: parsedCache.data,
@@ -234,6 +256,8 @@ const buildGeneratorCachePayload = (
   customGenre: formData.customGenre,
   styleReference: formData.styleReference,
   adventurousness: formData.adventurousness,
+  voicingProfiles: formData.voicingProfiles,
+  customVoicingInstructions: formData.customVoicingInstructions,
   tempoBpm: formData.tempoBpm,
   playbackSettings,
   roomSize: playbackSettings.roomSize,

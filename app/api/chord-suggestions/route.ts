@@ -23,6 +23,8 @@ const NOTE_PATTERN = /^([A-G](?:#|b)?)(-?\d+)$/;
 const MAX_REQUEST_BODY_BYTES = 8 * 1024;
 const MAX_SEED_CHORDS = 8;
 const MAX_TEXT_FIELD_LENGTH = 200;
+const MAX_CUSTOM_VOICING_INSTRUCTIONS_LENGTH = 500;
+const ALLOWED_VOICING_PROFILES = new Set(['close', 'spread', 'rootless', 'drop2', 'openAdd9']);
 const CHORD_SUGGESTION_RATE_LIMIT = {
   maxAttempts: 10,
   windowMs: 15 * 60 * 1000,
@@ -39,6 +41,8 @@ type ChordSuggestionRequestBody = {
   mode?: unknown;
   genre?: unknown;
   styleReference?: unknown;
+  voicingProfiles?: unknown;
+  customVoicingInstructions?: unknown;
   instrument?: unknown;
   adventurousness?: unknown;
   language?: unknown;
@@ -50,6 +54,8 @@ type ChordSuggestionModelInput = {
   mode: string;
   genre: string;
   styleReference: string | null;
+  voicingProfiles: Array<'close' | 'spread' | 'rootless' | 'drop2' | 'openAdd9'>;
+  customVoicingInstructions: string | null;
   instrument: 'guitar' | 'piano' | 'both';
   adventurousness: 'safe' | 'balanced' | 'surprising';
   language: string;
@@ -245,6 +251,29 @@ function normalizeTextField(value: unknown, fieldName: string): string {
   return normalized;
 }
 
+function normalizeTruncatedTextField(value: unknown, maxLength: number): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value.trim().slice(0, maxLength);
+}
+
+function normalizeVoicingProfiles(
+  value: unknown,
+): Array<'close' | 'spread' | 'rootless' | 'drop2' | 'openAdd9'> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item): item is 'close' | 'spread' | 'rootless' | 'drop2' | 'openAdd9' =>
+      ALLOWED_VOICING_PROFILES.has(item),
+    );
+}
+
 function parseRequestBody(rawBody: string): ChordSuggestionRequestBody {
   if (Buffer.byteLength(rawBody, 'utf8') > MAX_REQUEST_BODY_BYTES) {
     throw new Error('Request body is too large');
@@ -280,6 +309,15 @@ function buildModelInput(body: ChordSuggestionRequestBody): ChordSuggestionModel
       typeof body.styleReference === 'string' && body.styleReference.trim().length > 0
         ? normalizeTextField(body.styleReference, 'Style reference')
         : null,
+    voicingProfiles: normalizeVoicingProfiles(body.voicingProfiles),
+    customVoicingInstructions: (() => {
+      const normalized = normalizeTruncatedTextField(
+        body.customVoicingInstructions,
+        MAX_CUSTOM_VOICING_INSTRUCTIONS_LENGTH,
+      );
+
+      return normalized.length > 0 ? normalized : null;
+    })(),
     instrument:
       body.instrument === 'piano' || body.instrument === 'guitar' || body.instrument === 'both'
         ? body.instrument
@@ -291,6 +329,21 @@ function buildModelInput(body: ChordSuggestionRequestBody): ChordSuggestionModel
         ? body.adventurousness
         : 'balanced',
     language: normalizeAppLocale(body.language),
+  };
+}
+
+function applyAdvancedVoicingEntitlements(
+  modelInput: ChordSuggestionModelInput,
+  canUseAdvancedVoicingControls: boolean,
+): ChordSuggestionModelInput {
+  if (canUseAdvancedVoicingControls) {
+    return modelInput;
+  }
+
+  return {
+    ...modelInput,
+    voicingProfiles: [],
+    customVoicingInstructions: null,
   };
 }
 
@@ -338,7 +391,11 @@ export async function POST(req: NextRequest) {
     const rawBody = await req.text();
     const body = parseRequestBody(rawBody);
     const modelInput = buildModelInput(body);
-    const input = JSON.stringify(modelInput);
+    const entitledModelInput = applyAdvancedVoicingEntitlements(
+      modelInput,
+      accessContext.entitlements.canUseAdvancedVoicingControls,
+    );
+    const input = JSON.stringify(entitledModelInput);
     const localeDefinition = getLocaleDefinition(modelInput.language);
     const requestedModel = accessContext.entitlements.gptModel;
     const model = resolveModelForResponsesApi(requestedModel);

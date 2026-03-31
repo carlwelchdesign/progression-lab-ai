@@ -97,6 +97,14 @@ export const GENRE_CATEGORY_BY_NAME: Record<string, string> = {
 
 export const ADVENTUROUSNESS_OPTIONS = ['safe', 'balanced', 'surprising'] as const;
 
+export const VOICING_PROFILE_OPTIONS = [
+  'close',
+  'spread',
+  'rootless',
+  'drop2',
+  'openAdd9',
+] as const;
+
 export const ADVENTUROUSNESS_CATEGORY_BY_NAME: Record<string, string> = {
   safe: 'Risk Profile',
   balanced: 'Risk Profile',
