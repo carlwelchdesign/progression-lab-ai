@@ -27,6 +27,10 @@ ProgressionLab turns harmonic intent into playable music. Describe a mood, style
 - Library: save and filter progressions by tags and harmonic context.
 - Sharing: public progression links via `shareId` pages.
 - Auth: session-based auth for protected actions while preserving a public browse flow.
+- Marketing CMS: admin-managed homepage, pricing, nav/footer, and progressions copy with draft, publish, and rollback versioning — no code deploys required for copy changes.
+- AI Translation: OpenAI-assisted locale draft generation for all marketing surfaces, with mandatory human review before publish and stale-draft detection when English source changes.
+- Persona Onboarding: post-register sample progression selector (Beginner / Intermediate / Professional) that pre-seeds the generator for the user's first session.
+- Analytics: server-side funnel event ingestion with admin insights panel covering page views, auth, upgrade intent, and segment breakdowns by locale and persona.
 
 ## MFA and Security Keys
 
@@ -136,6 +140,8 @@ admin-dashboard/      # Standalone admin application
 | Development Setup | https://github.com/carlwelchdesign/progression-lab-ai/wiki/Development |
 | Deployment Guide | [DEPLOYMENT.md](DEPLOYMENT.md) |
 | Prompt Versioning Runbook | [PROMPT_VERSIONING_RUNBOOK.md](PROMPT_VERSIONING_RUNBOOK.md) |
+| Marketing CMS | https://github.com/carlwelchdesign/progression-lab-ai/wiki/Features-Marketing-CMS |
+| Analytics & Funnel Insights | https://github.com/carlwelchdesign/progression-lab-ai/wiki/Features-Analytics |
 | Security Overview | https://github.com/carlwelchdesign/progression-lab-ai/wiki/Security |
 | Security Audit | [SECURITY_AUDIT_2025.md](SECURITY_AUDIT_2025.md) |
 | Security Deployment Checklist | [SECURITY_DEPLOYMENT.md](SECURITY_DEPLOYMENT.md) |
@@ -184,6 +190,10 @@ Completed recently:
 - [x] Expanded playback controls (tempo-aware playback + stop behavior)
 - [x] MIDI and PDF export support
 - [x] Rich social previews
+- [x] Admin-managed marketing CMS with per-locale draft/publish/rollback
+- [x] AI-assisted translation workflow with stale-draft detection
+- [x] Persona-based onboarding with generator pre-seeding
+- [x] Analytics ingestion and admin funnel insights panel
 
 Next up:
 
