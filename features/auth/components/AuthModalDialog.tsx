@@ -21,10 +21,14 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../components/providers/AuthProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import TextField from '../../../components/ui/TextField';
+import OnboardingSampleSelector from '../../home/components/OnboardingSampleSelector';
 import WebAuthnEnrollmentModal from './WebAuthnEnrollmentModal';
+import { fetchPublishedMarketingContent } from '../../../lib/marketingContentClient';
+import { trackEvent } from '../../../lib/analytics';
+import { getSampleProgressionsByPersona, type UserPersona } from '../../../lib/sampleContent';
 
 export type AuthMode = 'login' | 'register';
-export type AuthDialogReason = 'my-progressions' | 'save-arrangement' | 'generic';
+export type AuthDialogReason = 'my-progressions' | 'save-arrangement' | 'upgrade-plan' | 'generic';
 
 type AuthFormData = {
   name: string;
@@ -38,27 +42,27 @@ type LoginResponseBody = {
   message?: string;
 };
 
+type AuthFlowCopy = {
+  modalTitle?: string;
+  modalDescription?: string;
+  loginButtonLabel?: string;
+  registerButtonLabel?: string;
+  benefitDescription?: string;
+};
+
 type AuthModalDialogProps = {
   open: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (seedChords?: string) => void;
   initialMode?: AuthMode;
   reason?: AuthDialogReason;
 };
 
-const getReasonMessage = (
-  reason: AuthDialogReason | undefined,
-  t: (key: string) => string,
-): string | null => {
-  if (reason === 'my-progressions') {
-    return t('auth.reason.myProgressions');
+const getReasonKey = (reason: AuthDialogReason | undefined): string => {
+  if (reason === 'my-progressions' || reason === 'save-arrangement' || reason === 'upgrade-plan') {
+    return reason;
   }
-
-  if (reason === 'save-arrangement') {
-    return t('auth.reason.saveArrangement');
-  }
-
-  return null;
+  return 'generic';
 };
 
 export default function AuthModalDialog({
@@ -68,13 +72,15 @@ export default function AuthModalDialog({
   initialMode = 'login',
   reason,
 }: AuthModalDialogProps) {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const { refresh } = useAuth();
   const { showError, showSuccess } = useAppSnackbar();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [apiError, setApiError] = useState('');
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
-  const reasonMessage = getReasonMessage(reason, t);
+  const [showPersonaModal, setShowPersonaModal] = useState(false);
+  const [authCopy, setAuthCopy] = useState<AuthFlowCopy | null>(null);
+  const reasonKey = getReasonKey(reason);
 
   const {
     control,
@@ -89,6 +95,20 @@ export default function AuthModalDialog({
     },
     mode: 'onChange',
   });
+
+  useEffect(() => {
+    const loadAuthCopy = async () => {
+      try {
+        const item = await fetchPublishedMarketingContent('auth_flow_copy', i18n.language);
+        const reasonCopy = item?.content?.[reasonKey] as AuthFlowCopy | undefined;
+        setAuthCopy(reasonCopy ?? null);
+      } catch {
+        setAuthCopy(null);
+      }
+    };
+
+    void loadAuthCopy();
+  }, [reasonKey, i18n.language]);
 
   useEffect(() => {
     if (!open) {
@@ -145,8 +165,12 @@ export default function AuthModalDialog({
 
       await refresh();
       showSuccess(
-        mode === 'login' ? t('auth.messages.signedInSuccessfully') : t('auth.messages.accountCreatedSuccessfully'),
+        mode === 'login'
+          ? t('auth.messages.signedInSuccessfully')
+          : t('auth.messages.accountCreatedSuccessfully'),
       );
+
+      trackEvent('auth_completed', { mode, reason: reasonKey });
 
       // If registering, show optional enrollment modal; otherwise close immediately
       if (mode === 'register') {
@@ -164,6 +188,22 @@ export default function AuthModalDialog({
 
   const handleEnrollmentClose = () => {
     setShowEnrollmentModal(false);
+    setShowPersonaModal(true);
+  };
+
+  const handlePersonaSelect = (persona: string) => {
+    const samples = getSampleProgressionsByPersona(persona as UserPersona);
+    const seedChords = samples[0]?.chords ?? '';
+    if (seedChords && typeof window !== 'undefined') {
+      sessionStorage.setItem('onboarding_seed_chords', seedChords);
+    }
+    setShowPersonaModal(false);
+    onClose();
+    onSuccess?.(seedChords);
+  };
+
+  const handlePersonaSkip = () => {
+    setShowPersonaModal(false);
     onClose();
     onSuccess?.();
   };
@@ -176,14 +216,23 @@ export default function AuthModalDialog({
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>{t('auth.dialog.title')}</DialogTitle>
+        <DialogTitle>{authCopy?.modalTitle || t('auth.dialog.title')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2.5} component="form" sx={{ mt: 1 }} onSubmit={handleSubmit(onSubmit)}>
             <Box>
-              <Typography color="text.secondary">{t('auth.dialog.description')}</Typography>
+              <Typography color="text.secondary">
+                {authCopy?.modalDescription ||
+                  (reason === 'my-progressions'
+                    ? t('auth.reason.myProgressions')
+                    : reason === 'save-arrangement'
+                      ? t('auth.reason.saveArrangement')
+                      : t('auth.dialog.description'))}
+              </Typography>
             </Box>
 
-            {reasonMessage ? <Alert severity="info">{reasonMessage}</Alert> : null}
+            {authCopy?.benefitDescription ? (
+              <Alert severity="info">{authCopy.benefitDescription}</Alert>
+            ) : null}
 
             <ToggleButtonGroup
               exclusive
@@ -289,14 +338,23 @@ export default function AuthModalDialog({
                     ? t('auth.actions.signingIn')
                     : t('auth.actions.creatingAccount')
                   : mode === 'login'
-                    ? t('auth.actions.signIn')
-                    : t('auth.actions.createAccount')}
+                    ? authCopy?.loginButtonLabel || t('auth.actions.signIn')
+                    : authCopy?.registerButtonLabel || t('auth.actions.createAccount')}
               </Button>
             </Stack>
           </Stack>
         </DialogContent>
       </Dialog>
       <WebAuthnEnrollmentModal open={showEnrollmentModal} onClose={handleEnrollmentClose} />
+      <Dialog open={showPersonaModal} onClose={handlePersonaSkip} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('onboarding.selectYourLevel')}</DialogTitle>
+        <DialogContent>
+          <OnboardingSampleSelector
+            onPersonaSelect={handlePersonaSelect}
+            onSkip={handlePersonaSkip}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

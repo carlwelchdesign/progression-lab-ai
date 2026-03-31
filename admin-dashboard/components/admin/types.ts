@@ -182,6 +182,85 @@ export type PlanVersionsState = {
   versions: PlanVersion[];
 };
 
+export type MarketingContentKind = 'PAGE' | 'GLOBAL_CHROME' | 'DISCOVERY_SURFACE';
+export type MarketingTranslationOrigin = 'HUMAN' | 'AI_ASSISTED';
+
+export type MarketingContentDefinition = {
+  key: string;
+  label: string;
+  description: string;
+  contentKind: MarketingContentKind;
+  schemaVersion: number;
+  defaultLocale: string;
+  defaultContent: Record<string, unknown>;
+};
+
+export type MarketingContentVersion = {
+  id: string;
+  marketingContentId: string;
+  contentKey: string;
+  contentKind: MarketingContentKind;
+  schemaVersion: number;
+  locale: string;
+  versionNumber: number;
+  content: Record<string, unknown>;
+  notes: string | null;
+  isDraft: boolean;
+  isActive: boolean;
+  editorUserId: string | null;
+  editorEmail: string | null;
+  publishedAt: string | null;
+  sourceVersionId: string | null;
+  translationOrigin: MarketingTranslationOrigin | null;
+  translationModel: string | null;
+  translationGeneratedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MarketingContentState = {
+  contentKey: string;
+  locale: string;
+  sourceLocale: string;
+  definitions: MarketingContentDefinition[];
+  supportedLocales: string[];
+  active: MarketingContentVersion | null;
+  draft: MarketingContentVersion | null;
+  versions: MarketingContentVersion[];
+  sourceActiveVersionId: string | null;
+  sourceActiveVersionNumber: number | null;
+  staleVersionIds: string[];
+  selectedDraftIsStale: boolean;
+  defaultContent: Record<string, unknown>;
+};
+
+export type MarketingContentOperationResponse = {
+  item: MarketingContentVersion;
+  stale?: {
+    isStale: boolean;
+    sourceActiveVersionId: string | null;
+    sourceActiveVersionNumber: number | null;
+  };
+};
+
+export type SaveMarketingContentDraftInput = {
+  contentKey: string;
+  locale: string;
+  content: Record<string, unknown>;
+  notes: string | null;
+  sourceVersionId?: string | null;
+  translationOrigin?: MarketingTranslationOrigin | null;
+  translationModel?: string | null;
+};
+
+export type TranslateMarketingContentInput = {
+  contentKey: string;
+  sourceLocale: string;
+  targetLocale: string;
+  sourceVersionId?: string | null;
+  model?: string;
+};
+
 export type PromoCodeType = 'DISCOUNT' | 'INVITE';
 export type PromoRedemptionStatus = 'REDEEMED' | 'REJECTED';
 
@@ -244,4 +323,71 @@ export type SavePlanDraftInput = {
   canExportPdf: boolean;
   canSharePublicly: boolean;
   canUsePremiumAiModel: boolean;
+};
+
+export type AnalyticsEventSummaryRow = {
+  eventType: string;
+  count: number;
+};
+
+export type AnalyticsRecentEvent = {
+  id: string;
+  eventType: string;
+  sessionId: string | null;
+  createdAt: string;
+  properties: unknown;
+};
+
+export type AnalyticsSummary = {
+  days: number;
+  since: string;
+  until: string;
+  rangeMode: 'lookback' | 'custom';
+  filters: {
+    locale: string | null;
+    persona: string | null;
+  };
+  totals: {
+    totalEvents: number;
+    uniqueSessions: number;
+    conversionEvents: number;
+  };
+  funnel: {
+    pageViews: number;
+    authStarted: number;
+    authCompleted: number;
+    upgradeIntent: number;
+    upgradeCompleted: number;
+    authStartRateFromViews: number;
+    authCompletionRateFromStarts: number;
+    upgradeIntentRateFromAuthCompletion: number;
+    upgradeCompletionRateFromIntent: number;
+  };
+  breakdownByLocale: AnalyticsFunnelBreakdownRow[];
+  breakdownByPersona: AnalyticsFunnelBreakdownRow[];
+  dailyFunnelTrend: AnalyticsFunnelTrendRow[];
+  eventsByType: AnalyticsEventSummaryRow[];
+  recentEvents: AnalyticsRecentEvent[];
+};
+
+export type AnalyticsFunnelTrendRow = {
+  date: string;
+  pageViews: number;
+  authStarted: number;
+  authCompleted: number;
+  upgradeIntent: number;
+  upgradeCompleted: number;
+};
+
+export type AnalyticsFunnelBreakdownRow = {
+  key: string;
+  pageViews: number;
+  authStarted: number;
+  authCompleted: number;
+  upgradeIntent: number;
+  upgradeCompleted: number;
+  authStartRateFromViews: number;
+  authCompletionRateFromStarts: number;
+  upgradeIntentRateFromAuthCompletion: number;
+  upgradeCompletionRateFromIntent: number;
 };

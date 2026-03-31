@@ -194,10 +194,12 @@ describe('AdminDashboardClient', () => {
 
     expect(screen.getByText('Admin Dashboard')).toBeInTheDocument();
     expect(screen.getByText('ADMIN')).toBeInTheDocument();
-    expect(screen.getAllByText('demo@progressionlab.ai')).toHaveLength(2);
+    expect(screen.getAllByText('demo@progressionlab.ai')).toHaveLength(1);
     expect(screen.getByText('Delete failed')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Logout' }));
+
+    await user.click(screen.getByRole('tab', { name: 'Progressions' }));
     await user.click(screen.getByRole('button', { name: 'View' }));
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 

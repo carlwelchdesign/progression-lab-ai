@@ -7,6 +7,9 @@ import type {
   AdminUserSummary,
   AdminAuditLogItem,
   CreatePromoCodeInput,
+  MarketingContentState,
+  MarketingContentOperationResponse,
+  MarketingContentVersion,
   PlanVersion,
   PlanVersionsState,
   PromoCodeRedemptionRow,
@@ -16,9 +19,12 @@ import type {
   ProgressionDetail,
   ProgressionRow,
   SavePlanDraftInput,
+  SaveMarketingContentDraftInput,
+  TranslateMarketingContentInput,
   SubscriptionPlan,
   SubscriptionTierConfig,
   UpdatePromoCodeInput,
+  AnalyticsSummary,
 } from './types';
 
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
@@ -262,6 +268,43 @@ export async function fetchAdminAuditLogs(limit = 100): Promise<AdminAuditLogIte
   return data.items;
 }
 
+export async function fetchAnalyticsSummary(params?: {
+  days?: number;
+  startDate?: string;
+  endDate?: string;
+  locale?: string;
+  persona?: string;
+}): Promise<AnalyticsSummary> {
+  const searchParams = new URLSearchParams();
+  if (typeof params?.days === 'number') {
+    searchParams.set('days', String(params.days));
+  } else {
+    searchParams.set('days', '7');
+  }
+  if (params?.startDate) {
+    searchParams.set('startDate', params.startDate);
+  }
+  if (params?.endDate) {
+    searchParams.set('endDate', params.endDate);
+  }
+  if (params?.locale) {
+    searchParams.set('locale', params.locale);
+  }
+  if (params?.persona) {
+    searchParams.set('persona', params.persona);
+  }
+  const response = await fetch(`/api/analytics/summary?${searchParams.toString()}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to fetch analytics summary'));
+  }
+
+  return (await response.json()) as AnalyticsSummary;
+}
+
 export async function fetchPromptBuilderState(promptKey?: string): Promise<PromptBuilderState> {
   const searchParams = new URLSearchParams();
   if (promptKey) {
@@ -333,6 +376,118 @@ export async function rollbackPromptVersion(params: {
   }
 
   const data = (await response.json()) as { item: PromptVersion };
+  return data.item;
+}
+
+export async function fetchMarketingContentState(
+  contentKey?: string,
+  locale?: string,
+  sourceLocale?: string,
+): Promise<MarketingContentState> {
+  const searchParams = new URLSearchParams();
+  if (contentKey) {
+    searchParams.set('contentKey', contentKey);
+  }
+  if (locale) {
+    searchParams.set('locale', locale);
+  }
+  if (sourceLocale) {
+    searchParams.set('sourceLocale', sourceLocale);
+  }
+
+  const query = searchParams.toString();
+  const response = await fetch(`/api/marketing-content${query ? `?${query}` : ''}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to fetch marketing content'));
+  }
+
+  return (await response.json()) as MarketingContentState;
+}
+
+export async function saveMarketingContentDraft(
+  params: SaveMarketingContentDraftInput,
+): Promise<MarketingContentVersion> {
+  const response = await fetch('/api/marketing-content', {
+    method: 'POST',
+    credentials: 'include',
+    headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to save marketing content draft'));
+  }
+
+  const data = (await response.json()) as { item: MarketingContentVersion };
+  return data.item;
+}
+
+export async function publishMarketingContentDraft(params: {
+  contentKey: string;
+  locale: string;
+}): Promise<{ item: MarketingContentVersion; stale?: MarketingContentOperationResponse['stale'] }> {
+  const response = await fetch('/api/marketing-content/publish', {
+    method: 'POST',
+    credentials: 'include',
+    headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to publish marketing content draft'));
+  }
+
+  return (await response.json()) as {
+    item: MarketingContentVersion;
+    stale?: MarketingContentOperationResponse['stale'];
+  };
+}
+
+export async function rollbackMarketingContentVersion(params: {
+  contentKey: string;
+  locale: string;
+  versionId: string;
+}): Promise<{ item: MarketingContentVersion; stale?: MarketingContentOperationResponse['stale'] }> {
+  const response = await fetch('/api/marketing-content/rollback', {
+    method: 'POST',
+    credentials: 'include',
+    headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await readErrorMessage(response, 'Failed to rollback marketing content version'),
+    );
+  }
+
+  return (await response.json()) as {
+    item: MarketingContentVersion;
+    stale?: MarketingContentOperationResponse['stale'];
+  };
+}
+
+export async function generateMarketingContentTranslationDraft(
+  params: TranslateMarketingContentInput,
+): Promise<MarketingContentVersion> {
+  const response = await fetch('/api/marketing-content/translate', {
+    method: 'POST',
+    credentials: 'include',
+    headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await readErrorMessage(response, 'Failed to generate marketing content translation draft'),
+    );
+  }
+
+  const data = (await response.json()) as { item: MarketingContentVersion };
   return data.item;
 }
 

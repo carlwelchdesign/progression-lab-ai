@@ -18,6 +18,8 @@ If you are new to the project, start with:
 - Deployment: [Deployment](Deployment.md)
 - Security: [Security](Security.md)
 - Prompt Versioning: [Features-Prompt-Versioning](Features-Prompt-Versioning.md)
+- Marketing CMS: [Features-Marketing-CMS](Features-Marketing-CMS.md)
+- Analytics & Funnel Insights: [Features-Analytics](Features-Analytics.md)
 
 ## Repository Runbooks
 

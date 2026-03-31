@@ -4,10 +4,12 @@ import { Alert, Container, Stack, Box, Tabs, Tab } from '@mui/material';
 import { useState } from 'react';
 
 import AdminAuditLogTable from '../components/admin/AdminAuditLogTable';
+import AnalyticsInsightsPanel from '../components/admin/AnalyticsInsightsPanel';
 import AdminSummaryCards from '../components/admin/AdminSummaryCards';
 import DashboardHeader from '../components/admin/DashboardHeader';
 import LoadingState from '../components/admin/LoadingState';
 import LoginCard from '../components/admin/LoginCard';
+import MarketingContentPanel from '../components/admin/MarketingContentPanel';
 import ProgressionDetailsDialog from '../components/admin/ProgressionDetailsDialog';
 import ProgressionsTable from '../components/admin/ProgressionsTable';
 import PlanManagerPanel from '../components/admin/PlanManagerPanel';
@@ -23,10 +25,15 @@ export default function AdminDashboardClient() {
     | 'progressions'
     | 'tier-config'
     | 'prompt-builder'
+    | 'marketing-content'
     | 'plan-manager'
     | 'promo-codes'
+    | 'analytics'
     | 'audit-log'
   >('overview');
+  const [marketingFocus, setMarketingFocus] = useState<
+    { contentKey: string; locale?: string; section?: string } | undefined
+  >(undefined);
 
   const {
     user,
@@ -118,8 +125,10 @@ export default function AdminDashboardClient() {
                   | 'progressions'
                   | 'tier-config'
                   | 'prompt-builder'
+                  | 'marketing-content'
                   | 'plan-manager'
                   | 'promo-codes'
+                  | 'analytics'
                   | 'audit-log',
               )
             }
@@ -128,8 +137,10 @@ export default function AdminDashboardClient() {
             <Tab label="Progressions" value="progressions" />
             {user.role === 'ADMIN' && <Tab label="Tier Configuration" value="tier-config" />}
             <Tab label="Prompt Builder" value="prompt-builder" />
+            <Tab label="Marketing Content" value="marketing-content" />
             {user.role === 'ADMIN' && <Tab label="Plan Manager" value="plan-manager" />}
             <Tab label="Promo &amp; Invites" value="promo-codes" />
+            <Tab label="Analytics" value="analytics" />
             <Tab label="Audit Log" value="audit-log" />
           </Tabs>
         </Box>
@@ -187,11 +198,29 @@ export default function AdminDashboardClient() {
 
         {activeTab === 'prompt-builder' && <PromptBuilderPanel role={user.role} />}
 
+        {activeTab === 'marketing-content' && (
+          <MarketingContentPanel
+            role={user.role}
+            initialContentKey={marketingFocus?.contentKey}
+            initialLocale={marketingFocus?.locale}
+            initialSection={marketingFocus?.section}
+          />
+        )}
+
         {activeTab === 'plan-manager' && user.role === 'ADMIN' && (
           <PlanManagerPanel role={user.role} />
         )}
 
         {activeTab === 'promo-codes' && <PromoCodesPanel role={user.role} />}
+
+        {activeTab === 'analytics' && (
+          <AnalyticsInsightsPanel
+            onJumpToMarketing={(focus) => {
+              setMarketingFocus(focus);
+              setActiveTab('marketing-content');
+            }}
+          />
+        )}
 
         {activeTab === 'audit-log' && <AdminAuditLogTable />}
 

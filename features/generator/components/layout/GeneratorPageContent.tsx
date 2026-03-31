@@ -101,7 +101,11 @@ function pickRandomUnique<T>(items: T[], count: number): T[] {
   return pool.slice(0, count);
 }
 
-export default function GeneratorPageContent() {
+export default function GeneratorPageContent({
+  initialSeedChords,
+}: {
+  initialSeedChords?: string;
+}) {
   const { t } = useTranslation('generator');
   const { locale } = useAppLocale();
   const { isAuthenticated } = useAuth();
@@ -116,7 +120,7 @@ export default function GeneratorPageContent() {
     formState: { isSubmitting, errors },
   } = useForm<GeneratorFormData>({
     defaultValues: {
-      seedChords: '',
+      seedChords: initialSeedChords ?? '',
       mood: '',
       mode: '',
       customMode: '',
@@ -130,6 +134,22 @@ export default function GeneratorPageContent() {
     },
     mode: 'onChange',
   });
+
+  // Apply externally-supplied seed chords (e.g. from sample showcase or post-register persona)
+  useEffect(() => {
+    if (initialSeedChords) {
+      setValue('seedChords', initialSeedChords, { shouldDirty: true });
+      return;
+    }
+    // One-time onboarding seed from post-register persona selection
+    if (typeof window !== 'undefined') {
+      const onboardingSeed = sessionStorage.getItem('onboarding_seed_chords');
+      if (onboardingSeed) {
+        setValue('seedChords', onboardingSeed, { shouldDirty: true });
+        sessionStorage.removeItem('onboarding_seed_chords');
+      }
+    }
+  }, [initialSeedChords, setValue]);
 
   const mode = watch('mode');
   const genre = watch('genre');

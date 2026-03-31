@@ -27,7 +27,9 @@ export default function AuthRouteModalRedirect() {
         ? 'my-progressions'
         : reasonParam === 'save-arrangement'
           ? 'save-arrangement'
-          : 'generic';
+          : reasonParam === 'upgrade-plan'
+            ? 'upgrade-plan'
+            : 'generic';
 
     openAuthModal({ mode, reason });
     router.replace('/');

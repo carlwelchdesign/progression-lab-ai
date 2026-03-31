@@ -24,6 +24,8 @@ import { useAuth } from '../../../components/providers/AuthProvider';
 import { useAuthModal } from '../../../components/providers/AuthModalProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import { createCsrfHeaders, ensureCsrfCookie } from '../../../lib/csrfClient';
+import { trackEvent } from '../../../lib/analytics';
+import { fetchPublishedMarketingContent } from '../../../lib/marketingContentClient';
 
 type CheckoutPlan = 'COMPOSER' | 'STUDIO';
 type BillingInterval = 'monthly' | 'yearly';
@@ -62,6 +64,40 @@ type PricingTier = {
   highlighted?: boolean;
   badge?: string;
   checkoutPlan?: CheckoutPlan;
+};
+
+type PricingMarketingContent = {
+  hero?: {
+    eyebrow?: string;
+    title?: string;
+    description?: string;
+  };
+  planSummaries?: {
+    session?: string;
+    composer?: string;
+    studio?: string;
+  };
+  comparisonIntro?: string;
+  billingToggleLabel?: string;
+  promoCodeLabel?: string;
+  trustSection?: {
+    title?: string;
+    items?: string[];
+  };
+  faq?: {
+    title?: string;
+    items?: Array<{
+      question?: string;
+      answer?: string;
+    }>;
+  };
+  upgradeFlow?: {
+    signInHint?: string;
+    composerCta?: string;
+    studioCta?: string;
+    checkoutPendingLabel?: string;
+    keepUsingSessionLabel?: string;
+  };
 };
 
 const TIERS: PricingTier[] = [
@@ -247,7 +283,7 @@ function getDefaultTierContent(t: (key: string) => string) {
 }
 
 export default function PricingPageContent() {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuthModal } = useAuthModal();
   const { showError } = useAppSnackbar();
@@ -258,6 +294,7 @@ export default function PricingPageContent() {
   const [tierConfigs, setTierConfigs] = useState<Record<PublicPlan, PricingTierConfig> | null>(
     null,
   );
+  const [marketingContent, setMarketingContent] = useState<PricingMarketingContent | null>(null);
 
   useEffect(() => {
     const loadTierConfigs = async () => {
@@ -289,6 +326,19 @@ export default function PricingPageContent() {
     void loadTierConfigs();
   }, []);
 
+  useEffect(() => {
+    const loadMarketingContent = async () => {
+      try {
+        const item = await fetchPublishedMarketingContent('pricing', i18n.language);
+        setMarketingContent((item?.content ?? null) as PricingMarketingContent | null);
+      } catch {
+        setMarketingContent(null);
+      }
+    };
+
+    void loadMarketingContent();
+  }, [i18n.language]);
+
   const displayedTiers = useMemo(() => {
     const defaultsByPlan = getDefaultTierContent(t);
     return TIERS.map((tier) => {
@@ -307,23 +357,42 @@ export default function PricingPageContent() {
             : `$${config.yearlyPrice}`
           : defaults.priceYearly;
 
+      const upgradeCtaOverride =
+        tier.plan === 'COMPOSER'
+          ? marketingContent?.upgradeFlow?.composerCta
+          : tier.plan === 'STUDIO'
+            ? marketingContent?.upgradeFlow?.studioCta
+            : undefined;
+
       return {
         ...tier,
         name: config?.displayName || defaults.name,
         priceMonthly,
         priceYearly,
-        summary: config?.description || defaults.summary,
+        summary:
+          marketingContent?.planSummaries?.[
+            tier.plan.toLowerCase() as 'session' | 'composer' | 'studio'
+          ] ||
+          config?.description ||
+          defaults.summary,
         description: defaults.description,
         features: buildFeatures(tier.plan, defaults.features, config),
-        cta: defaults.cta,
+        cta: upgradeCtaOverride?.trim() || defaults.cta,
         badge: defaults.badge,
       };
     });
-  }, [t, tierConfigs]);
+  }, [marketingContent, t, tierConfigs]);
 
   const handleCheckout = async (plan: CheckoutPlan) => {
+    trackEvent('upgrade_intent', {
+      plan,
+      interval: selectedInterval,
+      authenticated: isAuthenticated,
+      source: 'pricing_page',
+    });
+
     if (!isAuthenticated) {
-      openAuthModal({ mode: 'register' });
+      openAuthModal({ mode: 'register', reason: 'upgrade-plan' });
       return;
     }
 
@@ -377,7 +446,10 @@ export default function PricingPageContent() {
           >
             <Chip
               icon={<BoltIcon />}
-              label={t('billing.pricing.subscriptionPlansLabel')}
+              label={
+                marketingContent?.hero?.eyebrow?.trim() ||
+                t('billing.pricing.subscriptionPlansLabel')
+              }
               color="primary"
               variant="outlined"
               sx={{ alignSelf: 'center' }}
@@ -388,14 +460,14 @@ export default function PricingPageContent() {
               align="center"
               sx={{ width: '100%', textAlign: 'center' }}
             >
-              {t('billing.pricing.pageTitle')}
+              {marketingContent?.hero?.title?.trim() || t('billing.pricing.pageTitle')}
             </Typography>
             <Typography
               color="text.secondary"
               align="center"
               sx={{ fontSize: '1.05rem', maxWidth: 700, width: '100%', textAlign: 'center' }}
             >
-              {t('billing.pricing.pageDescription')}
+              {marketingContent?.hero?.description?.trim() || t('billing.pricing.pageDescription')}
             </Typography>
           </Stack>
         </Box>
@@ -405,7 +477,10 @@ export default function PricingPageContent() {
             variant={selectedInterval === 'monthly' ? 'contained' : 'outlined'}
             onClick={() => setSelectedInterval('monthly')}
           >
-            {t('billing.pricing.monthly')}
+            {marketingContent?.billingToggleLabel &&
+            (marketingContent.billingToggleLabel as string).includes('monthly')
+              ? (marketingContent.billingToggleLabel as string)
+              : t('billing.pricing.monthly')}
           </Button>
           <Button
             variant={selectedInterval === 'yearly' ? 'contained' : 'outlined'}
@@ -415,9 +490,17 @@ export default function PricingPageContent() {
           </Button>
         </Stack>
 
+        {marketingContent?.comparisonIntro && (
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Typography variant="body2" align="center" sx={{ maxWidth: 600, opacity: 0.85 }}>
+              {marketingContent.comparisonIntro}
+            </Typography>
+          </Box>
+        )}
+
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <TextField
-            label="Promo code"
+            label={marketingContent?.promoCodeLabel?.trim() || 'Promo code'}
             value={promoCode}
             onChange={(event) => {
               setPromoCode(event.target.value.toUpperCase());
@@ -433,7 +516,9 @@ export default function PricingPageContent() {
         </Box>
 
         {!isLoading && !isAuthenticated ? (
-          <Alert severity="info">{t('billing.pricing.signInHint')}</Alert>
+          <Alert severity="info">
+            {marketingContent?.upgradeFlow?.signInHint?.trim() || t('billing.pricing.signInHint')}
+          </Alert>
         ) : null}
 
         <Box
@@ -507,12 +592,14 @@ export default function PricingPageContent() {
                       disabled={pendingPlan === tier.checkoutPlan}
                     >
                       {pendingPlan === tier.checkoutPlan
-                        ? t('billing.pricing.startingCheckout')
+                        ? marketingContent?.upgradeFlow?.checkoutPendingLabel?.trim() ||
+                          t('billing.pricing.startingCheckout')
                         : tier.cta}
                     </Button>
                   ) : isAuthenticated ? (
                     <Button fullWidth component={Link} href="/" variant="outlined">
-                      {t('billing.pricing.keepUsingSession')}
+                      {marketingContent?.upgradeFlow?.keepUsingSessionLabel?.trim() ||
+                        t('billing.pricing.keepUsingSession')}
                     </Button>
                   ) : (
                     <Button
@@ -528,6 +615,115 @@ export default function PricingPageContent() {
             );
           })}
         </Box>
+
+        {/* Trust Section */}
+        {marketingContent?.trustSection && (
+          <Box
+            sx={{
+              py: 4,
+              borderTop: 1,
+              borderColor: 'divider',
+            }}
+          >
+            <Stack spacing={3} alignItems="center">
+              {marketingContent.trustSection.title && (
+                <Typography
+                  variant="h6"
+                  align="center"
+                  sx={{
+                    fontWeight: 600,
+                  }}
+                >
+                  {marketingContent.trustSection.title}
+                </Typography>
+              )}
+              {marketingContent.trustSection.items &&
+                marketingContent.trustSection.items.length > 0 && (
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    justifyContent="center"
+                    alignItems="center"
+                    sx={{
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {marketingContent.trustSection.items.map((item, idx) => (
+                      <Typography key={idx} variant="body2" sx={{ opacity: 0.7 }}>
+                        {item}
+                        {idx < marketingContent.trustSection!.items!.length - 1 && (
+                          <span style={{ margin: '0 1rem', opacity: 0.3 }}>•</span>
+                        )}
+                      </Typography>
+                    ))}
+                  </Stack>
+                )}
+            </Stack>
+          </Box>
+        )}
+
+        {/* FAQ Section */}
+        {marketingContent?.faq && (
+          <Box
+            sx={{
+              py: 4,
+              borderTop: 1,
+              borderColor: 'divider',
+            }}
+          >
+            <Stack spacing={4}>
+              {marketingContent.faq.title && (
+                <Typography
+                  variant="h5"
+                  align="center"
+                  sx={{
+                    fontWeight: 600,
+                  }}
+                >
+                  {marketingContent.faq.title}
+                </Typography>
+              )}
+              {marketingContent.faq.items && marketingContent.faq.items.length > 0 && (
+                <Stack spacing={2}>
+                  {marketingContent.faq.items.map((faqItem, idx) => (
+                    <Box
+                      key={idx}
+                      sx={{
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        p: 2,
+                      }}
+                    >
+                      {faqItem.question && (
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            fontWeight: 600,
+                            mb: 1,
+                          }}
+                        >
+                          {faqItem.question}
+                        </Typography>
+                      )}
+                      {faqItem.answer && (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            lineHeight: 1.6,
+                            opacity: 0.85,
+                          }}
+                        >
+                          {faqItem.answer}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+            </Stack>
+          </Box>
+        )}
       </Stack>
     </Container>
   );

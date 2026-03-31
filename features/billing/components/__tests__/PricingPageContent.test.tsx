@@ -11,6 +11,7 @@ const mockCreateCsrfHeaders = jest.fn(() => ({ 'x-csrf-token': 'token' }));
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    i18n: { language: 'en' },
   }),
 }));
 
@@ -32,7 +33,7 @@ jest.mock('../../../../components/providers/AppSnackbarProvider', () => ({
 
 jest.mock('../../../../lib/csrfClient', () => ({
   ensureCsrfCookie: () => mockEnsureCsrfCookie(),
-  createCsrfHeaders: (...args: unknown[]) => mockCreateCsrfHeaders(...args),
+  createCsrfHeaders: () => mockCreateCsrfHeaders(),
 }));
 
 describe('PricingPageContent promo checkout', () => {

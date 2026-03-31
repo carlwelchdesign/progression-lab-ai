@@ -94,7 +94,10 @@ describe('useAdminDashboard', () => {
     mockedFetchProgressionDetails.mockResolvedValue(detail);
     mockedDeleteProgression.mockResolvedValue();
     mockedUpdateUserPlanOverride.mockResolvedValue();
-    mockedLogin.mockResolvedValue();
+    mockedLogin.mockResolvedValue({
+      status: 'AUTHENTICATED',
+      user: adminUser,
+    });
     mockedLogout.mockResolvedValue();
     jest.spyOn(window, 'confirm').mockReturnValue(true);
   });
