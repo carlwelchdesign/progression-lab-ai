@@ -72,9 +72,9 @@ const PLAN_LABELS: Record<SubscriptionPlan, string> = {
   INVITE: 'Invite',
 };
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, fallback: string): string {
   if (!value) {
-    return 'common.billing.format.notSet';
+    return fallback;
   }
 
   return new Intl.DateTimeFormat(undefined, {
@@ -373,7 +373,10 @@ export default function BillingPageContent() {
                 <Stack spacing={1}>
                   <Typography fontWeight={700}>{t('billing.currentPeriodEnd')}</Typography>
                   <Typography color="text.secondary">
-                    {t(formatDate(billingStatus.billing.subscription?.currentPeriodEnd ?? null))}
+                    {formatDate(
+                      billingStatus.billing.subscription?.currentPeriodEnd ?? null,
+                      t('billing.format.notSet'),
+                    )}
                   </Typography>
                 </Stack>
 
