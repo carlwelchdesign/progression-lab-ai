@@ -174,7 +174,9 @@ export async function updateTierConfig(
     canExportMidi: updated.canExportMidi,
     canExportPdf: updated.canExportPdf,
     canSharePublicly: updated.canSharePublicly,
-    canUseAdvancedVoicingControls: updated.canUseAdvancedVoicingControls,
+    canUseAdvancedVoicingControls:
+      updated.canUseAdvancedVoicingControls ??
+      FALLBACK_TIER_CONFIGS[plan].canUseAdvancedVoicingControls,
   };
 }
 
