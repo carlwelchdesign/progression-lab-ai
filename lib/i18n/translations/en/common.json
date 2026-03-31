@@ -223,9 +223,12 @@
     "featureAccess": "Feature access",
     "enabled": "enabled",
     "locked": "locked",
+    "unlimited": "unlimited",
     "midiExportStatus": "MIDI export: {{status}}",
     "pdfExportStatus": "PDF export: {{status}}",
-    "publicSharingStatus": "Public sharing: {{status}}"
+    "publicSharingStatus": "Public sharing: {{status}}",
+    "vocalRecordingStatus": "Vocal recording: {{status}}",
+    "vocalTakeLimitStatus": "Vocal take limit: {{value}}"
   },
   "progressions": {
     "errors": {

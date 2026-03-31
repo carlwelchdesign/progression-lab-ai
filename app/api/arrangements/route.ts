@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       title,
       timeline,
       playbackSnapshot,
+      vocalTakeCount,
       sourceChords,
       notes,
       tags = [],
@@ -66,6 +67,20 @@ export async function POST(request: NextRequest) {
         { message: 'Arrangement timeline must contain at least one step' },
         { status: 400 },
       );
+    }
+
+    if (Number.isFinite(vocalTakeCount) && (vocalTakeCount ?? 0) > 0) {
+      const maxVocalTakes = accessContext.entitlements.maxVocalTakesPerArrangement;
+      const usedVocalTakes = Math.floor(vocalTakeCount ?? 0);
+      if (maxVocalTakes !== null && usedVocalTakes > maxVocalTakes) {
+        return createPlanLimitResponse({
+          code: 'VOCAL_TAKE_LIMIT_REACHED',
+          message: 'You have reached your vocal take limit for this plan',
+          plan: accessContext.plan,
+          limit: maxVocalTakes,
+          used: usedVocalTakes,
+        });
+      }
     }
 
     const arrangementCount = await prisma.arrangement.count({ where: { userId: session.userId } });

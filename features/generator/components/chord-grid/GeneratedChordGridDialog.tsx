@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -24,6 +25,7 @@ import SequencerTrack from './SequencerTrack';
 import SaveArrangementDialog from '../../../arrangements/components/SaveArrangementDialog';
 import TransportBar from './TransportBar';
 import ChordPadGrid from './ChordPadGrid';
+import VocalTrackLane from './VocalTrackLane';
 import MobileClipControls from './MobileClipControls';
 import PadEditPanel from './PadEditPanel';
 import CircleOfFifthsAccordion from './CircleOfFifthsAccordion';
@@ -35,10 +37,12 @@ import { useArrangementTimeline } from '../../hooks/useArrangementTimeline';
 import { usePadEdit } from '../../hooks/usePadEdit';
 import { usePadInteraction } from '../../hooks/usePadInteraction';
 import { useChordGridKeyboard } from '../../hooks/useChordGridKeyboard';
+import { useVocalTrack } from '../../hooks/useVocalTrack';
+import { trackClientAnalyticsEvent } from '../../../../lib/observability/clientAnalytics';
 import { LOOP_LENGTH_OPTIONS, RECORDING_LEAD_IN_BARS, STEPS_PER_BEAT } from './chordGridTypes';
 import { generateId, getBeatsPerBar } from './chordGridUtils';
 import type { GeneratedChordGridDialogProps, RecordingMode } from './chordGridTypes';
-import type { ArrangementPlaybackSnapshot } from '../../../../lib/types';
+import type { ArrangementPlaybackSnapshot, VocalFeatureEntitlements } from '../../../../lib/types';
 
 export default function GeneratedChordGridDialog({
   open,
@@ -50,6 +54,7 @@ export default function GeneratedChordGridDialog({
   chords,
   pendingLoad = null,
   onSaveSuccess,
+  vocalEntitlements,
 }: GeneratedChordGridDialogProps) {
   const { t } = useTranslation('generator');
   const { isAuthenticated } = useAuth();
@@ -85,10 +90,25 @@ export default function GeneratedChordGridDialog({
   const [singleShotCursorStep, setSingleShotCursorStep] = useState<number | null>(null);
   const [trackScrollRequestKey, setTrackScrollRequestKey] = useState(0);
   const [saveArrangementDialogOpen, setSaveArrangementDialogOpen] = useState(false);
+  const [showVocalUpgradePrompt, setShowVocalUpgradePrompt] = useState(false);
 
   const beatsPerBar = useMemo(() => getBeatsPerBar(timeSignature), [timeSignature]);
   const stepsPerBar = beatsPerBar * STEPS_PER_BEAT;
   const totalSteps = stepsPerBar * loopLengthBars;
+
+  const resolvedVocalEntitlements: VocalFeatureEntitlements = vocalEntitlements ?? {
+    canUseVocalTrackRecording: true,
+    maxVocalTakesPerArrangement: 1,
+  };
+
+  const vocal$ = useVocalTrack({
+    tempoBpm,
+    totalSteps,
+  });
+
+  const vocalTakeLimitReached =
+    resolvedVocalEntitlements.maxVocalTakesPerArrangement !== null &&
+    vocal$.takes.length >= resolvedVocalEntitlements.maxVocalTakesPerArrangement;
 
   // ── Audio playback helper (passed down as callback — DIP) ───────────────────
   const playEntry = (
@@ -148,6 +168,13 @@ export default function GeneratedChordGridDialog({
     eventsByStepRef: timeline$.eventsByStepRef,
     onPlayEntry: playEntry,
     onCountInBegin: () => setTrackScrollRequestKey((k) => k + 1),
+    onLoopRestart: () => {
+      void vocal$.startVocalPlayback(0);
+    },
+    onStop: () => {
+      vocal$.stopVocalPlayback();
+      vocal$.stopVocalRecording();
+    },
   });
 
   const edit$ = usePadEdit({ chords, open });
@@ -311,6 +338,64 @@ export default function GeneratedChordGridDialog({
 
   const showRecordingLeadIn = engine$.isCountInActive || engine$.isRecording;
 
+  const handleVocalRecordToggle = () => {
+    if (!resolvedVocalEntitlements.canUseVocalTrackRecording || vocalTakeLimitReached) {
+      setShowVocalUpgradePrompt(true);
+      trackClientAnalyticsEvent({
+        name: 'vocal_take_limit_hit',
+        properties: {
+          limit: resolvedVocalEntitlements.maxVocalTakesPerArrangement,
+          takeCount: vocal$.takes.length,
+        },
+      });
+      trackClientAnalyticsEvent({
+        name: 'vocal_paywall_opened',
+        properties: { source: 'arranger_record_button' },
+      });
+      return;
+    }
+
+    if (!engine$.hasInitializedAudio) {
+      engine$.setHasInitializedAudio(true);
+    }
+
+    if (vocal$.isVocalRecording) {
+      vocal$.stopVocalRecording();
+      return;
+    }
+
+    if (!engine$.isSequencerPlaying) {
+      engine$.startSequencer();
+    }
+
+    trackClientAnalyticsEvent({
+      name: 'vocal_record_started',
+      properties: {
+        takeCount: vocal$.takes.length,
+      },
+    });
+    void vocal$.startVocalRecording(engine$.currentStepRef.current);
+  };
+
+  useEffect(() => {
+    if (!engine$.isSequencerPlaying) {
+      vocal$.stopVocalPlayback();
+      return;
+    }
+
+    void vocal$.startVocalPlayback(engine$.currentStepRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine$.isSequencerPlaying]);
+
+  useEffect(() => {
+    if (!engine$.isSequencerPlaying) {
+      return;
+    }
+
+    void vocal$.startVocalPlayback(engine$.currentStepRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vocal$.takes.length]);
+
   return (
     <Dialog
       dir="ltr"
@@ -383,11 +468,15 @@ export default function GeneratedChordGridDialog({
           }}
           onRecordingModeChange={(mode) => {
             setRecordingMode(mode);
-            if (mode === 'single-shot') {
-              engine$.isRecording && engine$.handleRecordToggle();
+            if (mode === 'single-shot' && engine$.isRecording) {
+              engine$.handleRecordToggle();
             }
           }}
           onSingleShotCursorStepChange={setSingleShotCursorStep}
+          isVocalRecording={vocal$.isVocalRecording}
+          canUseVocalTrackRecording={resolvedVocalEntitlements.canUseVocalTrackRecording}
+          isVocalTakeLimitReached={vocalTakeLimitReached}
+          onVocalRecordToggle={handleVocalRecordToggle}
         />
 
         <SequencerTrack
@@ -422,6 +511,57 @@ export default function GeneratedChordGridDialog({
           }}
           emptyTimelineHint={t('ui.chordGrid.dragOrRecordHint')}
         />
+
+        <VocalTrackLane
+          takes={vocal$.takes}
+          currentStep={engine$.currentStep}
+          totalSteps={totalSteps}
+          isPlaying={engine$.isSequencerPlaying}
+          isRecording={vocal$.isVocalRecording}
+          selectedTakeId={vocal$.selectedTakeId}
+          onSelectTake={vocal$.setSelectedTakeId}
+          onDeleteTake={vocal$.deleteTake}
+          onToggleMuteTake={vocal$.toggleMuteTake}
+          onTakeGainChange={vocal$.setTakeGain}
+        />
+
+        {showVocalUpgradePrompt ? (
+          <Alert
+            severity="info"
+            action={
+              <Button
+                size="small"
+                variant="contained"
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    openAuthModal({ mode: 'login', reason: 'generic' });
+                    return;
+                  }
+
+                  trackClientAnalyticsEvent({
+                    name: 'vocal_upgrade_checkout_started',
+                    properties: { source: 'arranger_upgrade_prompt' },
+                  });
+                  window.location.assign('/pricing');
+                }}
+              >
+                {t('ui.chordGrid.upgradeAction', { defaultValue: 'Upgrade' })}
+              </Button>
+            }
+            sx={{ mb: 1.5 }}
+            onClose={() => setShowVocalUpgradePrompt(false)}
+          >
+            {t('ui.chordGrid.vocalTakeLimitMessage', {
+              defaultValue: 'Multi-take vocal layering is available on paid plans.',
+            })}
+          </Alert>
+        ) : null}
+
+        {vocal$.errorMessage ? (
+          <Alert severity="warning" sx={{ mb: 1.5 }}>
+            {vocal$.errorMessage}
+          </Alert>
+        ) : null}
 
         {isMobile && interaction$.mobileTimelineInsertPadKey ? (
           <Box
@@ -579,6 +719,7 @@ export default function GeneratedChordGridDialog({
         onSuccess={onSaveSuccess}
         timeline={timeline$.timeline}
         playbackSnapshot={playbackSnapshot}
+        vocalTakeCount={vocal$.takes.length}
         sourceChords={edit$.editableChords}
       />
     </Dialog>

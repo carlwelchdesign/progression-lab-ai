@@ -35,6 +35,7 @@ type SaveArrangementDialogProps = {
   onSuccess?: () => void;
   timeline: ArrangementTimeline;
   playbackSnapshot: ArrangementPlaybackSnapshot;
+  vocalTakeCount?: number;
   sourceChords?: Array<{
     key: string;
     chord: string;
@@ -55,6 +56,7 @@ export default function SaveArrangementDialog({
   onSuccess,
   timeline,
   playbackSnapshot,
+  vocalTakeCount,
   sourceChords,
 }: SaveArrangementDialogProps) {
   const { t } = useTranslation('common');
@@ -93,6 +95,7 @@ export default function SaveArrangementDialog({
       title: data.title.trim() || undefined,
       timeline,
       playbackSnapshot,
+      vocalTakeCount,
       sourceChords,
       isPublic: isAdmin ? data.isPublic : false,
     };

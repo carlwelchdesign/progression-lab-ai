@@ -48,4 +48,14 @@ describe('entitlements', () => {
       PLAN_ENTITLEMENTS[SubscriptionPlan.STUDIO],
     );
   });
+
+  it('enables vocal recording with a single-take cap on session', () => {
+    expect(PLAN_ENTITLEMENTS[SubscriptionPlan.SESSION].canUseVocalTrackRecording).toBe(true);
+    expect(PLAN_ENTITLEMENTS[SubscriptionPlan.SESSION].maxVocalTakesPerArrangement).toBe(1);
+  });
+
+  it('allows unlimited vocal takes for studio tier', () => {
+    expect(PLAN_ENTITLEMENTS[SubscriptionPlan.STUDIO].canUseVocalTrackRecording).toBe(true);
+    expect(PLAN_ENTITLEMENTS[SubscriptionPlan.STUDIO].maxVocalTakesPerArrangement).toBeNull();
+  });
 });

@@ -88,7 +88,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
     const body = (await request.json()) as UpdateArrangementRequest;
-    const { title, timeline, playbackSnapshot, sourceChords, notes, tags, isPublic } = body;
+    const {
+      title,
+      timeline,
+      playbackSnapshot,
+      vocalTakeCount,
+      sourceChords,
+      notes,
+      tags,
+      isPublic,
+    } = body;
 
     const existing = await prisma.arrangement.findFirst({
       where: {
@@ -125,6 +134,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           plan: accessContext.plan,
           limit: accessContext.entitlements.maxPublicShares,
           used: publicShareCount,
+        });
+      }
+    }
+
+    if (shouldEnforcePlanLimits && Number.isFinite(vocalTakeCount) && (vocalTakeCount ?? 0) > 0) {
+      const maxVocalTakes = accessContext.entitlements.maxVocalTakesPerArrangement;
+      const usedVocalTakes = Math.floor(vocalTakeCount ?? 0);
+      if (maxVocalTakes !== null && usedVocalTakes > maxVocalTakes) {
+        return createPlanLimitResponse({
+          code: 'VOCAL_TAKE_LIMIT_REACHED',
+          message: 'You have reached your vocal take limit for this plan',
+          plan: accessContext.plan,
+          limit: maxVocalTakes,
+          used: usedVocalTakes,
         });
       }
     }

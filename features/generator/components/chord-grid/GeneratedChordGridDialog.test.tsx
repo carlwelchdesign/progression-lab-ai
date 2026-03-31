@@ -11,11 +11,28 @@ import {
 } from '../../lib/playbackSettingsModel';
 
 const mockOpenAuthModal = jest.fn();
+const mockTrackClientAnalyticsEvent = jest.fn();
+const mockVocalHookState = {
+  takes: [],
+  isVocalRecording: false,
+  permissionStatus: 'granted',
+  errorMessage: null,
+  selectedTakeId: null,
+  setSelectedTakeId: jest.fn(),
+  requestMicPermission: jest.fn(async () => true),
+  startVocalRecording: jest.fn(async () => true),
+  stopVocalRecording: jest.fn(),
+  startVocalPlayback: jest.fn(async () => {}),
+  stopVocalPlayback: jest.fn(),
+  deleteTake: jest.fn(),
+  toggleMuteTake: jest.fn(),
+  setTakeGain: jest.fn(),
+};
 let mockIsAuthenticated = true;
 let mockOnPadDropAtStep: ((padKey: string, stepIndex: number) => void) | undefined;
 let mockOnLaneClickStep: ((stepIndex: number) => void) | undefined;
 
-jest.mock('../../../../../domain/audio/audio', () => ({
+jest.mock('../../../../domain/audio/audio', () => ({
   getAudioClockSeconds: jest.fn(() => 0),
   playChordPattern: jest.fn(() => Promise.resolve()),
   playMetronomePulse: jest.fn(() => Promise.resolve()),
@@ -27,7 +44,15 @@ jest.mock('../../hooks/usePlaybackToggle', () => ({
   stopGlobalPlayback: jest.fn(),
 }));
 
-jest.mock('../../../../../components/providers/AuthProvider', () => ({
+jest.mock('../../hooks/useVocalTrack', () => ({
+  useVocalTrack: () => mockVocalHookState,
+}));
+
+jest.mock('../../../../lib/observability/clientAnalytics', () => ({
+  trackClientAnalyticsEvent: (...args: unknown[]) => mockTrackClientAnalyticsEvent(...args),
+}));
+
+jest.mock('../../../../components/providers/AuthProvider', () => ({
   useAuth: () => ({
     isAuthenticated: mockIsAuthenticated,
     user: {
@@ -43,20 +68,20 @@ jest.mock('../../../../../components/providers/AuthProvider', () => ({
   }),
 }));
 
-jest.mock('../../../../../components/providers/AuthModalProvider', () => ({
+jest.mock('../../../../components/providers/AuthModalProvider', () => ({
   useAuthModal: () => ({
     openAuthModal: mockOpenAuthModal,
     closeAuthModal: jest.fn(),
   }),
 }));
 
-jest.mock('../PlaybackSettingsButton', () => {
+jest.mock('../playback/PlaybackSettingsButton', () => {
   return function MockPlaybackSettingsButton() {
     return <div data-testid="playback-settings-button" />;
   };
 });
 
-jest.mock('../PlaybackToggleButton', () => {
+jest.mock('../playback/PlaybackToggleButton', () => {
   return function MockPlaybackToggleButton({
     isPlaying,
     onClick,
@@ -68,7 +93,7 @@ jest.mock('../PlaybackToggleButton', () => {
   };
 });
 
-jest.mock('../SequencerTrack', () => {
+jest.mock('./SequencerTrack', () => {
   return function MockSequencerTrack({
     onPadDropAtStep,
     onLaneClickStep,
@@ -82,13 +107,21 @@ jest.mock('../SequencerTrack', () => {
   };
 });
 
-jest.mock('../../../../arrangements/components/SaveArrangementDialog', () => {
-  return function MockSaveArrangementDialog() {
-    return null;
+jest.mock('../../../arrangements/components/SaveArrangementDialog', () => {
+  return function MockSaveArrangementDialog({
+    open,
+    vocalTakeCount,
+  }: {
+    open: boolean;
+    vocalTakeCount?: number;
+  }) {
+    return open ? (
+      <div data-testid="save-arrangement-dialog">vocal:{vocalTakeCount ?? 0}</div>
+    ) : null;
   };
 });
 
-jest.mock('../../../../../components/ui/SelectField', () => {
+jest.mock('../../../../components/ui/SelectField', () => {
   return function MockSelectField({
     label,
     value,
@@ -174,6 +207,9 @@ describe('GeneratedChordGridDialog', () => {
     mockIsAuthenticated = true;
     mockOnPadDropAtStep = undefined;
     mockOnLaneClickStep = undefined;
+    mockVocalHookState.takes = [];
+    mockVocalHookState.isVocalRecording = false;
+    mockVocalHookState.errorMessage = null;
   });
 
   it('shows base and desktop shortcuts inside the tooltip on desktop', async () => {
@@ -436,7 +472,7 @@ describe('GeneratedChordGridDialog', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Single-shot recording' }));
+    await user.click(screen.getByRole('button', { name: 'Single-shot' }));
 
     await act(async () => {
       mockOnLaneClickStep?.(3);
@@ -470,7 +506,7 @@ describe('GeneratedChordGridDialog', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Single-shot recording' }));
+    await user.click(screen.getByRole('button', { name: 'Single-shot' }));
     await act(async () => {
       mockOnLaneClickStep?.(2);
     });
@@ -483,5 +519,100 @@ describe('GeneratedChordGridDialog', () => {
     });
 
     expect(screen.getByText(/0 events/i)).toBeInTheDocument();
+  });
+
+  it('emits vocal paywall analytics when vocal take limit is reached', async () => {
+    const user = userEvent.setup();
+    mockVocalHookState.takes = [
+      {
+        id: 'take-1',
+        startStep: 0,
+        durationSteps: 4,
+        blob: new Blob(['x']),
+        url: 'blob:1',
+        gainValue: 1,
+        isMuted: false,
+      },
+    ];
+
+    renderWithProviders(
+      <GeneratedChordGridDialog
+        open={true}
+        onClose={jest.fn()}
+        tempoBpm={120}
+        settings={PLAYBACK_SETTINGS_DEFAULTS}
+        onSettingsChange={mockHandlers}
+        onTempoBpmChange={jest.fn()}
+        chords={[mockChord]}
+        vocalEntitlements={{
+          canUseVocalTrackRecording: true,
+          maxVocalTakesPerArrangement: 1,
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Record vocal take' }));
+
+    expect(mockTrackClientAnalyticsEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'vocal_take_limit_hit' }),
+    );
+    expect(mockTrackClientAnalyticsEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'vocal_paywall_opened' }),
+    );
+  });
+
+  it('passes vocal take count to the save arrangement dialog', async () => {
+    const user = userEvent.setup();
+    mockVocalHookState.takes = [
+      {
+        id: 'take-1',
+        startStep: 0,
+        durationSteps: 4,
+        blob: new Blob(['x']),
+        url: 'blob:1',
+        gainValue: 1,
+        isMuted: false,
+      },
+      {
+        id: 'take-2',
+        startStep: 8,
+        durationSteps: 4,
+        blob: new Blob(['y']),
+        url: 'blob:2',
+        gainValue: 1,
+        isMuted: false,
+      },
+    ];
+
+    renderWithProviders(
+      <GeneratedChordGridDialog
+        open={true}
+        onClose={jest.fn()}
+        tempoBpm={120}
+        settings={PLAYBACK_SETTINGS_DEFAULTS}
+        onSettingsChange={mockHandlers}
+        onTempoBpmChange={jest.fn()}
+        chords={[mockChord]}
+        pendingLoad={{
+          key: 'pending-2',
+          loopLengthBars: 1,
+          events: [
+            {
+              id: 'event-1',
+              padKey: mockChord.key,
+              chord: mockChord.chord,
+              source: mockChord.source,
+              leftHand: mockChord.leftHand,
+              rightHand: mockChord.rightHand,
+              stepIndex: 0,
+            },
+          ],
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Save arrangement' }));
+
+    expect(await screen.findByTestId('save-arrangement-dialog')).toHaveTextContent('vocal:2');
   });
 });
