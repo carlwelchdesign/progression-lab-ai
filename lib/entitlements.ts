@@ -108,12 +108,13 @@ export function resolvePlan(options: {
   subscriptionStatus?: SubscriptionStatus | null;
 }): SubscriptionPlan {
   const now = new Date();
+  const overridePlan = options.planOverride;
   const hasActiveOverride =
-    options.planOverride &&
+    overridePlan &&
     (!options.planOverrideExpiresAt || options.planOverrideExpiresAt.getTime() > now.getTime());
 
   if (hasActiveOverride) {
-    return options.planOverride;
+    return overridePlan;
   }
 
   if (options.subscriptionPlan && isSubscriptionEntitled(options.subscriptionStatus)) {
