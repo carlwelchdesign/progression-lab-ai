@@ -2,33 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import {
-  setChorusDelayTime,
-  setChorusDepth,
-  setChorusEnabled,
-  setChorusFrequency,
-  setChorusWet,
-  setFeedbackDelayEnabled,
-  setFeedbackDelayFeedback,
-  setFeedbackDelayTime,
-  setFeedbackDelayWet,
-  setPhaserEnabled,
-  setPhaserFrequency,
-  setPhaserOctaves,
-  setPhaserQ,
-  setPhaserWet,
-  setReverbEnabled,
-  setReverbRoomSize,
-  setReverbWet,
-  setTremoloDepth,
-  setTremoloEnabled,
-  setTremoloFrequency,
-  setTremoloWet,
-  setVibratoDepth,
-  setVibratoEnabled,
-  setVibratoFrequency,
-  setVibratoWet,
-} from '../../../domain/audio/audio';
+import { applyAudioEffectsState } from '../../../domain/audio/audio';
 import {
   DEFAULT_OCTAVE_SHIFT_BY_INSTRUMENT,
   PLAYBACK_SETTINGS_DEFAULTS,
@@ -130,25 +104,21 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
 
   const handleReverbChange = useCallback((value: number) => {
     setReverb(value);
-    setReverbWet(value);
   }, []);
 
   const handleRoomSizeChange = useCallback((value: number) => {
     const normalizedValue = Math.min(1, Math.max(0, value));
     setRoomSize(normalizedValue);
-    setReverbRoomSize(normalizedValue);
   }, []);
 
   const handleChorusChange = useCallback((value: number) => {
     const normalizedValue = Math.min(1, Math.max(0, value));
     setChorus(normalizedValue);
-    setChorusWet(normalizedValue);
   }, []);
 
   const handleFeedbackDelayChange = useCallback((value: number) => {
     const normalizedValue = Math.min(1, Math.max(0, value));
     setFeedbackDelay(normalizedValue);
-    setFeedbackDelayWet(normalizedValue);
   }, []);
 
   const handleInstrumentChange = useCallback((value: PlaybackSettings['instrument']) => {
@@ -358,104 +328,60 @@ export default function usePlaybackSettings(): UsePlaybackSettingsResult {
   );
 
   useEffect(() => {
-    setReverbEnabled(reverbEnabled);
-  }, [reverbEnabled]);
-
-  useEffect(() => {
-    setReverbWet(reverb);
-  }, [reverb]);
-
-  useEffect(() => {
-    setChorusEnabled(chorusEnabled);
-  }, [chorusEnabled]);
-
-  useEffect(() => {
-    setChorusWet(chorus);
-  }, [chorus]);
-
-  useEffect(() => {
-    setChorusFrequency(chorusRate);
-  }, [chorusRate]);
-
-  useEffect(() => {
-    setChorusDepth(chorusDepth);
-  }, [chorusDepth]);
-
-  useEffect(() => {
-    setChorusDelayTime(chorusDelayTime);
-  }, [chorusDelayTime]);
-
-  useEffect(() => {
-    setFeedbackDelayEnabled(feedbackDelayEnabled);
-  }, [feedbackDelayEnabled]);
-
-  useEffect(() => {
-    setFeedbackDelayWet(feedbackDelay);
-  }, [feedbackDelay]);
-
-  useEffect(() => {
-    setFeedbackDelayTime(feedbackDelayTime);
-  }, [feedbackDelayTime]);
-
-  useEffect(() => {
-    setFeedbackDelayFeedback(feedbackDelayFeedback);
-  }, [feedbackDelayFeedback]);
-
-  useEffect(() => {
-    setTremoloEnabled(tremoloEnabled);
-  }, [tremoloEnabled]);
-
-  useEffect(() => {
-    setTremoloWet(tremolo);
-  }, [tremolo]);
-
-  useEffect(() => {
-    setTremoloFrequency(tremoloFrequency);
-  }, [tremoloFrequency]);
-
-  useEffect(() => {
-    setTremoloDepth(tremoloDepth);
-  }, [tremoloDepth]);
-
-  useEffect(() => {
-    setVibratoEnabled(vibratoEnabled);
-  }, [vibratoEnabled]);
-
-  useEffect(() => {
-    setVibratoWet(vibrato);
-  }, [vibrato]);
-
-  useEffect(() => {
-    setVibratoFrequency(vibratoFrequency);
-  }, [vibratoFrequency]);
-
-  useEffect(() => {
-    setVibratoDepth(vibratoDepth);
-  }, [vibratoDepth]);
-
-  useEffect(() => {
-    setPhaserEnabled(phaserEnabled);
-  }, [phaserEnabled]);
-
-  useEffect(() => {
-    setPhaserWet(phaser);
-  }, [phaser]);
-
-  useEffect(() => {
-    setPhaserFrequency(phaserFrequency);
-  }, [phaserFrequency]);
-
-  useEffect(() => {
-    setPhaserOctaves(phaserOctaves);
-  }, [phaserOctaves]);
-
-  useEffect(() => {
-    setPhaserQ(phaserQ);
-  }, [phaserQ]);
-
-  useEffect(() => {
-    setReverbRoomSize(roomSize);
-  }, [roomSize]);
+    applyAudioEffectsState({
+      reverbEnabled,
+      reverbWet: reverb,
+      reverbRoomSize: roomSize,
+      chorusEnabled,
+      chorusWet: chorus,
+      chorusFrequency: chorusRate,
+      chorusDepth,
+      chorusDelayTime,
+      feedbackDelayEnabled,
+      feedbackDelayWet: feedbackDelay,
+      feedbackDelayTime,
+      feedbackDelayFeedback,
+      tremoloEnabled,
+      tremoloWet: tremolo,
+      tremoloFrequency,
+      tremoloDepth,
+      vibratoEnabled,
+      vibratoWet: vibrato,
+      vibratoFrequency,
+      vibratoDepth,
+      phaserEnabled,
+      phaserWet: phaser,
+      phaserFrequency,
+      phaserOctaves,
+      phaserQ,
+    });
+  }, [
+    reverbEnabled,
+    reverb,
+    roomSize,
+    chorusEnabled,
+    chorus,
+    chorusRate,
+    chorusDepth,
+    chorusDelayTime,
+    feedbackDelayEnabled,
+    feedbackDelay,
+    feedbackDelayTime,
+    feedbackDelayFeedback,
+    tremoloEnabled,
+    tremolo,
+    tremoloFrequency,
+    tremoloDepth,
+    vibratoEnabled,
+    vibrato,
+    vibratoFrequency,
+    vibratoDepth,
+    phaserEnabled,
+    phaser,
+    phaserFrequency,
+    phaserOctaves,
+    phaserQ,
+  ]);
 
   return {
     settings,

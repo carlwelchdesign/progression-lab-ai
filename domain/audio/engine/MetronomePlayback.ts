@@ -1,19 +1,15 @@
-import * as Tone from 'tone';
 import type { MetronomeSource, PlayMetronomePulseOptions } from '../audioEngine';
 import type { TimeSignature } from '../../music/padPattern';
 import { TIME_SIGNATURE_BEATS_PER_BAR } from '../../music/padPattern';
-import {
-  clampUnitValue,
-  getBeatDurationSeconds,
-  inferFallbackDrumDurationBeats,
-  normalizeTempoBpm,
-} from './AudioMath';
+import { clampUnitValue, getBeatDurationSeconds } from './AudioMath';
 import type { DrumPattern } from './DrumPatternRepository';
+import { createMetronomePulsePolicy } from './MetronomePulsePolicy';
 import type { MetronomeSynthBank } from './MetronomeSynthBank';
+import type { SchedulableLoop } from './AudioTimelineState';
 
 type LoopState = {
-  getMetronomeLoop: () => Tone.Loop | null;
-  setMetronomeLoop: (loop: Tone.Loop | null) => void;
+  getMetronomeLoop: () => SchedulableLoop | null;
+  setMetronomeLoop: (loop: SchedulableLoop | null) => void;
   getMetronomeClickBeat: () => number;
   setMetronomeClickBeat: (beat: number) => void;
   getActiveMetronomePulseTimeouts: () => ReturnType<typeof setTimeout>[];
@@ -26,6 +22,8 @@ type CreateMetronomePlaybackParams = {
   normalizeDrumPatternPath: (path: string | null | undefined) => string | null;
   loadPattern: (path: string) => Promise<DrumPattern | null>;
   loopState: LoopState;
+  createLoop: (callback: (time: number) => void, interval: number) => SchedulableLoop;
+  getTransportNow: () => number;
 };
 
 export type MetronomePlayback = {
@@ -35,6 +33,7 @@ export type MetronomePlayback = {
     opts?: PlayMetronomePulseOptions,
   ) => Promise<void>;
   playMetronomeClick: (volume: number, isDownbeat: boolean) => Promise<void>;
+  updateMetronomeTempo: (tempoBpm: number) => void;
   startMetronomeLoop: (
     tempoBpm: number,
     timeSignature: TimeSignature,
@@ -51,7 +50,14 @@ export const createMetronomePlayback = ({
   normalizeDrumPatternPath,
   loadPattern,
   loopState,
+  createLoop,
+  getTransportNow,
 }: CreateMetronomePlaybackParams): MetronomePlayback => {
+  const { triggerClickPulse, playDrumPulse } = createMetronomePulsePolicy({
+    synthBank,
+    loadPattern,
+  });
+
   const playMetronomePulse = async (
     volume: number,
     isDownbeat: boolean,
@@ -66,59 +72,35 @@ export const createMetronomePlayback = ({
     }
 
     if (source === 'click') {
-      const synth = synthBank.getClickSynth();
-      synth.volume.value = Tone.gainToDb(normalizedVolume * 0.45);
-      synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
+      triggerClickPulse({ volume: normalizedVolume, isDownbeat, time: getTransportNow() });
       return;
     }
 
     const drumPath = normalizeDrumPatternPath(opts?.drumPath);
-    if (!drumPath) {
-      const synth = synthBank.getClickSynth();
-      synth.volume.value = Tone.gainToDb(normalizedVolume * 0.45);
-      synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
-      return;
-    }
-
-    const pattern = await loadPattern(drumPath);
-    if (!pattern) {
-      const synth = synthBank.getClickSynth();
-      synth.volume.value = Tone.gainToDb(normalizedVolume * 0.45);
-      synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', Tone.now());
-      return;
-    }
-
-    const tempo = normalizeTempoBpm(opts?.tempoBpm);
-    const beatDurationSeconds = getBeatDurationSeconds(tempo);
-    const beatIndex = Math.max(0, opts?.beatIndex ?? 0);
-    const patternDuration = Math.max(
-      pattern.durationBeats,
-      inferFallbackDrumDurationBeats(opts?.timeSignature ?? '4/4'),
-    );
-    const beatStartInPattern = beatIndex % patternDuration;
-    const now = Tone.now();
-
-    pattern.events.forEach((event) => {
-      const eventBeatInPattern =
-        ((event.beat % patternDuration) + patternDuration) % patternDuration;
-      if (eventBeatInPattern < beatStartInPattern || eventBeatInPattern >= beatStartInPattern + 1) {
-        return;
-      }
-
-      const offsetBeats = eventBeatInPattern - beatStartInPattern;
-      const eventTime = now + offsetBeats * beatDurationSeconds;
-      const eventDurationSeconds = Math.max(0.02, event.durationBeats * beatDurationSeconds);
-      synthBank.triggerDrumHit(
-        event.midi,
-        eventTime,
-        eventDurationSeconds,
-        event.velocity * normalizedVolume,
-      );
+    const played = await playDrumPulse({
+      volume: normalizedVolume,
+      drumPath,
+      timeSignature: opts?.timeSignature ?? '4/4',
+      tempoBpm: opts?.tempoBpm,
+      beatIndex: opts?.beatIndex ?? 0,
     });
+
+    if (!played) {
+      triggerClickPulse({ volume: normalizedVolume, isDownbeat, time: getTransportNow() });
+    }
   };
 
   const playMetronomeClick = async (volume: number, isDownbeat: boolean): Promise<void> => {
     await playMetronomePulse(volume, isDownbeat, { source: 'click' });
+  };
+
+  const updateMetronomeTempo = (tempoBpm: number): void => {
+    const metronomeLoop = loopState.getMetronomeLoop();
+    if (!metronomeLoop) {
+      return;
+    }
+
+    metronomeLoop.setInterval(getBeatDurationSeconds(tempoBpm));
   };
 
   const startMetronomeLoop = (
@@ -138,7 +120,7 @@ export const createMetronomePlayback = ({
       void loadPattern(drumPath);
     }
 
-    const metronomeLoop = new Tone.Loop((time) => {
+    const metronomeLoop = createLoop((time) => {
       const currentBeat = loopState.getMetronomeClickBeat();
       if (currentBeat >= totalBeats) {
         return;
@@ -146,12 +128,10 @@ export const createMetronomePlayback = ({
 
       const isDownbeat = currentBeat % beatsPerBar === 0;
       if (source === 'click') {
-        const synth = synthBank.getClickSynth();
-        synth.volume.value = volume > 0 ? Tone.gainToDb(volume * 0.45) : -Infinity;
-        synth.triggerAttackRelease(isDownbeat ? 'C6' : 'A5', '32n', time);
+        triggerClickPulse({ volume, isDownbeat, time });
       } else {
         const beatIndex = currentBeat;
-        const delayMs = Math.max(0, (time - Tone.now()) * 1000);
+        const delayMs = Math.max(0, (time - getTransportNow()) * 1000);
         const timeoutId = setTimeout(() => {
           loopState.setActiveMetronomePulseTimeouts(
             loopState.getActiveMetronomePulseTimeouts().filter((id) => id !== timeoutId),
@@ -181,6 +161,7 @@ export const createMetronomePlayback = ({
   return {
     playMetronomePulse,
     playMetronomeClick,
+    updateMetronomeTempo,
     startMetronomeLoop,
   };
 };

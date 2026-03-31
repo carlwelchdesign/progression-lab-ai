@@ -32,6 +32,7 @@ import { useAppLocale } from '../../../../components/providers/LocaleProvider';
 import { useAppSnackbar } from '../../../../components/providers/AppSnackbarProvider';
 import { useAuth } from '../../../../components/providers/AuthProvider';
 import { useAuthModal } from '../../../../components/providers/AuthModalProvider';
+import { updatePlaybackTempo } from '../../../../domain/audio/audio';
 import usePlaybackSettings from '../../hooks/usePlaybackSettings';
 import useGeneratorSessionCache from '../../hooks/useGeneratorSessionCache';
 import { applyPlaybackSettings, sanitizePlaybackSettings } from '../../lib/playbackSettingsModel';
@@ -139,6 +140,7 @@ export default function GeneratorPageContent() {
         shouldDirty: true,
         shouldValidate: false,
       });
+      updatePlaybackTempo(normalizedValue);
     },
     [setValue],
   );

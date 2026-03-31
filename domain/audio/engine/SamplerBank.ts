@@ -1,9 +1,11 @@
 import * as Tone from 'tone';
 
+export type SamplerInstrument = Pick<Tone.Sampler, 'triggerAttackRelease' | 'attack' | 'release'>;
+
 export type SamplerBank = {
-  ensurePianoSamplerLoaded: () => Promise<Tone.Sampler>;
-  ensureRhodesSamplerLoaded: () => Promise<Tone.Sampler>;
-  getSamplerRefs: () => { pianoSampler: Tone.Sampler | null; rhodesSampler: Tone.Sampler | null };
+  ensurePianoSamplerLoaded: () => Promise<SamplerInstrument>;
+  ensureRhodesSamplerLoaded: () => Promise<SamplerInstrument>;
+  releaseAllSamplers: () => void;
 };
 
 type CreateSamplerBankParams = {
@@ -66,7 +68,7 @@ export const createSamplerBank = ({
     return pianoSampler;
   };
 
-  const ensurePianoSamplerLoaded = async (): Promise<Tone.Sampler> => {
+  const ensurePianoSamplerLoaded = async (): Promise<SamplerInstrument> => {
     const sampler = getPianoSampler();
 
     await ensureReverbReady();
@@ -179,7 +181,7 @@ export const createSamplerBank = ({
     return rhodesSampler;
   };
 
-  const ensureRhodesSamplerLoaded = async (): Promise<Tone.Sampler> => {
+  const ensureRhodesSamplerLoaded = async (): Promise<SamplerInstrument> => {
     const sampler = getRhodesSampler();
 
     await ensureReverbReady();
@@ -191,17 +193,14 @@ export const createSamplerBank = ({
     return sampler;
   };
 
-  const getSamplerRefs = (): {
-    pianoSampler: Tone.Sampler | null;
-    rhodesSampler: Tone.Sampler | null;
-  } => ({
-    pianoSampler,
-    rhodesSampler,
-  });
+  const releaseAllSamplers = (): void => {
+    pianoSampler?.releaseAll();
+    rhodesSampler?.releaseAll();
+  };
 
   return {
     ensurePianoSamplerLoaded,
     ensureRhodesSamplerLoaded,
-    getSamplerRefs,
+    releaseAllSamplers,
   };
 };

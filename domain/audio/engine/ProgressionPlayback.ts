@@ -1,4 +1,5 @@
-import * as Tone from 'tone';
+import type { SchedulablePart } from './AudioTimelineState';
+import type { SamplerInstrument } from './SamplerBank';
 import type {
   MetronomeSource,
   PlayChordVoicingParams,
@@ -7,24 +8,27 @@ import type {
   PlaybackStyle,
   ProgressionVoicing,
 } from '../audioEngine';
-import {
-  getPadPatternBeats,
-  TIME_SIGNATURE_BEATS_PER_BAR,
-  TIME_SIGNATURE_NUMERATOR,
-} from '../../music/padPattern';
 import type { TimeSignature } from '../../music/padPattern';
-import { CHORD_BEATS, applyGate, getChordDurationSeconds, normalizeTempoBpm } from './AudioMath';
-import { triggerChordByStyle } from './ChordTrigger';
-import { applyInversionLock, shiftNotesByOctaves } from './NoteTransforms';
-
-const MAX_HUMANIZE_TIMING_S = 0.05;
-const MAX_HUMANIZE_VELOCITY = 12;
+import { applyGate, getChordDurationSeconds } from './AudioMath';
+import { createProgressionPlaybackPolicies } from './ProgressionPlaybackPolicies';
+import {
+  buildChordPatternScheduledEvents,
+  buildProgressionScheduledEvents,
+  getBarDurationSeconds,
+} from './ProgressionSchedulingPolicy';
+import { applyChordPatternLifecyclePolicy } from './ChordPatternLifecyclePolicy';
+import { startPartPlayback } from './PartTransportPolicy';
+import { buildTransportTiming, type TransportTiming } from './TransportTimingPolicy';
+import { beginPlaybackSession } from './PlaybackSessionPolicy';
+import { schedulePlaybackCleanupTimeout } from './PlaybackCleanupTimeoutPolicy';
+import { triggerScheduledChordEvent } from './ScheduledChordEventPolicy';
+import { triggerOneShotChordEvent } from './OneShotChordEventPolicy';
 
 interface ProgressionPlaybackDeps {
   startAudio: () => Promise<void>;
   stopAllAudio: () => void;
-  ensureRhodesSamplerLoaded: () => Promise<Tone.Sampler>;
-  ensurePianoSamplerLoaded: () => Promise<Tone.Sampler>;
+  ensureRhodesSamplerLoaded: () => Promise<SamplerInstrument>;
+  ensurePianoSamplerLoaded: () => Promise<SamplerInstrument>;
   startMetronomeLoop: (
     tempoBpm: number,
     timeSignature: TimeSignature,
@@ -34,13 +38,18 @@ interface ProgressionPlaybackDeps {
     drumPath: string | null,
   ) => void;
   partState: {
-    getActivePart: () => Tone.Part | null;
-    setActivePart: (part: Tone.Part | null) => void;
+    getActivePart: () => SchedulablePart | null;
+    setActivePart: (part: SchedulablePart | null) => void;
   };
   timeoutState: {
     getScheduledPlaybackTimeouts: () => ReturnType<typeof setTimeout>[];
     setScheduledPlaybackTimeouts: (timeouts: ReturnType<typeof setTimeout>[]) => void;
   };
+  transportControl: {
+    applyTiming: (timing: TransportTiming) => void;
+    start: () => void;
+  };
+  createPart: <T>(callback: (time: number, event: T) => void, events: T[]) => SchedulablePart;
 }
 
 interface ProgressionPlayback {
@@ -65,7 +74,17 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
     startMetronomeLoop,
     partState,
     timeoutState,
+    transportControl,
+    createPart,
   } = deps;
+
+  const {
+    resolveInstrument,
+    getLockedNotes,
+    getTimingOffset,
+    getVelocityJitter,
+    toEffectiveVelocity,
+  } = createProgressionPlaybackPolicies({ ensureRhodesSamplerLoaded, ensurePianoSamplerLoaded });
 
   const playChordVoicing = async ({
     leftHand,
@@ -82,47 +101,29 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
     instrument = 'piano',
     octaveShift = 0,
   }: PlayChordVoicingParams): Promise<void> => {
-    await startAudio();
-    stopAllAudio();
+    await beginPlaybackSession({ startAudio, stopAllAudio });
 
-    let audioInstrument: Tone.Sampler;
-    if (instrument === 'rhodes') {
-      audioInstrument = await ensureRhodesSamplerLoaded();
-    } else {
-      audioInstrument = await ensurePianoSamplerLoaded();
-    }
+    const audioInstrument = await resolveInstrument(instrument);
 
     const chordDurSeconds = getChordDurationSeconds(tempoBpm);
     const noteDuration =
       gate !== 1 ? applyGate(chordDurSeconds, gate) : (duration ?? chordDurSeconds);
 
-    const shiftedLeftHand = shiftNotesByOctaves(leftHand, octaveShift);
-    const shiftedRightHand = shiftNotesByOctaves(rightHand, octaveShift);
-    const lockedNotes = applyInversionLock(
-      [...shiftedLeftHand, ...shiftedRightHand],
-      inversionRegister,
-    );
+    const lockedNotes = getLockedNotes({ leftHand, rightHand, octaveShift, inversionRegister });
 
-    if (lockedNotes.length > 0) {
-      const timingDelay = humanize > 0 ? Math.random() * humanize * MAX_HUMANIZE_TIMING_S : 0;
-      const velJitter =
-        humanize > 0 ? (Math.random() * 2 - 1) * humanize * MAX_HUMANIZE_VELOCITY : 0;
-      const effectiveVelocity =
-        velocity !== undefined
-          ? Math.round(Math.max(20, Math.min(127, velocity + velJitter)))
-          : undefined;
-
-      triggerChordByStyle({
-        style: playbackStyle,
-        instrument: audioInstrument,
-        notes: lockedNotes,
-        duration: noteDuration,
-        startTime: timingDelay > 0 ? `+${timingDelay}` : undefined,
-        attack,
-        decay,
-        velocity: effectiveVelocity,
-      });
-    }
+    triggerOneShotChordEvent({
+      style: playbackStyle,
+      instrument: audioInstrument,
+      notes: lockedNotes,
+      duration: noteDuration,
+      attack,
+      decay,
+      velocity,
+      humanize,
+      getTimingOffset,
+      getVelocityJitter,
+      toEffectiveVelocity,
+    });
   };
 
   const playProgression = async (
@@ -133,8 +134,7 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
     decay?: number,
     opts?: PlayProgressionOptions,
   ): Promise<void> => {
-    await startAudio();
-    stopAllAudio();
+    await beginPlaybackSession({ startAudio, stopAllAudio });
 
     const {
       velocity,
@@ -151,73 +151,59 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
       metronomeDrumPath = null,
     } = opts ?? {};
 
-    let audioInstrument: Tone.Sampler;
-    if (instrument === 'rhodes') {
-      audioInstrument = await ensureRhodesSamplerLoaded();
-    } else {
-      audioInstrument = await ensurePianoSamplerLoaded();
-    }
+    const audioInstrument = await resolveInstrument(instrument);
 
-    const normalizedTempo = normalizeTempoBpm(tempoBpm);
-    Tone.Transport.bpm.value = normalizedTempo;
-    Tone.Transport.timeSignature = TIME_SIGNATURE_NUMERATOR[timeSignature];
-
-    const singleBeatSeconds = 60 / normalizedTempo;
+    const { normalizedTempo, transportTimeSignature, singleBeatSeconds } = buildTransportTiming({
+      tempoBpm,
+      timeSignature,
+    });
+    transportControl.applyTiming({
+      normalizedTempo,
+      transportTimeSignature,
+      singleBeatSeconds,
+    });
     const chordDurationSeconds = getChordDurationSeconds(normalizedTempo);
     const noteDuration = applyGate(chordDurationSeconds, gate);
     const totalDurationSeconds = voicings.length * chordDurationSeconds;
 
-    // Only use pattern beats that fall within each chord's time slot (CHORD_BEATS wide)
-    const patternBeats = getPadPatternBeats(padPattern, timeSignature).filter(
-      (beat) => beat.offsetBeats < CHORD_BEATS,
-    );
+    const events = buildProgressionScheduledEvents({
+      voicings,
+      padPattern,
+      timeSignature,
+      singleBeatSeconds,
+      chordDurationSeconds,
+    });
 
-    const events = voicings.flatMap((voicing, index) =>
-      patternBeats.map((beat) => ({
-        time: index * chordDurationSeconds + beat.offsetBeats * singleBeatSeconds,
-        voicing,
-        velocityScale: beat.velocityScale,
-      })),
-    );
-
-    const part = new Tone.Part<{
+    const part = createPart<{
       time: number;
       voicing: ProgressionVoicing;
       velocityScale: number;
     }>((time, event) => {
       const { voicing, velocityScale } = event;
-      const shiftedLeftHand = shiftNotesByOctaves(voicing.leftHand, octaveShift);
-      const shiftedRightHand = shiftNotesByOctaves(voicing.rightHand, octaveShift);
-      const lockedNotes = applyInversionLock(
-        [...shiftedLeftHand, ...shiftedRightHand],
+      const lockedNotes = getLockedNotes({
+        leftHand: voicing.leftHand,
+        rightHand: voicing.rightHand,
+        octaveShift,
         inversionRegister,
-      );
+      });
 
-      if (lockedNotes.length > 0) {
-        const timingJitter =
-          humanize > 0 ? (Math.random() * 2 - 1) * humanize * MAX_HUMANIZE_TIMING_S : 0;
-        const velJitter =
-          humanize > 0 ? (Math.random() * 2 - 1) * humanize * MAX_HUMANIZE_VELOCITY : 0;
-        const effectiveVelocity =
-          velocity !== undefined
-            ? Math.round(Math.max(20, Math.min(127, velocity * velocityScale + velJitter)))
-            : undefined;
-
-        triggerChordByStyle({
-          style: playbackStyle,
-          instrument: audioInstrument,
-          notes: lockedNotes,
-          duration: noteDuration,
-          startTime: timingJitter !== 0 ? time + timingJitter : time,
-          attack,
-          decay,
-          velocity: effectiveVelocity,
-        });
-      }
+      triggerScheduledChordEvent({
+        style: playbackStyle,
+        instrument: audioInstrument,
+        notes: lockedNotes,
+        duration: noteDuration,
+        eventTime: time,
+        attack,
+        decay,
+        velocity,
+        velocityScale,
+        humanize,
+        symmetricTiming: true,
+        getTimingOffset,
+        getVelocityJitter,
+        toEffectiveVelocity,
+      });
     }, events);
-
-    partState.setActivePart(part);
-    part.start(0);
 
     if (metronomeEnabled) {
       startMetronomeLoop(
@@ -230,7 +216,12 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
       );
     }
 
-    Tone.Transport.start();
+    startPartPlayback({
+      part,
+      setActivePart: partState.setActivePart,
+      startPart: (nextPart) => nextPart.start(0),
+      startTransport: transportControl.start,
+    });
   };
 
   const playChordPattern = async ({
@@ -267,83 +258,74 @@ export const createProgressionPlayback = (deps: ProgressionPlaybackDeps): Progre
       });
     }
 
-    await startAudio();
-    stopAllAudio();
+    await beginPlaybackSession({ startAudio, stopAllAudio });
 
-    let audioInstrument: Tone.Sampler;
-    if (instrument === 'rhodes') {
-      audioInstrument = await ensureRhodesSamplerLoaded();
-    } else {
-      audioInstrument = await ensurePianoSamplerLoaded();
-    }
+    const audioInstrument = await resolveInstrument(instrument);
 
-    const normalizedTempo = normalizeTempoBpm(tempoBpm);
-    Tone.Transport.bpm.value = normalizedTempo;
-    Tone.Transport.timeSignature = TIME_SIGNATURE_NUMERATOR[timeSignature];
-
-    const singleBeatSeconds = 60 / normalizedTempo;
+    const { normalizedTempo, transportTimeSignature, singleBeatSeconds } = buildTransportTiming({
+      tempoBpm,
+      timeSignature,
+    });
+    transportControl.applyTiming({
+      normalizedTempo,
+      transportTimeSignature,
+      singleBeatSeconds,
+    });
     const chordDurSeconds = getChordDurationSeconds(normalizedTempo);
     const noteDuration = gate !== 1 ? applyGate(chordDurSeconds, gate) : chordDurSeconds;
-    const beatsPerBar = TIME_SIGNATURE_BEATS_PER_BAR[timeSignature];
-    const barDurationSeconds = beatsPerBar * singleBeatSeconds;
+    const barDurationSeconds = getBarDurationSeconds(timeSignature, singleBeatSeconds);
 
-    const shiftedLeftHand = shiftNotesByOctaves(leftHand, octaveShift);
-    const shiftedRightHand = shiftNotesByOctaves(rightHand, octaveShift);
-    const lockedNotes = applyInversionLock(
-      [...shiftedLeftHand, ...shiftedRightHand],
-      inversionRegister,
-    );
+    const lockedNotes = getLockedNotes({ leftHand, rightHand, octaveShift, inversionRegister });
 
     if (lockedNotes.length === 0) {
       return;
     }
 
-    const patternBeats = getPadPatternBeats(padPattern, timeSignature);
-    const events = patternBeats.map((beat) => ({
-      time: beat.offsetBeats * singleBeatSeconds,
-      velocityScale: beat.velocityScale,
-    }));
+    const events = buildChordPatternScheduledEvents({
+      padPattern,
+      timeSignature,
+      singleBeatSeconds,
+    });
 
-    const part = new Tone.Part<{ time: number; velocityScale: number }>((time, event) => {
-      const timingDelay = humanize > 0 ? Math.random() * humanize * MAX_HUMANIZE_TIMING_S : 0;
-      const velJitter =
-        humanize > 0 ? (Math.random() * 2 - 1) * humanize * MAX_HUMANIZE_VELOCITY : 0;
-      const scaledVelocity =
-        velocity !== undefined
-          ? Math.round(Math.max(20, Math.min(127, velocity * event.velocityScale + velJitter)))
-          : undefined;
-
-      triggerChordByStyle({
+    const part = createPart<{ time: number; velocityScale: number }>((time, event) => {
+      triggerScheduledChordEvent({
         style: playbackStyle,
         instrument: audioInstrument,
         notes: lockedNotes,
         duration: noteDuration,
-        startTime: timingDelay > 0 ? time + timingDelay : time,
+        eventTime: time,
         attack,
         decay,
-        velocity: scaledVelocity,
+        velocity,
+        velocityScale: event.velocityScale,
+        humanize,
+        symmetricTiming: false,
+        getTimingOffset,
+        getVelocityJitter,
+        toEffectiveVelocity,
       });
     }, events);
 
-    if (loop) {
-      part.loop = true;
-      part.loopStart = 0;
-      part.loopEnd = barDurationSeconds;
-    } else {
-      // Stop Transport after one bar completes
-      const cleanupTimeout = setTimeout(
-        () => {
-          stopAllAudio();
-        },
-        (barDurationSeconds + 0.15) * 1000,
-      );
-      const currentTimeouts = timeoutState.getScheduledPlaybackTimeouts();
-      timeoutState.setScheduledPlaybackTimeouts([...currentTimeouts, cleanupTimeout]);
-    }
+    applyChordPatternLifecyclePolicy({
+      loop,
+      part,
+      barDurationSeconds,
+      scheduleCleanup: (cleanupDelayMs) => {
+        schedulePlaybackCleanupTimeout({
+          cleanupDelayMs,
+          stopAllAudio,
+          getScheduledPlaybackTimeouts: timeoutState.getScheduledPlaybackTimeouts,
+          setScheduledPlaybackTimeouts: timeoutState.setScheduledPlaybackTimeouts,
+        });
+      },
+    });
 
-    partState.setActivePart(part);
-    part.start(0);
-    Tone.Transport.start();
+    startPartPlayback({
+      part,
+      setActivePart: partState.setActivePart,
+      startPart: (nextPart) => nextPart.start(0),
+      startTransport: transportControl.start,
+    });
   };
 
   return {

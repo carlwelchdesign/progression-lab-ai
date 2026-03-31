@@ -1,23 +1,33 @@
-import * as Tone from 'tone';
+import { applyTransportStopPolicy } from './TransportStopPolicy';
+import type { SchedulablePart, SchedulableLoop } from './AudioTimelineState';
+
+export type EnsureAudioStartedDeps = {
+  isContextRunning: () => boolean;
+  startContext: () => Promise<void>;
+};
 
 export type StopAllAudioParams = {
   scheduledPlaybackTimeouts: ReturnType<typeof setTimeout>[];
   setScheduledPlaybackTimeouts: (timeouts: ReturnType<typeof setTimeout>[]) => void;
   activeMetronomePulseTimeouts: ReturnType<typeof setTimeout>[];
   setActiveMetronomePulseTimeouts: (timeouts: ReturnType<typeof setTimeout>[]) => void;
-  activePart: Tone.Part | null;
-  setActivePart: (part: Tone.Part | null) => void;
-  metronomeLoop: Tone.Loop | null;
-  setMetronomeLoop: (loop: Tone.Loop | null) => void;
+  activePart: SchedulablePart | null;
+  setActivePart: (part: SchedulablePart | null) => void;
+  metronomeLoop: SchedulableLoop | null;
+  setMetronomeLoop: (loop: SchedulableLoop | null) => void;
   setMetronomeClickBeat: (beat: number) => void;
-  pianoSampler: Tone.Sampler | null;
-  rhodesSampler: Tone.Sampler | null;
+  releaseInstrumentSamplers: () => void;
   releaseMetronomeSynths: () => void;
+  stopTransport: () => void;
+  cancelTransport: () => void;
 };
 
-export const ensureAudioStarted = async (): Promise<void> => {
-  if (Tone.context.state !== 'running') {
-    await Tone.start();
+export const ensureAudioStarted = async ({
+  isContextRunning,
+  startContext,
+}: EnsureAudioStartedDeps): Promise<void> => {
+  if (!isContextRunning()) {
+    await startContext();
   }
 };
 
@@ -31,36 +41,24 @@ export const stopAllAudioPlayback = ({
   metronomeLoop,
   setMetronomeLoop,
   setMetronomeClickBeat,
-  pianoSampler,
-  rhodesSampler,
+  releaseInstrumentSamplers,
   releaseMetronomeSynths,
+  stopTransport,
+  cancelTransport,
 }: StopAllAudioParams): void => {
-  scheduledPlaybackTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
-  setScheduledPlaybackTimeouts([]);
-  activeMetronomePulseTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
-  setActiveMetronomePulseTimeouts([]);
-
-  Tone.Transport.stop();
-  Tone.Transport.cancel();
-
-  if (activePart) {
-    activePart.dispose();
-    setActivePart(null);
-  }
-
-  if (metronomeLoop) {
-    metronomeLoop.dispose();
-    setMetronomeLoop(null);
-    setMetronomeClickBeat(0);
-  }
-
-  if (pianoSampler) {
-    pianoSampler.releaseAll();
-  }
-
-  if (rhodesSampler) {
-    rhodesSampler.releaseAll();
-  }
-
-  releaseMetronomeSynths();
+  applyTransportStopPolicy({
+    scheduledPlaybackTimeouts,
+    setScheduledPlaybackTimeouts,
+    activeMetronomePulseTimeouts,
+    setActiveMetronomePulseTimeouts,
+    activePart,
+    setActivePart,
+    metronomeLoop,
+    setMetronomeLoop,
+    setMetronomeClickBeat,
+    stopTransport,
+    cancelTransport,
+    releaseInstrumentSamplers,
+    releaseMetronomeSynths,
+  });
 };

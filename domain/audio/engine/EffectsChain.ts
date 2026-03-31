@@ -5,6 +5,10 @@ const REVERB_MIN_DECAY_SECONDS = 0.8;
 const REVERB_MAX_DECAY_SECONDS = 10;
 
 type EffectKey = 'reverb' | 'chorus' | 'feedback-delay' | 'tremolo' | 'vibrato' | 'phaser';
+type EffectNode = Tone.ToneAudioNode & {
+  set: (values: Record<string, unknown>) => unknown;
+  dispose: () => void;
+};
 
 export type EffectsChain = {
   connectSamplerToCurrentOutput: (sampler: Tone.Sampler) => Tone.Sampler;
@@ -77,6 +81,39 @@ export const createEffectsChain = (): EffectsChain => {
   let phaserFrequency = 0.5;
   let phaserOctaves = 3;
   let phaserQ = 10;
+
+  const getEffectNodes = (): Array<EffectNode | null> => [
+    vibratoNode,
+    chorusNode,
+    phaserNode,
+    feedbackDelayNode,
+    tremoloNode,
+    reverbNode,
+  ];
+
+  const updateNodeSettings = (node: EffectNode | null, values: Record<string, unknown>): void => {
+    if (node) {
+      node.set(values);
+    }
+  };
+
+  const updateEffectParam = ({
+    value,
+    normalize,
+    assign,
+    node,
+    nodeKey,
+  }: {
+    value: number;
+    normalize: (nextValue: number) => number;
+    assign: (nextValue: number) => void;
+    node: EffectNode | null;
+    nodeKey: string;
+  }): void => {
+    const normalizedValue = normalize(value);
+    assign(normalizedValue);
+    updateNodeSettings(node, { [nodeKey]: normalizedValue });
+  };
 
   const getReverbNode = (): Tone.Reverb => {
     if (!reverbNode) {
@@ -158,41 +195,24 @@ export const createEffectsChain = (): EffectsChain => {
   };
 
   const getEnabledEffectsInOrder = (): Tone.ToneAudioNode[] => {
-    const effects: Tone.ToneAudioNode[] = [];
+    const orderedEffectDescriptors = [
+      { enabled: vibratoEnabled, getNode: getVibratoNode },
+      { enabled: chorusEnabled, getNode: getChorusNode },
+      { enabled: phaserEnabled, getNode: getPhaserNode },
+      { enabled: feedbackDelayEnabled, getNode: getFeedbackDelayNode },
+      { enabled: tremoloEnabled, getNode: getTremoloNode },
+      { enabled: reverbEnabled, getNode: getReverbNode },
+    ];
 
-    if (vibratoEnabled) {
-      effects.push(getVibratoNode());
-    }
-
-    if (chorusEnabled) {
-      effects.push(getChorusNode());
-    }
-
-    if (phaserEnabled) {
-      effects.push(getPhaserNode());
-    }
-
-    if (feedbackDelayEnabled) {
-      effects.push(getFeedbackDelayNode());
-    }
-
-    if (tremoloEnabled) {
-      effects.push(getTremoloNode());
-    }
-
-    if (reverbEnabled) {
-      effects.push(getReverbNode());
-    }
-
-    return effects;
+    return orderedEffectDescriptors
+      .filter(({ enabled }) => enabled)
+      .map(({ getNode }) => getNode());
   };
 
   const refreshEffectRouting = (): void => {
-    [vibratoNode, chorusNode, phaserNode, feedbackDelayNode, tremoloNode, reverbNode].forEach(
-      (node) => {
-        node?.disconnect();
-      },
-    );
+    getEffectNodes().forEach((node) => {
+      node?.disconnect();
+    });
 
     const enabledEffects = getEnabledEffectsInOrder();
 
@@ -249,6 +269,24 @@ export const createEffectsChain = (): EffectsChain => {
     }
   };
 
+  const toggleEffect = ({
+    enabled,
+    effect,
+    applySettings,
+  }: {
+    enabled: boolean;
+    effect: EffectKey;
+    applySettings: () => void;
+  }): void => {
+    if (enabled) {
+      applySettings();
+    } else {
+      disposeEffectNode(effect);
+    }
+
+    refreshEffectRouting();
+  };
+
   const connectSamplerToCurrentOutput = (sampler: Tone.Sampler): Tone.Sampler => {
     registeredSamplers.add(sampler);
     sampler.disconnect();
@@ -272,17 +310,27 @@ export const createEffectsChain = (): EffectsChain => {
   };
 
   const setReverbWet = (wet: number): void => {
-    reverbWet = clampUnitValue(wet);
-    if (reverbNode) {
-      reverbNode.set({ wet: reverbWet });
-    }
+    updateEffectParam({
+      value: wet,
+      normalize: clampUnitValue,
+      assign: (nextValue) => {
+        reverbWet = nextValue;
+      },
+      node: reverbNode,
+      nodeKey: 'wet',
+    });
   };
 
   const setChorusWet = (wet: number): void => {
-    chorusWet = clampUnitValue(wet);
-    if (chorusNode) {
-      chorusNode.set({ wet: chorusWet });
-    }
+    updateEffectParam({
+      value: wet,
+      normalize: clampUnitValue,
+      assign: (nextValue) => {
+        chorusWet = nextValue;
+      },
+      node: chorusNode,
+      nodeKey: 'wet',
+    });
   };
 
   const setReverbRoomSize = (roomSize: number): void => {
@@ -297,211 +345,291 @@ export const createEffectsChain = (): EffectsChain => {
   const setReverbEnabled = (enabled: boolean): void => {
     reverbEnabled = enabled;
 
-    if (enabled) {
-      const node = getReverbNode();
-      node.set({ wet: reverbWet });
-      const decayRange = REVERB_MAX_DECAY_SECONDS - REVERB_MIN_DECAY_SECONDS;
-      node.decay = REVERB_MIN_DECAY_SECONDS + reverbRoomSize * decayRange;
-    } else {
-      disposeEffectNode('reverb');
-    }
-
-    refreshEffectRouting();
+    toggleEffect({
+      enabled,
+      effect: 'reverb',
+      applySettings: () => {
+        const node = getReverbNode();
+        node.set({ wet: reverbWet });
+        const decayRange = REVERB_MAX_DECAY_SECONDS - REVERB_MIN_DECAY_SECONDS;
+        node.decay = REVERB_MIN_DECAY_SECONDS + reverbRoomSize * decayRange;
+      },
+    });
   };
 
   const setChorusEnabled = (enabled: boolean): void => {
     chorusEnabled = enabled;
 
-    if (enabled) {
-      getChorusNode().set({
-        wet: chorusWet,
-        frequency: chorusFrequency,
-        delayTime: chorusDelayTime,
-        depth: chorusDepth,
-      });
-    } else {
-      disposeEffectNode('chorus');
-    }
-
-    refreshEffectRouting();
+    toggleEffect({
+      enabled,
+      effect: 'chorus',
+      applySettings: () => {
+        getChorusNode().set({
+          wet: chorusWet,
+          frequency: chorusFrequency,
+          delayTime: chorusDelayTime,
+          depth: chorusDepth,
+        });
+      },
+    });
   };
 
   const setChorusFrequency = (value: number): void => {
-    chorusFrequency = Math.max(0.1, value);
-    if (chorusNode) {
-      chorusNode.set({ frequency: chorusFrequency });
-    }
+    updateEffectParam({
+      value,
+      normalize: (nextValue) => Math.max(0.1, nextValue),
+      assign: (nextValue) => {
+        chorusFrequency = nextValue;
+      },
+      node: chorusNode,
+      nodeKey: 'frequency',
+    });
   };
 
   const setChorusDelayTime = (value: number): void => {
-    chorusDelayTime = Math.max(0.1, value);
-    if (chorusNode) {
-      chorusNode.set({ delayTime: chorusDelayTime });
-    }
+    updateEffectParam({
+      value,
+      normalize: (nextValue) => Math.max(0.1, nextValue),
+      assign: (nextValue) => {
+        chorusDelayTime = nextValue;
+      },
+      node: chorusNode,
+      nodeKey: 'delayTime',
+    });
   };
 
   const setChorusDepth = (value: number): void => {
-    chorusDepth = clampUnitValue(value);
-    if (chorusNode) {
-      chorusNode.set({ depth: chorusDepth });
-    }
+    updateEffectParam({
+      value,
+      normalize: clampUnitValue,
+      assign: (nextValue) => {
+        chorusDepth = nextValue;
+      },
+      node: chorusNode,
+      nodeKey: 'depth',
+    });
   };
 
   const setFeedbackDelayEnabled = (enabled: boolean): void => {
     feedbackDelayEnabled = enabled;
 
-    if (enabled) {
-      getFeedbackDelayNode().set({
-        wet: feedbackDelayWet,
-        delayTime: feedbackDelayTime,
-        feedback: feedbackDelayFeedback,
-      });
-    } else {
-      disposeEffectNode('feedback-delay');
-    }
-
-    refreshEffectRouting();
+    toggleEffect({
+      enabled,
+      effect: 'feedback-delay',
+      applySettings: () => {
+        getFeedbackDelayNode().set({
+          wet: feedbackDelayWet,
+          delayTime: feedbackDelayTime,
+          feedback: feedbackDelayFeedback,
+        });
+      },
+    });
   };
 
   const setFeedbackDelayWet = (wet: number): void => {
-    feedbackDelayWet = clampUnitValue(wet);
-    if (feedbackDelayNode) {
-      feedbackDelayNode.set({ wet: feedbackDelayWet });
-    }
+    updateEffectParam({
+      value: wet,
+      normalize: clampUnitValue,
+      assign: (nextValue) => {
+        feedbackDelayWet = nextValue;
+      },
+      node: feedbackDelayNode,
+      nodeKey: 'wet',
+    });
   };
 
   const setFeedbackDelayTime = (value: number): void => {
-    feedbackDelayTime = Math.max(0.01, value);
-    if (feedbackDelayNode) {
-      feedbackDelayNode.set({ delayTime: feedbackDelayTime });
-    }
+    updateEffectParam({
+      value,
+      normalize: (nextValue) => Math.max(0.01, nextValue),
+      assign: (nextValue) => {
+        feedbackDelayTime = nextValue;
+      },
+      node: feedbackDelayNode,
+      nodeKey: 'delayTime',
+    });
   };
 
   const setFeedbackDelayFeedback = (value: number): void => {
-    feedbackDelayFeedback = Math.min(0.95, Math.max(0, value));
-    if (feedbackDelayNode) {
-      feedbackDelayNode.set({ feedback: feedbackDelayFeedback });
-    }
+    updateEffectParam({
+      value,
+      normalize: (nextValue) => Math.min(0.95, Math.max(0, nextValue)),
+      assign: (nextValue) => {
+        feedbackDelayFeedback = nextValue;
+      },
+      node: feedbackDelayNode,
+      nodeKey: 'feedback',
+    });
   };
 
   const setTremoloEnabled = (enabled: boolean): void => {
     tremoloEnabled = enabled;
 
-    if (enabled) {
-      getTremoloNode().set({
-        wet: tremoloWet,
-        frequency: tremoloFrequency,
-        depth: tremoloDepth,
-        spread: 180,
-      });
-    } else {
-      disposeEffectNode('tremolo');
-    }
-
-    refreshEffectRouting();
+    toggleEffect({
+      enabled,
+      effect: 'tremolo',
+      applySettings: () => {
+        getTremoloNode().set({
+          wet: tremoloWet,
+          frequency: tremoloFrequency,
+          depth: tremoloDepth,
+          spread: 180,
+        });
+      },
+    });
   };
 
   const setTremoloWet = (wet: number): void => {
-    tremoloWet = clampUnitValue(wet);
-    if (tremoloNode) {
-      tremoloNode.set({ wet: tremoloWet });
-    }
+    updateEffectParam({
+      value: wet,
+      normalize: clampUnitValue,
+      assign: (nextValue) => {
+        tremoloWet = nextValue;
+      },
+      node: tremoloNode,
+      nodeKey: 'wet',
+    });
   };
 
   const setTremoloFrequency = (value: number): void => {
-    tremoloFrequency = Math.max(0.1, value);
-    if (tremoloNode) {
-      tremoloNode.set({ frequency: tremoloFrequency });
-    }
+    updateEffectParam({
+      value,
+      normalize: (nextValue) => Math.max(0.1, nextValue),
+      assign: (nextValue) => {
+        tremoloFrequency = nextValue;
+      },
+      node: tremoloNode,
+      nodeKey: 'frequency',
+    });
   };
 
   const setTremoloDepth = (value: number): void => {
-    tremoloDepth = clampUnitValue(value);
-    if (tremoloNode) {
-      tremoloNode.set({ depth: tremoloDepth });
-    }
+    updateEffectParam({
+      value,
+      normalize: clampUnitValue,
+      assign: (nextValue) => {
+        tremoloDepth = nextValue;
+      },
+      node: tremoloNode,
+      nodeKey: 'depth',
+    });
   };
 
   const setVibratoEnabled = (enabled: boolean): void => {
     vibratoEnabled = enabled;
 
-    if (enabled) {
-      getVibratoNode().set({
-        wet: vibratoWet,
-        frequency: vibratoFrequency,
-        depth: vibratoDepth,
-      });
-    } else {
-      disposeEffectNode('vibrato');
-    }
-
-    refreshEffectRouting();
+    toggleEffect({
+      enabled,
+      effect: 'vibrato',
+      applySettings: () => {
+        getVibratoNode().set({
+          wet: vibratoWet,
+          frequency: vibratoFrequency,
+          depth: vibratoDepth,
+        });
+      },
+    });
   };
 
   const setVibratoWet = (wet: number): void => {
-    vibratoWet = clampUnitValue(wet);
-    if (vibratoNode) {
-      vibratoNode.set({ wet: vibratoWet });
-    }
+    updateEffectParam({
+      value: wet,
+      normalize: clampUnitValue,
+      assign: (nextValue) => {
+        vibratoWet = nextValue;
+      },
+      node: vibratoNode,
+      nodeKey: 'wet',
+    });
   };
 
   const setVibratoFrequency = (value: number): void => {
-    vibratoFrequency = Math.max(0.1, value);
-    if (vibratoNode) {
-      vibratoNode.set({ frequency: vibratoFrequency });
-    }
+    updateEffectParam({
+      value,
+      normalize: (nextValue) => Math.max(0.1, nextValue),
+      assign: (nextValue) => {
+        vibratoFrequency = nextValue;
+      },
+      node: vibratoNode,
+      nodeKey: 'frequency',
+    });
   };
 
   const setVibratoDepth = (value: number): void => {
-    vibratoDepth = clampUnitValue(value);
-    if (vibratoNode) {
-      vibratoNode.set({ depth: vibratoDepth });
-    }
+    updateEffectParam({
+      value,
+      normalize: clampUnitValue,
+      assign: (nextValue) => {
+        vibratoDepth = nextValue;
+      },
+      node: vibratoNode,
+      nodeKey: 'depth',
+    });
   };
 
   const setPhaserEnabled = (enabled: boolean): void => {
     phaserEnabled = enabled;
 
-    if (enabled) {
-      getPhaserNode().set({
-        wet: phaserWet,
-        frequency: phaserFrequency,
-        octaves: phaserOctaves,
-        Q: phaserQ,
-      });
-    } else {
-      disposeEffectNode('phaser');
-    }
-
-    refreshEffectRouting();
+    toggleEffect({
+      enabled,
+      effect: 'phaser',
+      applySettings: () => {
+        getPhaserNode().set({
+          wet: phaserWet,
+          frequency: phaserFrequency,
+          octaves: phaserOctaves,
+          Q: phaserQ,
+        });
+      },
+    });
   };
 
   const setPhaserWet = (wet: number): void => {
-    phaserWet = clampUnitValue(wet);
-    if (phaserNode) {
-      phaserNode.set({ wet: phaserWet });
-    }
+    updateEffectParam({
+      value: wet,
+      normalize: clampUnitValue,
+      assign: (nextValue) => {
+        phaserWet = nextValue;
+      },
+      node: phaserNode,
+      nodeKey: 'wet',
+    });
   };
 
   const setPhaserFrequency = (value: number): void => {
-    phaserFrequency = Math.max(0.1, value);
-    if (phaserNode) {
-      phaserNode.set({ frequency: phaserFrequency });
-    }
+    updateEffectParam({
+      value,
+      normalize: (nextValue) => Math.max(0.1, nextValue),
+      assign: (nextValue) => {
+        phaserFrequency = nextValue;
+      },
+      node: phaserNode,
+      nodeKey: 'frequency',
+    });
   };
 
   const setPhaserOctaves = (value: number): void => {
-    phaserOctaves = Math.max(0.1, value);
-    if (phaserNode) {
-      phaserNode.set({ octaves: phaserOctaves });
-    }
+    updateEffectParam({
+      value,
+      normalize: (nextValue) => Math.max(0.1, nextValue),
+      assign: (nextValue) => {
+        phaserOctaves = nextValue;
+      },
+      node: phaserNode,
+      nodeKey: 'octaves',
+    });
   };
 
   const setPhaserQ = (value: number): void => {
-    phaserQ = Math.max(0.1, value);
-    if (phaserNode) {
-      phaserNode.set({ Q: phaserQ });
-    }
+    updateEffectParam({
+      value,
+      normalize: (nextValue) => Math.max(0.1, nextValue),
+      assign: (nextValue) => {
+        phaserQ = nextValue;
+      },
+      node: phaserNode,
+      nodeKey: 'Q',
+    });
   };
 
   return {

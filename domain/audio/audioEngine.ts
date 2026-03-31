@@ -69,7 +69,35 @@ export type PlayChordPatternParams = {
   octaveShift?: number;
 };
 
-export interface AudioEngine {
+export type AudioEffectsState = {
+  reverbWet: number;
+  reverbRoomSize: number;
+  reverbEnabled: boolean;
+  chorusWet: number;
+  chorusEnabled: boolean;
+  chorusFrequency: number;
+  chorusDelayTime: number;
+  chorusDepth: number;
+  feedbackDelayEnabled: boolean;
+  feedbackDelayWet: number;
+  feedbackDelayTime: number;
+  feedbackDelayFeedback: number;
+  tremoloEnabled: boolean;
+  tremoloWet: number;
+  tremoloFrequency: number;
+  tremoloDepth: number;
+  vibratoEnabled: boolean;
+  vibratoWet: number;
+  vibratoFrequency: number;
+  vibratoDepth: number;
+  phaserEnabled: boolean;
+  phaserWet: number;
+  phaserFrequency: number;
+  phaserOctaves: number;
+  phaserQ: number;
+};
+
+export interface AudioEffectsEngine {
   setReverbWet: (wet: number) => void;
   setChorusWet: (wet: number) => void;
   setReverbRoomSize: (roomSize: number) => void;
@@ -95,14 +123,22 @@ export interface AudioEngine {
   setPhaserFrequency: (value: number) => void;
   setPhaserOctaves: (value: number) => void;
   setPhaserQ: (value: number) => void;
+}
+
+export interface AudioLifecycleEngine {
   startAudio: () => Promise<void>;
+  stopAllAudio: () => void;
+}
+
+export interface AudioPlaybackEngine {
   playMetronomeClick: (volume: number, isDownbeat: boolean) => Promise<void>;
   playMetronomePulse: (
     volume: number,
     isDownbeat: boolean,
     opts?: PlayMetronomePulseOptions,
   ) => Promise<void>;
-  stopAllAudio: () => void;
+  updatePlaybackTempo: (tempoBpm: number) => void;
+  updateMetronomeTempo: (tempoBpm: number) => void;
   playChordVoicing: (params: PlayChordVoicingParams) => Promise<void>;
   playProgression: (
     voicings: ProgressionVoicing[],
@@ -114,3 +150,6 @@ export interface AudioEngine {
   ) => Promise<void>;
   playChordPattern: (params: PlayChordPatternParams) => Promise<void>;
 }
+
+export interface AudioEngine
+  extends AudioEffectsEngine, AudioLifecycleEngine, AudioPlaybackEngine {}
