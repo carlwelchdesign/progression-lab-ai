@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 var mockCheckCsrfToken = jest.fn();
 var mockGetAdminUserFromRequest = jest.fn();
 var mockPublishMarketingContentDraft = jest.fn();
+var mockCalculateStaleMetadataForVersion = jest.fn();
 var mockRecordMarketingContentAuditLog = jest.fn();
 
 jest.mock('../../../../../lib/csrf', () => ({
@@ -17,6 +18,8 @@ jest.mock('../../../../../lib/adminAccess', () => ({
 
 jest.mock('../../../../../lib/marketingContent', () => ({
   publishMarketingContentDraft: (...args: unknown[]) => mockPublishMarketingContentDraft(...args),
+  calculateStaleMetadataForVersion: (...args: unknown[]) =>
+    mockCalculateStaleMetadataForVersion(...args),
 }));
 
 jest.mock('../../../../../lib/adminAuditLog', () => ({
@@ -42,6 +45,11 @@ describe('POST /api/marketing-content/publish', () => {
       versionNumber: 2,
       isActive: true,
       isDraft: false,
+    });
+    mockCalculateStaleMetadataForVersion.mockResolvedValue({
+      isStale: false,
+      sourceActiveVersionId: null,
+      sourceActiveVersionNumber: null,
     });
     mockRecordMarketingContentAuditLog.mockResolvedValue(undefined);
   });
@@ -123,6 +131,11 @@ describe('POST /api/marketing-content/publish', () => {
         locale: 'fr',
         versionNumber: 2,
       }),
+      stale: {
+        isStale: false,
+        sourceActiveVersionId: null,
+        sourceActiveVersionNumber: null,
+      },
     });
     expect(mockPublishMarketingContentDraft).toHaveBeenCalledWith({
       contentKey: 'homepage',

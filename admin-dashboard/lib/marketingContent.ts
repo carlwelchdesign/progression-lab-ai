@@ -677,3 +677,49 @@ export async function getMarketingContentSourceVersion(params: {
     ? toMarketingContentVersionRecord(fallbackSource as MarketingContentVersionRow)
     : null;
 }
+
+export type PublishOrRollbackResponse = {
+  item: MarketingContentVersionRecord;
+  stale?: {
+    isStale: boolean;
+    sourceActiveVersionId: string | null;
+    sourceActiveVersionNumber: number | null;
+  };
+};
+
+export async function calculateStaleMetadataForVersion(params: {
+  contentKey: string;
+  locale: string;
+  sourceLocale?: string;
+}): Promise<PublishOrRollbackResponse['stale']> {
+  const sourceLocale = params.sourceLocale ?? 'en';
+
+  if (sourceLocale === params.locale) {
+    return {
+      isStale: false,
+      sourceActiveVersionId: null,
+      sourceActiveVersionNumber: null,
+    };
+  }
+
+  const sourceActiveVersion = await prisma.marketingContentVersion.findFirst({
+    where: {
+      locale: sourceLocale,
+      isActive: true,
+      marketingContent: {
+        key: params.contentKey,
+      },
+    },
+    select: {
+      id: true,
+      versionNumber: true,
+    },
+    orderBy: [{ versionNumber: 'desc' }, { createdAt: 'desc' }],
+  });
+
+  return {
+    isStale: false,
+    sourceActiveVersionId: sourceActiveVersion?.id ?? null,
+    sourceActiveVersionNumber: sourceActiveVersion?.versionNumber ?? null,
+  };
+}

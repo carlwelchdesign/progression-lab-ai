@@ -196,11 +196,24 @@ export default function MarketingContentPanel({ role }: MarketingContentPanelPro
     try {
       setIsPublishing(true);
       setError(null);
-      await publishMarketingContentDraft({
+      const result = await publishMarketingContentDraft({
         contentKey: selectedContentKey,
         locale: selectedLocale,
       });
-      await loadState(selectedContentKey, selectedLocale);
+
+      if (state && result.stale) {
+        setState({
+          ...state,
+          active: result.item,
+          draft: null,
+          sourceActiveVersionId: result.stale.sourceActiveVersionId,
+          sourceActiveVersionNumber: result.stale.sourceActiveVersionNumber,
+          selectedDraftIsStale: false,
+          versions: state.versions.map((v) => (v.id === result.item.id ? result.item : v)),
+        });
+      } else {
+        await loadState(selectedContentKey, selectedLocale);
+      }
     } catch (publishError) {
       setError(
         publishError instanceof Error
@@ -220,12 +233,23 @@ export default function MarketingContentPanel({ role }: MarketingContentPanelPro
     try {
       setRollingBackVersionId(version.id);
       setError(null);
-      await rollbackMarketingContentVersion({
+      const result = await rollbackMarketingContentVersion({
         contentKey: selectedContentKey,
         locale: selectedLocale,
         versionId: version.id,
       });
-      await loadState(selectedContentKey, selectedLocale);
+
+      if (state && result.stale) {
+        setState({
+          ...state,
+          active: result.item,
+          sourceActiveVersionId: result.stale.sourceActiveVersionId,
+          sourceActiveVersionNumber: result.stale.sourceActiveVersionNumber,
+          versions: state.versions.map((v) => (v.id === result.item.id ? result.item : v)),
+        });
+      } else {
+        await loadState(selectedContentKey, selectedLocale);
+      }
     } catch (rollbackError) {
       setError(
         rollbackError instanceof Error

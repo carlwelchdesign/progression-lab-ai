@@ -6,7 +6,10 @@ import {
 } from '../../../../lib/adminAuditLog';
 import { getAdminUserFromRequest } from '../../../../lib/adminAccess';
 import { checkCsrfToken } from '../../../../lib/csrf';
-import { publishMarketingContentDraft } from '../../../../lib/marketingContent';
+import {
+  calculateStaleMetadataForVersion,
+  publishMarketingContentDraft,
+} from '../../../../lib/marketingContent';
 
 type PublishMarketingContentDraftRequest = {
   contentKey?: unknown;
@@ -45,6 +48,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'No draft found to publish' }, { status: 404 });
     }
 
+    const staleMetadata = await calculateStaleMetadataForVersion({
+      contentKey,
+      locale,
+    });
+
     try {
       await recordMarketingContentAuditLog({
         actor: adminUser,
@@ -60,7 +68,7 @@ export async function POST(request: NextRequest) {
       console.error('Failed to record marketing content publish audit log:', auditError);
     }
 
-    return NextResponse.json({ item: published });
+    return NextResponse.json({ item: published, stale: staleMetadata });
   } catch (error) {
     console.error('Failed to publish marketing content draft:', error);
     return NextResponse.json(

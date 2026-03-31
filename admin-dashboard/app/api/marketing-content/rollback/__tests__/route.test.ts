@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 var mockCheckCsrfToken = jest.fn();
 var mockGetAdminUserFromRequest = jest.fn();
 var mockRollbackMarketingContentVersion = jest.fn();
+var mockCalculateStaleMetadataForVersion = jest.fn();
 var mockRecordMarketingContentAuditLog = jest.fn();
 
 jest.mock('../../../../../lib/csrf', () => ({
@@ -18,6 +19,8 @@ jest.mock('../../../../../lib/adminAccess', () => ({
 jest.mock('../../../../../lib/marketingContent', () => ({
   rollbackMarketingContentVersion: (...args: unknown[]) =>
     mockRollbackMarketingContentVersion(...args),
+  calculateStaleMetadataForVersion: (...args: unknown[]) =>
+    mockCalculateStaleMetadataForVersion(...args),
 }));
 
 jest.mock('../../../../../lib/adminAuditLog', () => ({
@@ -43,6 +46,11 @@ describe('POST /api/marketing-content/rollback', () => {
       versionNumber: 3,
       isActive: true,
       isDraft: false,
+    });
+    mockCalculateStaleMetadataForVersion.mockResolvedValue({
+      isStale: false,
+      sourceActiveVersionId: null,
+      sourceActiveVersionNumber: null,
     });
     mockRecordMarketingContentAuditLog.mockResolvedValue(undefined);
   });
@@ -124,6 +132,11 @@ describe('POST /api/marketing-content/rollback', () => {
         locale: 'fr',
         versionNumber: 3,
       }),
+      stale: {
+        isStale: false,
+        sourceActiveVersionId: null,
+        sourceActiveVersionNumber: null,
+      },
     });
     expect(mockRollbackMarketingContentVersion).toHaveBeenCalledWith({
       contentKey: 'homepage',

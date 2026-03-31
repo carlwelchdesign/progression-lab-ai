@@ -6,7 +6,10 @@ import {
 } from '../../../../lib/adminAuditLog';
 import { getAdminUserFromRequest } from '../../../../lib/adminAccess';
 import { checkCsrfToken } from '../../../../lib/csrf';
-import { rollbackMarketingContentVersion } from '../../../../lib/marketingContent';
+import {
+  calculateStaleMetadataForVersion,
+  rollbackMarketingContentVersion,
+} from '../../../../lib/marketingContent';
 
 type RollbackMarketingContentVersionRequest = {
   contentKey?: unknown;
@@ -51,6 +54,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Version not found' }, { status: 404 });
     }
 
+    const staleMetadata = await calculateStaleMetadataForVersion({
+      contentKey,
+      locale,
+    });
+
     try {
       await recordMarketingContentAuditLog({
         actor: adminUser,
@@ -66,7 +74,7 @@ export async function POST(request: NextRequest) {
       console.error('Failed to record marketing content rollback audit log:', auditError);
     }
 
-    return NextResponse.json({ item: rolledBack });
+    return NextResponse.json({ item: rolledBack, stale: staleMetadata });
   } catch (error) {
     console.error('Failed to rollback marketing content version:', error);
     return NextResponse.json(

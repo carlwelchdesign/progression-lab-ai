@@ -390,7 +390,7 @@ export async function saveMarketingContentDraft(
 export async function publishMarketingContentDraft(params: {
   contentKey: string;
   locale: string;
-}): Promise<MarketingContentVersion> {
+}): Promise<{ item: MarketingContentVersion; stale?: MarketingContentOperationResponse['stale'] }> {
   const response = await fetch('/api/marketing-content/publish', {
     method: 'POST',
     credentials: 'include',
@@ -402,15 +402,17 @@ export async function publishMarketingContentDraft(params: {
     throw new Error(await readErrorMessage(response, 'Failed to publish marketing content draft'));
   }
 
-  const data = (await response.json()) as { item: MarketingContentVersion };
-  return data.item;
+  return (await response.json()) as {
+    item: MarketingContentVersion;
+    stale?: MarketingContentOperationResponse['stale'];
+  };
 }
 
 export async function rollbackMarketingContentVersion(params: {
   contentKey: string;
   locale: string;
   versionId: string;
-}): Promise<MarketingContentVersion> {
+}): Promise<{ item: MarketingContentVersion; stale?: MarketingContentOperationResponse['stale'] }> {
   const response = await fetch('/api/marketing-content/rollback', {
     method: 'POST',
     credentials: 'include',
@@ -424,8 +426,10 @@ export async function rollbackMarketingContentVersion(params: {
     );
   }
 
-  const data = (await response.json()) as { item: MarketingContentVersion };
-  return data.item;
+  return (await response.json()) as {
+    item: MarketingContentVersion;
+    stale?: MarketingContentOperationResponse['stale'];
+  };
 }
 
 export async function generateMarketingContentTranslationDraft(

@@ -234,6 +234,15 @@ export type MarketingContentState = {
   defaultContent: Record<string, unknown>;
 };
 
+export type MarketingContentOperationResponse = {
+  item: MarketingContentVersion;
+  stale?: {
+    isStale: boolean;
+    sourceActiveVersionId: string | null;
+    sourceActiveVersionNumber: number | null;
+  };
+};
+
 export type SaveMarketingContentDraftInput = {
   contentKey: string;
   locale: string;
