@@ -22,6 +22,7 @@ export type AccessContext = {
   plan: SubscriptionPlan;
   entitlements: PlanEntitlements;
   planOverride: SubscriptionPlan | null;
+  planOverrideExpiresAt: Date | null;
   subscriptionStatus: SubscriptionStatus | null;
 };
 
@@ -172,6 +173,7 @@ export async function getAccessContextForSession(session: {
     plan,
     entitlements,
     planOverride: user.planOverride,
+    planOverrideExpiresAt: user.planOverrideExpiresAt,
     subscriptionStatus: user.subscription?.status ?? null,
   };
 }

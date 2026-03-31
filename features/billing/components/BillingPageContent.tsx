@@ -6,7 +6,7 @@ import BoltIcon from '@mui/icons-material/Bolt';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -19,6 +19,7 @@ import {
   Container,
   LinearProgress,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 
@@ -40,6 +41,7 @@ type BillingStatusResponse = {
     canUsePremiumAiModel: boolean;
   };
   planOverride: SubscriptionPlan | null;
+  planOverrideExpiresAt: string | null;
   subscriptionStatus: string | null;
   billing: {
     stripeCustomerId: string | null;
@@ -65,6 +67,7 @@ const PLAN_LABELS: Record<SubscriptionPlan, string> = {
   COMPOSER: 'Composer',
   STUDIO: 'Studio',
   COMP: 'Comped',
+  INVITE: 'Invite',
 };
 
 function formatDate(value: string | null): string {
@@ -83,10 +86,31 @@ export default function BillingPageContent() {
   const { t } = useTranslation('common');
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuthModal } = useAuthModal();
-  const { showError } = useAppSnackbar();
+  const { showError, showInfo, showSuccess } = useAppSnackbar();
   const [billingStatus, setBillingStatus] = useState<BillingStatusResponse | null>(null);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [isInviteRedeeming, setIsInviteRedeeming] = useState(false);
+
+  const loadBillingStatus = useCallback(
+    async (signal?: AbortSignal) => {
+      const response = await fetch('/api/billing/status', {
+        cache: 'no-store',
+        credentials: 'include',
+        signal,
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { message?: string };
+        throw new Error(body.message ?? t('billing.errors.loadStatus'));
+      }
+
+      const body = (await response.json()) as BillingStatusResponse;
+      setBillingStatus(body);
+    },
+    [t],
+  );
 
   useEffect(() => {
     if (isLoading) {
@@ -100,21 +124,9 @@ export default function BillingPageContent() {
 
     const controller = new AbortController();
 
-    const loadBillingStatus = async () => {
+    const loadBillingStatusWithHandling = async () => {
       try {
-        const response = await fetch('/api/billing/status', {
-          cache: 'no-store',
-          credentials: 'include',
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          const body = (await response.json()) as { message?: string };
-          throw new Error(body.message ?? t('billing.errors.loadStatus'));
-        }
-
-        const body = (await response.json()) as BillingStatusResponse;
-        setBillingStatus(body);
+        await loadBillingStatus(controller.signal);
       } catch (error) {
         if ((error as { name?: string }).name === 'AbortError') {
           return;
@@ -126,10 +138,61 @@ export default function BillingPageContent() {
       }
     };
 
-    void loadBillingStatus();
+    void loadBillingStatusWithHandling();
 
     return () => controller.abort();
-  }, [isAuthenticated, isLoading, showError, t]);
+  }, [isAuthenticated, isLoading, loadBillingStatus, showError, t]);
+
+  const handleRedeemInvite = async () => {
+    const normalizedCode = inviteCode.trim();
+    if (!normalizedCode) {
+      return;
+    }
+
+    setIsInviteRedeeming(true);
+
+    try {
+      await ensureCsrfCookie();
+
+      const response = await fetch('/api/invites/redeem', {
+        method: 'POST',
+        credentials: 'include',
+        headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ code: normalizedCode }),
+      });
+
+      const body = (await response.json()) as {
+        applied?: boolean;
+        message?: string;
+        expiresAt?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(body.message ?? 'Unable to redeem invite code');
+      }
+
+      if (body.applied) {
+        const expiresSuffix = body.expiresAt
+          ? ` Expires ${new Intl.DateTimeFormat(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            }).format(new Date(body.expiresAt))}.`
+          : '';
+        showSuccess(`Invite applied successfully.${expiresSuffix}`.trim());
+        setInviteCode('');
+        await loadBillingStatus();
+        return;
+      }
+
+      showInfo(body.message ?? 'Invite code was checked.');
+      await loadBillingStatus();
+    } catch (error) {
+      showError((error as Error).message || 'Unable to redeem invite code');
+    } finally {
+      setIsInviteRedeeming(false);
+    }
+  };
 
   const handleOpenPortal = async () => {
     setIsPortalLoading(true);
@@ -184,7 +247,9 @@ export default function BillingPageContent() {
                 variant="outlined"
               />
               <Typography variant="h4">{t('billing.signInRequiredTitle')}</Typography>
-              <Typography color="text.secondary">{t('billing.signInRequiredDescription')}</Typography>
+              <Typography color="text.secondary">
+                {t('billing.signInRequiredDescription')}
+              </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <Button variant="contained" onClick={() => openAuthModal({ mode: 'login' })}>
                   {t('billing.signInAction')}
@@ -226,8 +291,43 @@ export default function BillingPageContent() {
         {billingStatus.planOverride ? (
           <Alert severity="info">
             {t('billing.planOverride', { plan: PLAN_LABELS[billingStatus.planOverride] })}
+            {billingStatus.planOverrideExpiresAt
+              ? ` Expires ${new Intl.DateTimeFormat(undefined, {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                }).format(new Date(billingStatus.planOverrideExpiresAt))}.`
+              : ''}
           </Alert>
         ) : null}
+
+        <Card variant="outlined">
+          <CardContent>
+            <Stack spacing={2}>
+              <Typography variant="h6">Redeem Invite Code</Typography>
+              <Typography color="text.secondary">
+                Enter an invite code to unlock temporary producer access.
+              </Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                <TextField
+                  fullWidth
+                  label="Invite code"
+                  value={inviteCode}
+                  onChange={(event) => setInviteCode(event.target.value.toUpperCase())}
+                  placeholder="PRODUCER-XXXX"
+                  inputProps={{ maxLength: 64 }}
+                />
+                <Button
+                  variant="contained"
+                  onClick={() => void handleRedeemInvite()}
+                  disabled={isInviteRedeeming || !inviteCode.trim()}
+                >
+                  {isInviteRedeeming ? 'Redeeming...' : 'Redeem'}
+                </Button>
+              </Stack>
+            </Stack>
+          </CardContent>
+        </Card>
 
         <Box
           sx={{
@@ -255,7 +355,8 @@ export default function BillingPageContent() {
                 <Stack spacing={1}>
                   <Typography fontWeight={700}>{t('billing.billingCycle')}</Typography>
                   <Typography color="text.secondary">
-                    {billingStatus.billing.subscription?.billingInterval ?? t('billing.noPaidBillingCycle')}
+                    {billingStatus.billing.subscription?.billingInterval ??
+                      t('billing.noPaidBillingCycle')}
                   </Typography>
                 </Stack>
 
@@ -300,7 +401,9 @@ export default function BillingPageContent() {
                   <Typography variant="h4">
                     {aiLimit === null ? `${aiUsed}` : `${aiUsed} / ${aiLimit}`}
                   </Typography>
-                  <Typography color="text.secondary">{t('billing.generationsUsedThisMonth')}</Typography>
+                  <Typography color="text.secondary">
+                    {t('billing.generationsUsedThisMonth')}
+                  </Typography>
                 </Box>
 
                 {aiLimit === null ? (

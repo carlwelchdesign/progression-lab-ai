@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
     plan: accessContext.plan,
     entitlements: accessContext.entitlements,
     planOverride: accessContext.planOverride,
+    planOverrideExpiresAt: accessContext.planOverrideExpiresAt,
     subscriptionStatus: accessContext.subscriptionStatus,
     billing: {
       stripeCustomerId: user.stripeCustomerId,
