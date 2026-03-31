@@ -76,6 +76,20 @@ type PricingMarketingContent = {
     composer?: string;
     studio?: string;
   };
+  comparisonIntro?: string;
+  billingToggleLabel?: string;
+  promoCodeLabel?: string;
+  trustSection?: {
+    title?: string;
+    items?: string[];
+  };
+  faq?: {
+    title?: string;
+    items?: Array<{
+      question?: string;
+      answer?: string;
+    }>;
+  };
 };
 
 const TIERS: PricingTier[] = [
@@ -441,7 +455,10 @@ export default function PricingPageContent() {
             variant={selectedInterval === 'monthly' ? 'contained' : 'outlined'}
             onClick={() => setSelectedInterval('monthly')}
           >
-            {t('billing.pricing.monthly')}
+            {marketingContent?.billingToggleLabel &&
+            (marketingContent.billingToggleLabel as string).includes('monthly')
+              ? (marketingContent.billingToggleLabel as string)
+              : t('billing.pricing.monthly')}
           </Button>
           <Button
             variant={selectedInterval === 'yearly' ? 'contained' : 'outlined'}
@@ -451,9 +468,17 @@ export default function PricingPageContent() {
           </Button>
         </Stack>
 
+        {marketingContent?.comparisonIntro && (
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Typography variant="body2" align="center" sx={{ maxWidth: 600, opacity: 0.85 }}>
+              {marketingContent.comparisonIntro}
+            </Typography>
+          </Box>
+        )}
+
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <TextField
-            label="Promo code"
+            label={marketingContent?.promoCodeLabel?.trim() || 'Promo code'}
             value={promoCode}
             onChange={(event) => {
               setPromoCode(event.target.value.toUpperCase());
@@ -564,6 +589,115 @@ export default function PricingPageContent() {
             );
           })}
         </Box>
+
+        {/* Trust Section */}
+        {marketingContent?.trustSection && (
+          <Box
+            sx={{
+              py: 4,
+              borderTop: 1,
+              borderColor: 'divider',
+            }}
+          >
+            <Stack spacing={3} alignItems="center">
+              {marketingContent.trustSection.title && (
+                <Typography
+                  variant="h6"
+                  align="center"
+                  sx={{
+                    fontWeight: 600,
+                  }}
+                >
+                  {marketingContent.trustSection.title}
+                </Typography>
+              )}
+              {marketingContent.trustSection.items &&
+                marketingContent.trustSection.items.length > 0 && (
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    justifyContent="center"
+                    alignItems="center"
+                    sx={{
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {marketingContent.trustSection.items.map((item, idx) => (
+                      <Typography key={idx} variant="body2" sx={{ opacity: 0.7 }}>
+                        {item}
+                        {idx < marketingContent.trustSection!.items!.length - 1 && (
+                          <span style={{ margin: '0 1rem', opacity: 0.3 }}>•</span>
+                        )}
+                      </Typography>
+                    ))}
+                  </Stack>
+                )}
+            </Stack>
+          </Box>
+        )}
+
+        {/* FAQ Section */}
+        {marketingContent?.faq && (
+          <Box
+            sx={{
+              py: 4,
+              borderTop: 1,
+              borderColor: 'divider',
+            }}
+          >
+            <Stack spacing={4}>
+              {marketingContent.faq.title && (
+                <Typography
+                  variant="h5"
+                  align="center"
+                  sx={{
+                    fontWeight: 600,
+                  }}
+                >
+                  {marketingContent.faq.title}
+                </Typography>
+              )}
+              {marketingContent.faq.items && marketingContent.faq.items.length > 0 && (
+                <Stack spacing={2}>
+                  {marketingContent.faq.items.map((faqItem, idx) => (
+                    <Box
+                      key={idx}
+                      sx={{
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        p: 2,
+                      }}
+                    >
+                      {faqItem.question && (
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            fontWeight: 600,
+                            mb: 1,
+                          }}
+                        >
+                          {faqItem.question}
+                        </Typography>
+                      )}
+                      {faqItem.answer && (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            lineHeight: 1.6,
+                            opacity: 0.85,
+                          }}
+                        >
+                          {faqItem.answer}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+            </Stack>
+          </Box>
+        )}
       </Stack>
     </Container>
   );

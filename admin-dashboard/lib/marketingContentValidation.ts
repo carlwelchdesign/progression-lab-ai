@@ -163,6 +163,55 @@ function validatePricing(content: Record<string, unknown>, errors: string[]) {
       errors.push('pricing.planSummaries.studio must be a string');
     }
   }
+
+  const comparisonIntro = content.comparisonIntro;
+  if (comparisonIntro !== undefined && !isOptionalString(comparisonIntro)) {
+    errors.push('pricing.comparisonIntro must be a string');
+  }
+
+  const billingToggleLabel = content.billingToggleLabel;
+  if (billingToggleLabel !== undefined && !isOptionalString(billingToggleLabel)) {
+    errors.push('pricing.billingToggleLabel must be a string');
+  }
+
+  const promoCodeLabel = content.promoCodeLabel;
+  if (promoCodeLabel !== undefined && !isOptionalString(promoCodeLabel)) {
+    errors.push('pricing.promoCodeLabel must be a string');
+  }
+
+  const trustSection = content.trustSection;
+  if (trustSection !== undefined && !isRecord(trustSection)) {
+    errors.push('pricing.trustSection must be an object');
+  }
+  if (isRecord(trustSection)) {
+    if (!isOptionalString(trustSection.title)) {
+      errors.push('pricing.trustSection.title must be a string');
+    }
+    if (!isOptionalStringArray(trustSection.items)) {
+      errors.push('pricing.trustSection.items must be an array of strings');
+    }
+  }
+
+  const faq = content.faq;
+  if (faq !== undefined && !isRecord(faq)) {
+    errors.push('pricing.faq must be an object');
+  }
+  if (isRecord(faq)) {
+    if (!isOptionalString(faq.title)) {
+      errors.push('pricing.faq.title must be a string');
+    }
+    const items = faq.items;
+    if (
+      items !== undefined &&
+      !isOptionalArray(
+        items,
+        (item) =>
+          isRecord(item) && isOptionalString(item.question) && isOptionalString(item.answer),
+      )
+    ) {
+      errors.push('pricing.faq.items must be an array of objects with question and answer');
+    }
+  }
 }
 
 function validateGlobalMarketingChrome(content: Record<string, unknown>, errors: string[]) {
