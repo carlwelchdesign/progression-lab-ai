@@ -76,11 +76,21 @@ export const createToneAudioEngine = (): AudioEngine => {
       getActiveMetronomePulseTimeouts: timelineState.getActiveMetronomePulseTimeouts,
       setActiveMetronomePulseTimeouts: timelineState.setActiveMetronomePulseTimeouts,
     },
-    createLoop: (cb, interval) => new Tone.Loop(cb, interval),
+    createLoop: (cb, interval) => {
+      const loop = new Tone.Loop(cb, interval);
+      return {
+        start: (time) => loop.start(time),
+        setInterval: (nextInterval) => {
+          loop.interval = nextInterval;
+        },
+        dispose: () => loop.dispose(),
+      };
+    },
     getTransportNow: () => Tone.now(),
   });
 
-  const { playMetronomePulse, playMetronomeClick, startMetronomeLoop } = metronomePlayback;
+  const { playMetronomePulse, playMetronomeClick, updateMetronomeTempo, startMetronomeLoop } =
+    metronomePlayback;
 
   const progressionPlayback = createProgressionPlayback({
     startAudio,
@@ -110,6 +120,7 @@ export const createToneAudioEngine = (): AudioEngine => {
     startAudio,
     playMetronomeClick,
     playMetronomePulse,
+    updateMetronomeTempo,
     stopAllAudio,
     playChordVoicing,
     playProgression,
@@ -185,6 +196,8 @@ export const setPhaserFrequency: AudioEngine['setPhaserFrequency'] = (value) =>
 export const setPhaserOctaves: AudioEngine['setPhaserOctaves'] = (value) =>
   getAudioEngine().setPhaserOctaves(value);
 export const setPhaserQ: AudioEngine['setPhaserQ'] = (value) => getAudioEngine().setPhaserQ(value);
+export const updateMetronomeTempo: AudioEngine['updateMetronomeTempo'] = (tempoBpm) =>
+  getAudioEngine().updateMetronomeTempo(tempoBpm);
 
 type EffectPatchApplier = {
   key: keyof AudioEffectsState;

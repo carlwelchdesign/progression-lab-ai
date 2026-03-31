@@ -8,6 +8,7 @@ export type SchedulablePart = {
 
 export type SchedulableLoop = {
   start: (time: number) => void;
+  setInterval: (interval: number) => void;
   dispose: () => void;
 };
 

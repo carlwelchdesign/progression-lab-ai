@@ -33,6 +33,7 @@ export type MetronomePlayback = {
     opts?: PlayMetronomePulseOptions,
   ) => Promise<void>;
   playMetronomeClick: (volume: number, isDownbeat: boolean) => Promise<void>;
+  updateMetronomeTempo: (tempoBpm: number) => void;
   startMetronomeLoop: (
     tempoBpm: number,
     timeSignature: TimeSignature,
@@ -93,6 +94,15 @@ export const createMetronomePlayback = ({
     await playMetronomePulse(volume, isDownbeat, { source: 'click' });
   };
 
+  const updateMetronomeTempo = (tempoBpm: number): void => {
+    const metronomeLoop = loopState.getMetronomeLoop();
+    if (!metronomeLoop) {
+      return;
+    }
+
+    metronomeLoop.setInterval(getBeatDurationSeconds(tempoBpm));
+  };
+
   const startMetronomeLoop = (
     tempoBpm: number,
     timeSignature: TimeSignature,
@@ -151,6 +161,7 @@ export const createMetronomePlayback = ({
   return {
     playMetronomePulse,
     playMetronomeClick,
+    updateMetronomeTempo,
     startMetronomeLoop,
   };
 };

@@ -250,14 +250,14 @@ export function useSequencerEngine({
     stopAllAudio();
     void startAudio();
 
-    const stepDurationMs = 60_000 / tempoBpmRef.current / STEPS_PER_BEAT;
+    const getStepDurationMs = () => 60_000 / tempoBpmRef.current / STEPS_PER_BEAT;
     let expectedNextTick = getSchedulerNowMs();
     currentStepRef.current = 0;
     setCurrentStep(0);
     setIsSequencerPlaying(true);
 
     const scheduleNextStep = () => {
-      expectedNextTick += stepDurationMs;
+      expectedNextTick += getStepDurationMs();
       const delayMs = Math.max(0, expectedNextTick - getSchedulerNowMs());
       sequencerTimerRef.current = setTimeout(() => {
         runSequencerStep();
@@ -350,7 +350,7 @@ export function useSequencerEngine({
 
     void startAudio().then(() => {
       let stepIndex = 0;
-      const stepDurationMs = 60_000 / tempoBpmRef.current / STEPS_PER_BEAT;
+      const getStepDurationMs = () => 60_000 / tempoBpmRef.current / STEPS_PER_BEAT;
       const totalPreRollBeats = beatsPerBarRef.current;
       const totalPreRollSteps = totalPreRollBeats * STEPS_PER_BEAT;
       const leadInSteps = RECORDING_LEAD_IN_BARS * stepsPerBarRef.current;
@@ -359,7 +359,7 @@ export function useSequencerEngine({
       setCurrentStep(-leadInSteps);
 
       const scheduleNextCountInStep = () => {
-        expectedNextTick += stepDurationMs;
+        expectedNextTick += getStepDurationMs();
         const delayMs = Math.max(0, expectedNextTick - getSchedulerNowMs());
         countInTimerRef.current = setTimeout(() => {
           runCountInStep();
