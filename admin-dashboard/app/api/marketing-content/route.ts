@@ -62,7 +62,8 @@ export async function GET(request: NextRequest) {
 
     const contentKey = getValidatedContentKey(request.nextUrl.searchParams.get('contentKey'));
     const locale = getValidatedLocale(request.nextUrl.searchParams.get('locale'));
-    const state = await getMarketingContentBuilderState(contentKey, locale);
+    const sourceLocale = getValidatedLocale(request.nextUrl.searchParams.get('sourceLocale'));
+    const state = await getMarketingContentBuilderState(contentKey, locale, sourceLocale);
 
     return NextResponse.json(state);
   } catch (error) {

@@ -221,11 +221,16 @@ export type MarketingContentVersion = {
 export type MarketingContentState = {
   contentKey: string;
   locale: string;
+  sourceLocale: string;
   definitions: MarketingContentDefinition[];
   supportedLocales: string[];
   active: MarketingContentVersion | null;
   draft: MarketingContentVersion | null;
   versions: MarketingContentVersion[];
+  sourceActiveVersionId: string | null;
+  sourceActiveVersionNumber: number | null;
+  staleVersionIds: string[];
+  selectedDraftIsStale: boolean;
   defaultContent: Record<string, unknown>;
 };
 

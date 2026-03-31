@@ -343,6 +343,7 @@ export async function rollbackPromptVersion(params: {
 export async function fetchMarketingContentState(
   contentKey?: string,
   locale?: string,
+  sourceLocale?: string,
 ): Promise<MarketingContentState> {
   const searchParams = new URLSearchParams();
   if (contentKey) {
@@ -350,6 +351,9 @@ export async function fetchMarketingContentState(
   }
   if (locale) {
     searchParams.set('locale', locale);
+  }
+  if (sourceLocale) {
+    searchParams.set('sourceLocale', sourceLocale);
   }
 
   const query = searchParams.toString();

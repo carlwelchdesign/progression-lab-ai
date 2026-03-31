@@ -188,11 +188,16 @@ export type MarketingContentVersionRecord = {
 export type MarketingContentState = {
   contentKey: string;
   locale: string;
+  sourceLocale: string;
   definitions: MarketingContentDefinition[];
   supportedLocales: string[];
   active: MarketingContentVersionRecord | null;
   draft: MarketingContentVersionRecord | null;
   versions: MarketingContentVersionRecord[];
+  sourceActiveVersionId: string | null;
+  sourceActiveVersionNumber: number | null;
+  staleVersionIds: string[];
+  selectedDraftIsStale: boolean;
   defaultContent: Record<string, unknown>;
 };
 
@@ -306,18 +311,54 @@ export async function getMarketingContentVersions(
 export async function getMarketingContentBuilderState(
   contentKey: string,
   locale: string,
+  sourceLocale = 'en',
 ): Promise<MarketingContentState> {
   const definition = getDefinition(contentKey);
   const versions = await getMarketingContentVersions(contentKey, locale);
+  const sourceActiveVersion =
+    sourceLocale === locale
+      ? null
+      : await prisma.marketingContentVersion.findFirst({
+          where: {
+            locale: sourceLocale,
+            isActive: true,
+            marketingContent: {
+              key: contentKey,
+            },
+          },
+          select: {
+            id: true,
+            versionNumber: true,
+          },
+          orderBy: [{ versionNumber: 'desc' }, { createdAt: 'desc' }],
+        });
+  const sourceActiveVersionId = sourceActiveVersion?.id ?? null;
+  const staleVersionIds =
+    sourceLocale === locale || !sourceActiveVersionId
+      ? []
+      : versions
+          .filter(
+            (item) =>
+              item.translationOrigin === 'AI_ASSISTED' &&
+              !!item.sourceVersionId &&
+              item.sourceVersionId !== sourceActiveVersionId,
+          )
+          .map((item) => item.id);
+  const draft = versions.find((item) => item.isDraft) ?? null;
 
   return {
     contentKey,
     locale,
+    sourceLocale,
     definitions: getMarketingContentDefinitions(),
     supportedLocales: [...SUPPORTED_MARKETING_LOCALES],
     active: versions.find((item) => item.isActive) ?? null,
-    draft: versions.find((item) => item.isDraft) ?? null,
+    draft,
     versions,
+    sourceActiveVersionId,
+    sourceActiveVersionNumber: sourceActiveVersion?.versionNumber ?? null,
+    staleVersionIds,
+    selectedDraftIsStale: !!(draft && staleVersionIds.includes(draft.id)),
     defaultContent: structuredClone(definition.defaultContent),
   };
 }

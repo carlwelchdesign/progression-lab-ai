@@ -72,7 +72,6 @@ function getDiffPreview(current: string, previous: string): string {
 
 export default function MarketingContentPanel({ role }: MarketingContentPanelProps) {
   const [state, setState] = useState<MarketingContentState | null>(null);
-  const [sourceState, setSourceState] = useState<MarketingContentState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -86,56 +85,47 @@ export default function MarketingContentPanel({ role }: MarketingContentPanelPro
   const [draftNotes, setDraftNotes] = useState('');
   const [jsonError, setJsonError] = useState<string | null>(null);
 
-  const loadState = useCallback(async (contentKey?: string, locale?: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const result = await fetchMarketingContentState(contentKey, locale);
-      setState(result);
-      setSelectedContentKey(result.contentKey);
-      setSelectedLocale(result.locale);
-      setDraftContent(
-        stringifyContent(result.draft?.content ?? result.active?.content ?? result.defaultContent),
-      );
-      setDraftNotes(result.draft?.notes ?? '');
-      setJsonError(null);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Failed to load marketing content');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const loadState = useCallback(
+    async (contentKey?: string, locale?: string, requestedSourceLocale?: string) => {
+      const nextSourceLocale = requestedSourceLocale ?? sourceLocale;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const result = await fetchMarketingContentState(contentKey, locale, nextSourceLocale);
+        setState(result);
+        setSelectedContentKey(result.contentKey);
+        setSelectedLocale(result.locale);
+        setSourceLocale(result.sourceLocale);
+        setDraftContent(
+          stringifyContent(
+            result.draft?.content ?? result.active?.content ?? result.defaultContent,
+          ),
+        );
+        setDraftNotes(result.draft?.notes ?? '');
+        setJsonError(null);
+      } catch (loadError) {
+        setError(
+          loadError instanceof Error ? loadError.message : 'Failed to load marketing content',
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [sourceLocale],
+  );
 
   useEffect(() => {
     void loadState();
   }, [loadState]);
 
   useEffect(() => {
-    let isMounted = true;
+    if (!selectedContentKey || !selectedLocale || !sourceLocale) {
+      return;
+    }
 
-    const loadSourceState = async () => {
-      if (!selectedContentKey || !sourceLocale) {
-        return;
-      }
-
-      try {
-        const result = await fetchMarketingContentState(selectedContentKey, sourceLocale);
-        if (isMounted) {
-          setSourceState(result);
-        }
-      } catch {
-        if (isMounted) {
-          setSourceState(null);
-        }
-      }
-    };
-
-    void loadSourceState();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedContentKey, sourceLocale]);
+    void loadState(selectedContentKey, selectedLocale, sourceLocale);
+  }, [loadState, selectedContentKey, selectedLocale, sourceLocale]);
 
   const versions = useMemo(() => state?.versions ?? [], [state?.versions]);
 
@@ -152,15 +142,10 @@ export default function MarketingContentPanel({ role }: MarketingContentPanelPro
     );
   }, [versions]);
 
-  const sourceActiveVersionId = sourceState?.active?.id ?? null;
-  const sourceActiveVersionNumber = sourceState?.active?.versionNumber ?? null;
-  const selectedDraftIsStale =
-    selectedLocale !== sourceLocale &&
-    !!state?.draft &&
-    state.draft.translationOrigin === 'AI_ASSISTED' &&
-    !!state.draft.sourceVersionId &&
-    !!sourceActiveVersionId &&
-    state.draft.sourceVersionId !== sourceActiveVersionId;
+  const sourceActiveVersionId = state?.sourceActiveVersionId ?? null;
+  const sourceActiveVersionNumber = state?.sourceActiveVersionNumber ?? null;
+  const staleVersionIds = state?.staleVersionIds ?? [];
+  const selectedDraftIsStale = state?.selectedDraftIsStale ?? false;
 
   const handleSelectionChange = async (contentKey: string, locale: string) => {
     setSelectedContentKey(contentKey);
@@ -508,11 +493,7 @@ export default function MarketingContentPanel({ role }: MarketingContentPanelPro
                       {version.translationOrigin === 'AI_ASSISTED' ? (
                         <Chip size="small" color="info" label="AI Draft" />
                       ) : null}
-                      {selectedLocale !== sourceLocale &&
-                      version.translationOrigin === 'AI_ASSISTED' &&
-                      !!version.sourceVersionId &&
-                      !!sourceActiveVersionId &&
-                      version.sourceVersionId !== sourceActiveVersionId ? (
+                      {staleVersionIds.includes(version.id) ? (
                         <Chip size="small" color="error" label="Stale" />
                       ) : null}
                     </Stack>
