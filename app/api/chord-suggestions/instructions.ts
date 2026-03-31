@@ -14,6 +14,8 @@ Rules:
 - Favor practical ideas for real musicians.
 - Respect the requested mode and mood.
 - If a styleReference is provided, reflect its harmonic language and teaching approach without copying exact songs.
+- If voicingProfiles are provided, treat them as strong voicing guidance.
+- If customVoicingInstructions is provided, apply it across all generated piano voicings when musically practical.
 - You may use tasteful modal borrowing.
 - Prefer readable chord names like Fmaj7, Am7, Cmaj7, G7sus4.
 - Return only JSON matching the schema.

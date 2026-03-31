@@ -124,6 +124,8 @@ export default function GeneratorPageContent() {
       customGenre: '',
       styleReference: '',
       adventurousness: 'balanced',
+      voicingProfiles: [],
+      customVoicingInstructions: '',
       tempoBpm: 100,
     },
     mode: 'onChange',
@@ -548,6 +550,8 @@ export default function GeneratorPageContent() {
           styleReference: formData.styleReference.trim() || null,
           instrument: 'both',
           adventurousness: formData.adventurousness,
+          voicingProfiles: formData.voicingProfiles,
+          customVoicingInstructions: formData.customVoicingInstructions,
           language: locale,
         }),
       });
@@ -608,6 +612,8 @@ export default function GeneratorPageContent() {
       customGenre: '',
       styleReference: pickRandomUnique(STYLE_REFERENCE_OPTIONS, 1)[0] ?? '',
       adventurousness: pickRandomUnique(ADVENTUROUSNESS_INPUT_OPTIONS, 1)[0] ?? 'balanced',
+      voicingProfiles: [],
+      customVoicingInstructions: '',
       tempoBpm,
     });
     setError('');

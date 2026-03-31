@@ -214,6 +214,7 @@ describe('POST /api/chord-suggestions', () => {
       eventType: 'AI_GENERATION',
       metadata: {
         model: 'gpt-5.4',
+        requestedModel: 'gpt-5.4',
         promptKey: 'chord_suggestions',
         promptVersion: 7,
         promptSource: 'db',
@@ -406,6 +407,43 @@ describe('POST /api/chord-suggestions', () => {
     expect(body.progressionIdeas[0].pianoVoicings[0].rightHand).toEqual(['D4', 'G4', 'A4']);
   });
 
+  it('allowlists voicing profiles and truncates long custom voicing instructions', async () => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    mockCreate.mockResolvedValue({
+      output_text: JSON.stringify(validModelPayload),
+    });
+
+    const veryLongInstructions = 'open voicing '.repeat(80);
+
+    const response = await POST({
+      text: async () =>
+        JSON.stringify({
+          seedChords: ['Cmaj7'],
+          mood: 'dreamy',
+          mode: 'ionian',
+          genre: 'pop',
+          styleReference: null,
+          voicingProfiles: ['drop2', 'invalid-profile', 'rootless'],
+          customVoicingInstructions: veryLongInstructions,
+          instrument: 'both',
+          adventurousness: 'balanced',
+          language: 'en',
+        }),
+    } as never);
+
+    expect(response.status).toBe(200);
+
+    const openAiRequest = mockCreate.mock.calls[0][0] as { input: string };
+    const parsedInput = JSON.parse(openAiRequest.input) as {
+      voicingProfiles: string[];
+      customVoicingInstructions: string | null;
+    };
+
+    expect(parsedInput.voicingProfiles).toEqual(['drop2', 'rootless']);
+    expect(parsedInput.customVoicingInstructions).not.toBeNull();
+    expect((parsedInput.customVoicingInstructions ?? '').length).toBeLessThanOrEqual(500);
+  });
+
   it('returns 400 when the request body is invalid JSON', async () => {
     process.env.OPENAI_API_KEY = 'test-key';
 
@@ -459,6 +497,7 @@ describe('POST /api/chord-suggestions', () => {
       eventType: 'AI_GENERATION',
       metadata: {
         model: 'gpt-5.4',
+        requestedModel: 'gpt-5.4',
         promptKey: 'chord_suggestions',
         promptVersion: null,
         promptSource: 'fallback',

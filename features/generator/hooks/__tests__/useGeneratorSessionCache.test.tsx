@@ -62,6 +62,8 @@ describe('useGeneratorSessionCache', () => {
         customGenre: '',
         styleReference: 'Barry Harris',
         adventurousness: 'balanced',
+        voicingProfiles: ['drop2'],
+        customVoicingInstructions: 'Keep RH open and singable.',
         data: mockSuggestionData,
         playbackSettings: { reverb: 0.45 },
         roomSize: 0.78,
@@ -92,6 +94,8 @@ describe('useGeneratorSessionCache', () => {
       customGenre: '',
       styleReference: 'Barry Harris',
       adventurousness: 'balanced',
+      voicingProfiles: ['drop2'],
+      customVoicingInstructions: 'Keep RH open and singable.',
       tempoBpm: 100,
     });
     expect(setIsLoadedFromSavedProgression).toHaveBeenCalledWith(false);
@@ -118,6 +122,8 @@ describe('useGeneratorSessionCache', () => {
             customGenre: 'my custom style',
             styleReference: '',
             adventurousness: 'balanced',
+            voicingProfiles: [],
+            customVoicingInstructions: '',
             tempoBpm: 100,
           },
           data: mockSuggestionData,
@@ -150,6 +156,8 @@ describe('useGeneratorSessionCache', () => {
       customGenre: 'my custom style',
       styleReference: '',
       adventurousness: 'balanced',
+      voicingProfiles: [],
+      customVoicingInstructions: '',
       tempoBpm: 100,
     });
     expect(setIsLoadedFromSavedProgression).toHaveBeenCalledWith(false);

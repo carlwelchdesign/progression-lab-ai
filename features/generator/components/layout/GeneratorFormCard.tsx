@@ -1,7 +1,11 @@
 'use client';
 
 import { useMemo } from 'react';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Controller,
   type Control,
   type FieldErrors,
@@ -27,6 +31,7 @@ import {
   MODE_INPUT_OPTIONS,
   MOOD_OPTIONS,
   STYLE_REFERENCE_OPTIONS,
+  VOICING_PROFILE_OPTIONS,
 } from '../../../../lib/formOptions';
 import {
   ADVENTUROUSNESS_CATEGORY_KEY_BY_VALUE,
@@ -104,6 +109,8 @@ export default function GeneratorFormCard({
     () => buildTranslatedGroupMap(STYLE_REFERENCE_CATEGORY_KEY_BY_VALUE, (key) => t(key)),
     [t],
   );
+  const translateVoicingProfile = (value: string) =>
+    t(`form.advanced.voicingProfiles.options.${value}`);
 
   return (
     <Card>
@@ -310,6 +317,77 @@ export default function GeneratorFormCard({
             />
           )}
         />
+
+        <Box sx={{ gridColumn: { xs: '1 / -1', md: '1 / -1' } }}>
+          <Accordion disableGutters elevation={0} defaultExpanded={false}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              {t('form.advanced.title')}
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack spacing={2}>
+                <Controller
+                  name="voicingProfiles"
+                  control={control}
+                  render={({ field: { value, onChange } }) => (
+                    <Autocomplete<string, true, false, false>
+                      multiple
+                      options={VOICING_PROFILE_OPTIONS.map((option) => option)}
+                      value={value ?? []}
+                      onChange={(_, newValue) => onChange(newValue)}
+                      disabled={isSubmitting || loading}
+                      getOptionLabel={translateVoicingProfile}
+                      renderTags={(tagValue, getTagProps) =>
+                        tagValue.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index });
+                          return (
+                            <Chip
+                              key={key}
+                              label={translateVoicingProfile(option)}
+                              size="small"
+                              {...tagProps}
+                            />
+                          );
+                        })
+                      }
+                      renderInput={(params) => (
+                        <MuiTextField
+                          {...params}
+                          label={t('form.advanced.voicingProfiles.label')}
+                          placeholder={t('form.advanced.voicingProfiles.placeholder')}
+                          helperText={t('form.advanced.voicingProfiles.helperText')}
+                          fullWidth
+                          variant="outlined"
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      )}
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="customVoicingInstructions"
+                  control={control}
+                  render={({ field: { value, onChange } }) => (
+                    <MuiTextField
+                      value={value ?? ''}
+                      onChange={onChange}
+                      label={t('form.advanced.customVoicingInstructions.label')}
+                      placeholder={t('form.advanced.customVoicingInstructions.placeholder')}
+                      helperText={t('form.advanced.customVoicingInstructions.helperText')}
+                      fullWidth
+                      multiline
+                      minRows={2}
+                      maxRows={5}
+                      disabled={isSubmitting || loading}
+                      variant="outlined"
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  )}
+                />
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
+        </Box>
       </Box>
 
       <Stack spacing={2} sx={{ mt: 3 }}>

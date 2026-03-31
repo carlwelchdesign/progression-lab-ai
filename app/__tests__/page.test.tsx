@@ -241,6 +241,8 @@ describe('HomePage', () => {
       mode: string;
       genre: string;
       styleReference: string | null;
+      voicingProfiles: string[];
+      customVoicingInstructions: string;
       instrument: string;
       adventurousness: string;
       language: string;
@@ -252,6 +254,8 @@ describe('HomePage', () => {
     expect(requestBody.genre.length).toBeGreaterThan(0);
     expect(typeof requestBody.styleReference).toBe('string');
     expect((requestBody.styleReference ?? '').length).toBeGreaterThan(0);
+    expect(Array.isArray(requestBody.voicingProfiles)).toBe(true);
+    expect(requestBody.customVoicingInstructions).toBe('');
     expect(requestBody.instrument).toBe('both');
     expect(['safe', 'balanced', 'surprising']).toContain(requestBody.adventurousness);
     expect(requestBody.language).toBe('en');
