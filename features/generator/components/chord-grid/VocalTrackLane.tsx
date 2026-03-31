@@ -1,19 +1,31 @@
 'use client';
 
+import { useEffect, useMemo, useRef } from 'react';
+
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import GraphicEqIcon from '@mui/icons-material/GraphicEq';
-import MicIcon from '@mui/icons-material/Mic';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import { Box, IconButton, Slider, Tooltip, Typography, useMediaQuery } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 
 import type { VocalTake } from '../../../../lib/types';
+import TimelineTrackSurface, {
+  TRACK_LANE_HEIGHT,
+  TRACK_PIXELS_PER_STEP,
+  TRACK_RULER_HEIGHT,
+  type TimelineTrackBar,
+} from './TimelineTrackSurface';
 
 type VocalTrackLaneProps = {
   takes: VocalTake[];
   currentStep: number;
   totalSteps: number;
+  stepsPerBar: number;
+  beatsPerBar: number;
+  tempoBpm: number;
+  loopLengthBars: number;
+  leadInBars?: number;
   isPlaying: boolean;
   isRecording: boolean;
   selectedTakeId: string | null;
@@ -23,14 +35,18 @@ type VocalTrackLaneProps = {
   onTakeGainChange: (takeId: string, gain: number) => void;
 };
 
-const PIXELS_PER_STEP = 18;
-const LANE_HEIGHT = 74;
-const LABEL_COLUMN_WIDTH = 112;
+const PIXELS_PER_STEP = TRACK_PIXELS_PER_STEP;
+const CLIP_HEIGHT = 44;
 
 export default function VocalTrackLane({
   takes,
   currentStep,
   totalSteps,
+  stepsPerBar,
+  beatsPerBar,
+  tempoBpm,
+  loopLengthBars,
+  leadInBars = 0,
   isPlaying,
   isRecording,
   selectedTakeId,
@@ -42,157 +58,258 @@ export default function VocalTrackLane({
   const theme = useTheme();
   const { appColors } = theme.palette;
   const isDesktopPointer = useMediaQuery('(hover: hover) and (pointer: fine)');
+  const isDarkMode = theme.palette.mode === 'dark';
+  const rulerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const laneCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const selectedTake = takes.find((take) => take.id === selectedTakeId) ?? null;
-  const timelineWidth = Math.max(1, totalSteps) * PIXELS_PER_STEP;
-  const playheadStep = Math.max(0, Math.min(totalSteps - 1, currentStep));
+  const normalizedLeadInBars = Math.max(0, leadInBars);
+  const leadInSteps = normalizedLeadInBars * stepsPerBar;
+  const stepsPerBeat = stepsPerBar / beatsPerBar;
+  const displayCurrentStep = !isPlaying && currentStep === 0 ? 0 : currentStep + leadInSteps;
+  const displayTotalSteps = totalSteps + leadInSteps;
+  const extendedTrackWidth = Math.max(displayTotalSteps * PIXELS_PER_STEP, 360);
+  const clipTop = (TRACK_LANE_HEIGHT - CLIP_HEIGHT) / 2;
+  const playheadColor = appColors.accent.chordPadActiveBorder;
+  const loopSummary = `${loopLengthBars} bar${loopLengthBars === 1 ? '' : 's'}`;
+  const barLineColor = alpha(theme.palette.common.white, isDarkMode ? 0.18 : 0.28);
+  const beatLineColor = alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.16);
+  const stepLineColor = alpha(theme.palette.common.white, isDarkMode ? 0.035 : 0.08);
+
+  const bars = useMemo<TimelineTrackBar[]>(
+    () =>
+      Array.from({ length: normalizedLeadInBars + loopLengthBars }, (_, index) => ({
+        index,
+        startStep: index * stepsPerBar,
+      })),
+    [loopLengthBars, normalizedLeadInBars, stepsPerBar],
+  );
+
+  useEffect(() => {
+    const drawCanvas = (
+      canvas: HTMLCanvasElement | null,
+      height: number,
+      draw: (ctx: CanvasRenderingContext2D, width: number, canvasHeight: number) => void,
+    ) => {
+      if (!canvas || extendedTrackWidth <= 0) {
+        return;
+      }
+
+      if (typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom')) {
+        return;
+      }
+
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.round(extendedTrackWidth * dpr));
+      canvas.height = Math.max(1, Math.round(height * dpr));
+      canvas.style.width = `${extendedTrackWidth}px`;
+      canvas.style.height = `${height}px`;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        return;
+      }
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, extendedTrackWidth, height);
+      draw(ctx, extendedTrackWidth, height);
+    };
+
+    drawCanvas(rulerCanvasRef.current, TRACK_RULER_HEIGHT, (ctx, width, height) => {
+      const beatTickHeight = 10;
+
+      for (let step = 1; step < displayTotalSteps; step += 1) {
+        if (step % stepsPerBeat !== 0) {
+          continue;
+        }
+
+        const x = step * PIXELS_PER_STEP;
+        if (step % stepsPerBar === 0) {
+          ctx.fillStyle = barLineColor;
+          ctx.fillRect(Math.round(x - 1), 0, 2, height);
+        } else {
+          ctx.fillStyle = beatLineColor;
+          ctx.fillRect(Math.round(x), height - beatTickHeight, 1, beatTickHeight);
+        }
+      }
+
+      ctx.fillStyle = barLineColor;
+      ctx.fillRect(0, 0, 2, height);
+      ctx.fillRect(Math.round(width - 1), 0, 2, height);
+    });
+
+    drawCanvas(laneCanvasRef.current, TRACK_LANE_HEIGHT, (ctx, width, height) => {
+      for (let barIndex = 0; barIndex < normalizedLeadInBars + loopLengthBars; barIndex += 1) {
+        if (barIndex % 2 !== 0) {
+          continue;
+        }
+
+        const barStart = barIndex * stepsPerBar * PIXELS_PER_STEP;
+        ctx.fillStyle = alpha(theme.palette.common.white, isDarkMode ? 0.025 : 0.14);
+        ctx.fillRect(barStart, 0, stepsPerBar * PIXELS_PER_STEP, height);
+      }
+
+      for (let step = 1; step < displayTotalSteps; step += 1) {
+        const x = step * PIXELS_PER_STEP;
+        if (step % stepsPerBar === 0) {
+          ctx.fillStyle = barLineColor;
+          ctx.fillRect(Math.round(x - 1), 0, 2, height);
+          continue;
+        }
+
+        if (step % stepsPerBeat === 0) {
+          ctx.fillStyle = beatLineColor;
+          ctx.fillRect(Math.round(x), 0, 1, height);
+          continue;
+        }
+
+        ctx.fillStyle = stepLineColor;
+        ctx.fillRect(Math.round(x), 0, 1, height);
+      }
+
+      ctx.fillStyle = barLineColor;
+      ctx.fillRect(0, 0, 2, height);
+      ctx.fillRect(Math.round(width - 1), 0, 2, height);
+    });
+  }, [
+    barLineColor,
+    beatLineColor,
+    displayTotalSteps,
+    extendedTrackWidth,
+    isDarkMode,
+    loopLengthBars,
+    normalizedLeadInBars,
+    stepLineColor,
+    stepsPerBar,
+    stepsPerBeat,
+    theme.palette.common.white,
+  ]);
 
   return (
-    <Box
-      sx={{
-        mb: 1.5,
-        p: 1,
-        borderRadius: 1.5,
-        bgcolor: appColors.surface.translucentPanel,
-        border: `1px solid ${appColors.surface.translucentPanelBorder}`,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
-        <Box
-          sx={{
-            width: LABEL_COLUMN_WIDTH,
-            px: 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.75,
-          }}
-        >
-          <MicIcon fontSize="small" color="error" />
-          <Typography variant="caption" sx={{ fontWeight: 700 }}>
-            Vocal
-          </Typography>
-        </Box>
+    <Box>
+      <TimelineTrackSurface
+        title="Vocal Track"
+        sectionLabel="Layer"
+        metaLines={[
+          `${tempoBpm} BPM`,
+          loopSummary,
+          `${takes.length} take${takes.length === 1 ? '' : 's'}`,
+          ...(normalizedLeadInBars > 0 ? [`+${normalizedLeadInBars} bar lead-in`] : []),
+        ]}
+        bars={bars}
+        normalizedLeadInBars={normalizedLeadInBars}
+        displayCurrentStep={displayCurrentStep}
+        displayTotalSteps={displayTotalSteps}
+        extendedTrackWidth={extendedTrackWidth}
+        playheadColor={playheadColor}
+        rulerCanvasRef={rulerCanvasRef}
+        laneCanvasRef={laneCanvasRef}
+        laneAriaLabel="Vocal timeline lane"
+        onLaneClick={(event) => {
+          if (event.target === event.currentTarget) {
+            onSelectTake(null);
+          }
+        }}
+      >
+        {takes.map((take) => {
+          const displayStartStep = take.startStep + leadInSteps;
+          const left = displayStartStep * PIXELS_PER_STEP;
+          const width = Math.max(PIXELS_PER_STEP, take.durationSteps * PIXELS_PER_STEP);
+          const isSelected = take.id === selectedTakeId;
 
-        <Box sx={{ flex: 1, overflowX: 'auto' }}>
+          return (
+            <Box
+              key={take.id}
+              role="button"
+              tabIndex={0}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelectTake(take.id);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onSelectTake(take.id);
+                }
+              }}
+              sx={{
+                position: 'absolute',
+                left,
+                top: clipTop,
+                height: CLIP_HEIGHT,
+                width,
+                borderRadius: 1,
+                px: 0.75,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                overflow: 'hidden',
+                border: `1px solid ${isSelected ? alpha(theme.palette.error.main, 0.75) : alpha(theme.palette.common.white, 0.2)}`,
+                bgcolor: take.isMuted
+                  ? alpha(theme.palette.grey[700], 0.65)
+                  : alpha(theme.palette.error.main, isSelected ? 0.35 : 0.22),
+                zIndex: 3,
+              }}
+            >
+              <GraphicEqIcon sx={{ fontSize: 14 }} />
+              <Typography
+                variant="caption"
+                sx={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}
+              >
+                Take {takes.findIndex((candidate) => candidate.id === take.id) + 1}
+              </Typography>
+            </Box>
+          );
+        })}
+
+        {isRecording ? (
           <Box
             sx={{
-              position: 'relative',
-              width: timelineWidth,
-              minHeight: LANE_HEIGHT,
-              borderRadius: 1,
-              border: `1px solid ${alpha(theme.palette.common.white, 0.12)}`,
-              bgcolor: alpha(theme.palette.common.black, 0.12),
-              cursor: 'pointer',
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              px: 0.75,
+              py: 0.2,
+              borderRadius: 999,
+              bgcolor: alpha(theme.palette.error.main, 0.2),
+              border: `1px solid ${alpha(theme.palette.error.main, 0.5)}`,
+              zIndex: 6,
             }}
-            onClick={() => onSelectTake(null)}
           >
-            {Array.from({ length: Math.max(1, totalSteps) }).map((_, stepIndex) => {
-              const isBarBoundary = stepIndex % 16 === 0;
-              const isBeatBoundary = stepIndex % 4 === 0;
-
-              return (
-                <Box
-                  key={`vocal-grid-${stepIndex}`}
-                  sx={{
-                    position: 'absolute',
-                    top: 0,
-                    bottom: 0,
-                    left: stepIndex * PIXELS_PER_STEP,
-                    width: 1,
-                    bgcolor: isBarBoundary
-                      ? alpha(theme.palette.primary.main, 0.25)
-                      : isBeatBoundary
-                        ? alpha(theme.palette.common.white, 0.12)
-                        : alpha(theme.palette.common.white, 0.06),
-                  }}
-                />
-              );
-            })}
-
-            {takes.map((take) => {
-              const left = take.startStep * PIXELS_PER_STEP;
-              const width = Math.max(PIXELS_PER_STEP, take.durationSteps * PIXELS_PER_STEP);
-              const isSelected = take.id === selectedTakeId;
-
-              return (
-                <Box
-                  key={take.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onSelectTake(take.id);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      onSelectTake(take.id);
-                    }
-                  }}
-                  sx={{
-                    position: 'absolute',
-                    left,
-                    top: 14,
-                    height: 44,
-                    width,
-                    borderRadius: 1,
-                    px: 0.75,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    overflow: 'hidden',
-                    border: `1px solid ${isSelected ? alpha(theme.palette.error.main, 0.75) : alpha(theme.palette.common.white, 0.2)}`,
-                    bgcolor: take.isMuted
-                      ? alpha(theme.palette.grey[700], 0.65)
-                      : alpha(theme.palette.error.main, isSelected ? 0.35 : 0.22),
-                  }}
-                >
-                  <GraphicEqIcon sx={{ fontSize: 14 }} />
-                  <Typography
-                    variant="caption"
-                    sx={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}
-                  >
-                    Take {takes.findIndex((candidate) => candidate.id === take.id) + 1}
-                  </Typography>
-                </Box>
-              );
-            })}
-
-            {isPlaying ? (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  bottom: 0,
-                  left: playheadStep * PIXELS_PER_STEP,
-                  width: 2,
-                  bgcolor: theme.palette.warning.main,
-                  boxShadow: `0 0 0 1px ${alpha(theme.palette.warning.main, 0.36)}`,
-                }}
-              />
-            ) : null}
-
-            {isRecording ? (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  right: 8,
-                  top: 8,
-                  px: 0.75,
-                  py: 0.2,
-                  borderRadius: 999,
-                  bgcolor: alpha(theme.palette.error.main, 0.2),
-                  border: `1px solid ${alpha(theme.palette.error.main, 0.5)}`,
-                }}
-              >
-                <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                  REC
-                </Typography>
-              </Box>
-            ) : null}
+            <Typography variant="caption" sx={{ fontWeight: 700 }}>
+              REC
+            </Typography>
           </Box>
-        </Box>
-      </Box>
+        ) : null}
+
+        {takes.length === 0 ? (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                px: 1.25,
+                py: 0.5,
+                borderRadius: 0.75,
+                border: `1px solid ${alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.16)}`,
+                backgroundColor: alpha(theme.palette.common.black, isDarkMode ? 0.18 : 0.04),
+                color: alpha(theme.palette.common.white, 0.38),
+                letterSpacing: 0.2,
+              }}
+            >
+              No vocal takes yet. Record a take to layer vocals on your arrangement.
+            </Typography>
+          </Box>
+        ) : null}
+      </TimelineTrackSurface>
 
       {selectedTake ? (
         <Box

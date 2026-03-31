@@ -2,12 +2,17 @@
 
 import type { DragEvent as ReactDragEvent, PointerEvent as ReactPointerEvent } from 'react';
 
-import { Box, Typography, useMediaQuery } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ArrangementEvent } from '../../../../lib/types';
 import { readPadKeyFromDataTransfer } from './padDragPayload';
+import TimelineTrackSurface, {
+  TRACK_LANE_HEIGHT,
+  TRACK_PIXELS_PER_STEP,
+  TRACK_RULER_HEIGHT,
+} from './TimelineTrackSurface';
 
 type SequencerTrackProps = {
   currentStep: number;
@@ -47,10 +52,9 @@ type RenderedClip = ArrangementEvent & {
   sourceStepIndex: number;
 };
 
-const LABEL_COLUMN_WIDTH = 112;
-const PIXELS_PER_STEP = 18;
-const RULER_HEIGHT = 30;
-const LANE_HEIGHT = 86;
+const PIXELS_PER_STEP = TRACK_PIXELS_PER_STEP;
+const RULER_HEIGHT = TRACK_RULER_HEIGHT;
+const LANE_HEIGHT = TRACK_LANE_HEIGHT;
 const CLIP_HEIGHT = 42;
 const PLAYHEAD_ANCHOR_RATIO = 0.5;
 
@@ -105,7 +109,6 @@ export default function SequencerTrack({
   emptyTimelineHint,
 }: SequencerTrackProps) {
   const theme = useTheme();
-  const isCompactLabels = useMediaQuery(theme.breakpoints.down('sm'));
   const { appColors } = theme.palette;
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const playheadRef = useRef<HTMLDivElement | null>(null);
@@ -138,17 +141,10 @@ export default function SequencerTrack({
     viewportWidth > 0 && centeredDesiredScroll > 0 && centeredDesiredScroll < maxScrollLeft;
   const laneTop = (LANE_HEIGHT - CLIP_HEIGHT) / 2;
   const isDarkMode = theme.palette.mode === 'dark';
-  const frameBorder = alpha(theme.palette.common.white, isDarkMode ? 0.1 : 0.18);
-  const rulerBorder = alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.14);
   const barLineColor = alpha(theme.palette.common.white, isDarkMode ? 0.18 : 0.28);
   const beatLineColor = alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.16);
   const stepLineColor = alpha(theme.palette.common.white, isDarkMode ? 0.035 : 0.08);
   const playheadColor = appColors.accent.chordPadActiveBorder;
-  const surfaceColor = isDarkMode ? '#1E2329' : '#D8DEE6';
-  const rulerColor = isDarkMode ? '#343A43' : '#C8D0DA';
-  const laneColor = isDarkMode ? '#242A31' : '#E7ECF2';
-  const labelColor = alpha(theme.palette.common.white, isDarkMode ? 0.92 : 0.5);
-  const metaColor = alpha(theme.palette.common.white, isDarkMode ? 0.45 : 0.4);
   const insertionCursorColor = appColors.accent.chordPadEditBorder;
   const loopSummary = `${loopLengthBars} bar${loopLengthBars === 1 ? '' : 's'}`;
 
@@ -683,496 +679,206 @@ export default function SequencerTrack({
   };
 
   return (
-    <Box
-      sx={{
-        mb: 2,
-        overflow: 'hidden',
-        borderRadius: 1.5,
-        border: `1px solid ${frameBorder}`,
-        backgroundColor: surfaceColor,
-        boxShadow: isDarkMode
-          ? `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.04)}`
-          : `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.45)}`,
+    <TimelineTrackSurface
+      title="Chord Track"
+      sectionLabel="Arrange"
+      metaLines={[
+        `${tempoBpm} BPM`,
+        loopSummary,
+        ...(normalizedLeadInBars > 0 ? [`+${normalizedLeadInBars} bar lead-in`] : []),
+      ]}
+      bars={bars}
+      normalizedLeadInBars={normalizedLeadInBars}
+      displayCurrentStep={displayCurrentStep}
+      displayTotalSteps={displayTotalSteps}
+      extendedTrackWidth={extendedTrackWidth}
+      playheadAnchorPx={playheadAnchorPx}
+      playheadColor={playheadColor}
+      isCenteredOverlayActive={isCenteredOverlayActive}
+      scrollRef={scrollRef}
+      playheadRef={playheadRef}
+      rulerCanvasRef={rulerCanvasRef}
+      laneCanvasRef={laneCanvasRef}
+      laneAriaLabel="Chord timeline lane"
+      onLaneDragOver={handleLaneDragOver}
+      onLaneDragLeave={handleLaneDragLeave}
+      onLaneDrop={handleLaneDrop}
+      onLaneClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onLaneClickStep?.(getLaneStepFromClientX(e.clientX, e.currentTarget));
+          onClipClick?.(null);
+        }
       }}
     >
-      {isCompactLabels ? (
+      <Box
+        component="canvas"
+        ref={clipCanvasRef}
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 2,
+        }}
+      />
+
+      {clips.map((clip, index) => {
+        const isSelected = selectedStepIndex === clip.sourceStepIndex;
+        const isDraggingThis =
+          dragSourceStepRef.current === clip.sourceStepIndex && dragGhostStep !== null;
+        return (
+          <Box
+            key={`${clip.padKey}-${clip.sourceStepIndex}-${index}`}
+            title={`${clip.label} at step ${clip.sourceStepIndex + 1}`}
+            aria-label={`${clip.label} at step ${clip.sourceStepIndex + 1}`}
+            onPointerDown={(event) => handleClipPointerDown(clip, event)}
+            sx={{
+              position: 'absolute',
+              left: clip.stepIndex * PIXELS_PER_STEP + 1,
+              top: laneTop,
+              width: Math.min(clip.width, totalWidth - clip.stepIndex * PIXELS_PER_STEP - 2),
+              minWidth: 28,
+              height: CLIP_HEIGHT,
+              borderRadius: 0.5,
+              outline: isSelected ? `2px solid ${alpha(clip.color, 0.9)}` : 'none',
+              outlineOffset: '-2px',
+              backgroundColor: isSelected ? alpha(clip.color, 0.1) : 'transparent',
+              cursor: isPlaying ? 'default' : 'grab',
+              zIndex: 3,
+              opacity: isDraggingThis ? 0.35 : 1,
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              touchAction: 'none',
+            }}
+          />
+        );
+      })}
+      {dragGhostStep !== null &&
+        dragSourceStepRef.current !== null &&
+        (() => {
+          const draggingClip = clips.find((c) => c.sourceStepIndex === dragSourceStepRef.current);
+          if (!draggingClip) return null;
+          const ghostDisplayStep = dragGhostStep + leadInSteps;
+          return (
+            <Box
+              sx={{
+                position: 'absolute',
+                left: ghostDisplayStep * PIXELS_PER_STEP + 1,
+                top: laneTop,
+                width: Math.min(
+                  draggingClip.width,
+                  totalWidth - ghostDisplayStep * PIXELS_PER_STEP - 2,
+                ),
+                minWidth: 28,
+                height: CLIP_HEIGHT,
+                borderRadius: 0.5,
+                border: `2px dashed ${alpha(draggingClip.color, 0.7)}`,
+                backgroundColor: alpha(draggingClip.color, 0.12),
+                zIndex: 5,
+                pointerEvents: 'none',
+              }}
+            />
+          );
+        })()}
+
+      {padDropPreviewStep !== null ? (
         <Box
           sx={{
-            px: 1.25,
-            py: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 1,
-            flexWrap: 'wrap',
-            borderBottom: `1px solid ${rulerBorder}`,
-            backgroundColor: isDarkMode ? '#2B3139' : '#D0D7E0',
+            position: 'absolute',
+            left: (padDropPreviewStep + leadInSteps) * PIXELS_PER_STEP + 1,
+            top: laneTop,
+            width: Math.max(28, PIXELS_PER_STEP - 2),
+            height: CLIP_HEIGHT,
+            borderRadius: 0.5,
+            border: `2px dashed ${alpha(playheadColor, 0.72)}`,
+            backgroundColor: alpha(playheadColor, 0.18),
+            zIndex: 5,
+            pointerEvents: 'none',
+          }}
+        />
+      ) : null}
+
+      {insertionCursorStep !== null ? (
+        <Box
+          aria-label={`Insertion cursor at step ${insertionCursorStep + 1}`}
+          onPointerDown={(e) => {
+            if (isPlaying) return;
+            e.preventDefault();
+            cursorDragStartRef.current = { x: e.clientX, step: insertionCursorStep };
+          }}
+          sx={{
+            position: 'absolute',
+            left: (insertionCursorStep + leadInSteps) * PIXELS_PER_STEP - 8,
+            top: 0,
+            bottom: 0,
+            width: 18,
+            backgroundColor: 'transparent',
+            zIndex: 7,
+            cursor: 'grab',
+            '&:active': {
+              cursor: 'grabbing',
+            },
           }}
         >
-          <Typography
-            sx={{
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              lineHeight: 1.1,
-              color: labelColor,
-            }}
-          >
-            Chord Track
-          </Typography>
           <Box
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              flexWrap: 'wrap',
-              justifyContent: 'flex-end',
+              position: 'absolute',
+              left: '50%',
+              top: 0,
+              bottom: 0,
+              width: 2,
+              transform: 'translateX(-50%)',
+              backgroundColor: insertionCursorColor,
+              boxShadow: `0 0 0 1px ${alpha(insertionCursorColor, 0.2)}, 0 0 12px ${alpha(insertionCursorColor, 0.32)}`,
+              pointerEvents: 'none',
             }}
           >
-            <Typography variant="caption" sx={{ color: metaColor, lineHeight: 1.2 }}>
-              {tempoBpm} BPM
-            </Typography>
-            <Typography variant="caption" sx={{ color: metaColor, lineHeight: 1.2 }}>
-              {loopSummary}
-            </Typography>
-            {normalizedLeadInBars > 0 ? (
-              <Typography variant="caption" sx={{ color: metaColor, lineHeight: 1.2 }}>
-                +{normalizedLeadInBars} bar lead-in
-              </Typography>
-            ) : null}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 6,
+                left: '50%',
+                width: 0,
+                height: 0,
+                borderLeft: '5px solid transparent',
+                borderRight: '5px solid transparent',
+                borderTop: `7px solid ${insertionCursorColor}`,
+                transform: 'translateX(-50%)',
+                pointerEvents: 'none',
+              }}
+            />
           </Box>
         </Box>
       ) : null}
 
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: isCompactLabels
-            ? 'minmax(0, 1fr)'
-            : `${LABEL_COLUMN_WIDTH}px minmax(0, 1fr)`,
-          alignItems: 'stretch',
-        }}
-      >
-        {isCompactLabels ? null : (
-          <Box
+      {clips.length === 0 ? (
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+          }}
+        >
+          <Typography
+            variant="caption"
             sx={{
-              borderRight: `1px solid ${rulerBorder}`,
-              backgroundColor: isDarkMode ? '#2B3139' : '#D0D7E0',
+              px: 1.25,
+              py: 0.5,
+              borderRadius: 0.75,
+              border: `1px solid ${alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.16)}`,
+              backgroundColor: alpha(theme.palette.common.black, isDarkMode ? 0.18 : 0.04),
+              color: alpha(theme.palette.common.white, isDarkMode ? 0.38 : 0.38),
+              letterSpacing: 0.2,
             }}
           >
-            <Box
-              sx={{
-                height: RULER_HEIGHT,
-                px: 1.5,
-                display: 'flex',
-                alignItems: 'center',
-                borderBottom: `1px solid ${rulerBorder}`,
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  textTransform: 'uppercase',
-                  color: metaColor,
-                }}
-              >
-                Arrange
-              </Typography>
-            </Box>
-            <Box
-              sx={{
-                height: LANE_HEIGHT,
-                px: 1.5,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                gap: 0.5,
-              }}
-            >
-              <Typography
-                sx={{ fontWeight: 700, fontSize: '0.93rem', lineHeight: 1.1, color: labelColor }}
-              >
-                Chord Track
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.15 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: metaColor,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {tempoBpm} BPM
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: metaColor,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {loopSummary}
-                </Typography>
-                {normalizedLeadInBars > 0 ? (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: metaColor,
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    +{normalizedLeadInBars} bar lead-in
-                  </Typography>
-                ) : null}
-              </Box>
-            </Box>
-          </Box>
-        )}
-
-        <Box sx={{ position: 'relative' }}>
-          <Box
-            ref={scrollRef}
-            sx={{
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              '&::-webkit-scrollbar': {
-                height: 9,
-              },
-              '&::-webkit-scrollbar-track': {
-                backgroundColor: alpha(theme.palette.common.black, isDarkMode ? 0.24 : 0.08),
-              },
-              '&::-webkit-scrollbar-thumb': {
-                borderRadius: 999,
-                backgroundColor: alpha(theme.palette.common.white, isDarkMode ? 0.18 : 0.28),
-              },
-              '&::-webkit-scrollbar-thumb:hover': {
-                backgroundColor: alpha(theme.palette.common.white, isDarkMode ? 0.24 : 0.36),
-              },
-            }}
-          >
-            <Box sx={{ position: 'relative', width: extendedTrackWidth, minWidth: '100%' }}>
-              <Box
-                sx={{
-                  position: 'relative',
-                  height: RULER_HEIGHT,
-                  borderBottom: `1px solid ${rulerBorder}`,
-                  backgroundColor: rulerColor,
-                }}
-              >
-                <Box
-                  component="canvas"
-                  ref={rulerCanvasRef}
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                  }}
-                />
-
-                {bars.map((bar) => {
-                  const barLeft = bar.startStep * PIXELS_PER_STEP;
-                  const barLabel =
-                    bar.index < normalizedLeadInBars
-                      ? 'L'
-                      : String(bar.index - normalizedLeadInBars + 1);
-                  return (
-                    <Typography
-                      key={`bar-ruler-label-${bar.index}`}
-                      variant="caption"
-                      sx={{
-                        position: 'absolute',
-                        left: barLeft + 8,
-                        top: 7,
-                        fontWeight: 700,
-                        letterSpacing: 0.35,
-                        color: labelColor,
-                      }}
-                    >
-                      {barLabel}
-                    </Typography>
-                  );
-                })}
-              </Box>
-
-              <Box
-                sx={{
-                  position: 'relative',
-                  height: LANE_HEIGHT,
-                  backgroundColor: laneColor,
-                }}
-                onDragOver={handleLaneDragOver}
-                onDragLeave={handleLaneDragLeave}
-                onDrop={handleLaneDrop}
-                aria-label="Chord timeline lane"
-                onClick={(e) => {
-                  if (e.target === e.currentTarget) {
-                    onLaneClickStep?.(getLaneStepFromClientX(e.clientX, e.currentTarget));
-                    onClipClick?.(null);
-                  }
-                }}
-              >
-                <Box
-                  component="canvas"
-                  ref={laneCanvasRef}
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                  }}
-                />
-
-                <Box
-                  component="canvas"
-                  ref={clipCanvasRef}
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 2,
-                  }}
-                />
-
-                {clips.map((clip, index) => {
-                  const isSelected = selectedStepIndex === clip.sourceStepIndex;
-                  const isDraggingThis =
-                    dragSourceStepRef.current === clip.sourceStepIndex && dragGhostStep !== null;
-                  return (
-                    <Box
-                      key={`${clip.padKey}-${clip.sourceStepIndex}-${index}`}
-                      title={`${clip.label} at step ${clip.sourceStepIndex + 1}`}
-                      aria-label={`${clip.label} at step ${clip.sourceStepIndex + 1}`}
-                      onPointerDown={(event) => handleClipPointerDown(clip, event)}
-                      sx={{
-                        position: 'absolute',
-                        left: clip.stepIndex * PIXELS_PER_STEP + 1,
-                        top: laneTop,
-                        width: Math.min(
-                          clip.width,
-                          totalWidth - clip.stepIndex * PIXELS_PER_STEP - 2,
-                        ),
-                        minWidth: 28,
-                        height: CLIP_HEIGHT,
-                        borderRadius: 0.5,
-                        outline: isSelected ? `2px solid ${alpha(clip.color, 0.9)}` : 'none',
-                        outlineOffset: '-2px',
-                        backgroundColor: isSelected ? alpha(clip.color, 0.1) : 'transparent',
-                        cursor: isPlaying ? 'default' : 'grab',
-                        zIndex: 3,
-                        opacity: isDraggingThis ? 0.35 : 1,
-                        userSelect: 'none',
-                        WebkitUserSelect: 'none',
-                        touchAction: 'none',
-                      }}
-                    />
-                  );
-                })}
-                {/* Drag ghost – renders at the target position while the user is dragging */}
-                {dragGhostStep !== null &&
-                  dragSourceStepRef.current !== null &&
-                  (() => {
-                    const draggingClip = clips.find(
-                      (c) => c.sourceStepIndex === dragSourceStepRef.current,
-                    );
-                    if (!draggingClip) return null;
-                    const ghostDisplayStep = dragGhostStep + leadInSteps;
-                    return (
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          left: ghostDisplayStep * PIXELS_PER_STEP + 1,
-                          top: laneTop,
-                          width: Math.min(
-                            draggingClip.width,
-                            totalWidth - ghostDisplayStep * PIXELS_PER_STEP - 2,
-                          ),
-                          minWidth: 28,
-                          height: CLIP_HEIGHT,
-                          borderRadius: 0.5,
-                          border: `2px dashed ${alpha(draggingClip.color, 0.7)}`,
-                          backgroundColor: alpha(draggingClip.color, 0.12),
-                          zIndex: 5,
-                          pointerEvents: 'none',
-                        }}
-                      />
-                    );
-                  })()}
-
-                {padDropPreviewStep !== null ? (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      left: (padDropPreviewStep + leadInSteps) * PIXELS_PER_STEP + 1,
-                      top: laneTop,
-                      width: Math.max(28, PIXELS_PER_STEP - 2),
-                      height: CLIP_HEIGHT,
-                      borderRadius: 0.5,
-                      border: `2px dashed ${alpha(playheadColor, 0.72)}`,
-                      backgroundColor: alpha(playheadColor, 0.18),
-                      zIndex: 5,
-                      pointerEvents: 'none',
-                    }}
-                  />
-                ) : null}
-
-                {insertionCursorStep !== null ? (
-                  <Box
-                    aria-label={`Insertion cursor at step ${insertionCursorStep + 1}`}
-                    onPointerDown={(e) => {
-                      if (isPlaying) return;
-                      e.preventDefault();
-                      cursorDragStartRef.current = { x: e.clientX, step: insertionCursorStep };
-                    }}
-                    sx={{
-                      position: 'absolute',
-                      left: (insertionCursorStep + leadInSteps) * PIXELS_PER_STEP - 8,
-                      top: 0,
-                      bottom: 0,
-                      width: 18,
-                      backgroundColor: 'transparent',
-                      zIndex: 7,
-                      cursor: 'grab',
-                      '&:active': {
-                        cursor: 'grabbing',
-                      },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        left: '50%',
-                        top: 0,
-                        bottom: 0,
-                        width: 2,
-                        transform: 'translateX(-50%)',
-                        backgroundColor: insertionCursorColor,
-                        boxShadow: `0 0 0 1px ${alpha(insertionCursorColor, 0.2)}, 0 0 12px ${alpha(insertionCursorColor, 0.32)}`,
-                        pointerEvents: 'none',
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          top: 6,
-                          left: '50%',
-                          width: 0,
-                          height: 0,
-                          borderLeft: '5px solid transparent',
-                          borderRight: '5px solid transparent',
-                          borderTop: `7px solid ${insertionCursorColor}`,
-                          transform: 'translateX(-50%)',
-                          pointerEvents: 'none',
-                        }}
-                      />
-                    </Box>
-                  </Box>
-                ) : null}
-
-                {clips.length === 0 ? (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        px: 1.25,
-                        py: 0.5,
-                        borderRadius: 0.75,
-                        border: `1px solid ${alpha(theme.palette.common.white, isDarkMode ? 0.08 : 0.16)}`,
-                        backgroundColor: alpha(
-                          theme.palette.common.black,
-                          isDarkMode ? 0.18 : 0.04,
-                        ),
-                        color: alpha(theme.palette.common.white, isDarkMode ? 0.38 : 0.38),
-                        letterSpacing: 0.2,
-                      }}
-                    >
-                      {emptyTimelineHint ??
-                        'Drag pads or record chords to place regions on the timeline'}
-                    </Typography>
-                  </Box>
-                ) : null}
-
-                <Box
-                  ref={playheadRef}
-                  sx={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 2,
-                    transform: `translate3d(${displayCurrentStep * PIXELS_PER_STEP}px, 0, 0)`,
-                    willChange: isPlaying ? 'transform' : 'auto',
-                    backgroundColor: playheadColor,
-                    boxShadow: `0 0 0 1px ${alpha(playheadColor, 0.28)}, 0 0 14px ${alpha(playheadColor, 0.36)}`,
-                    zIndex: 5,
-                    opacity: isCenteredOverlayActive ? 0 : 1,
-                    pointerEvents: 'none',
-                    transition: 'none',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: 6,
-                      left: '50%',
-                      width: 0,
-                      height: 0,
-                      borderLeft: '5px solid transparent',
-                      borderRight: '5px solid transparent',
-                      borderTop: `7px solid ${playheadColor}`,
-                      transform: 'translateX(-50%)',
-                    }}
-                  />
-                </Box>
-              </Box>
-            </Box>
-          </Box>
-
-          {isCenteredOverlayActive ? (
-            <Box
-              sx={{
-                position: 'absolute',
-                left: Math.max(0, playheadAnchorPx - 1),
-                top: RULER_HEIGHT,
-                bottom: 9,
-                width: 2,
-                backgroundColor: playheadColor,
-                boxShadow: `0 0 0 1px ${alpha(playheadColor, 0.28)}, 0 0 14px ${alpha(playheadColor, 0.36)}`,
-                zIndex: 7,
-                pointerEvents: 'none',
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 6,
-                  left: '50%',
-                  width: 0,
-                  height: 0,
-                  borderLeft: '5px solid transparent',
-                  borderRight: '5px solid transparent',
-                  borderTop: `7px solid ${playheadColor}`,
-                  transform: 'translateX(-50%)',
-                }}
-              />
-            </Box>
-          ) : null}
+            {emptyTimelineHint ?? 'Drag pads or record chords to place regions on the timeline'}
+          </Typography>
         </Box>
-      </Box>
-    </Box>
+      ) : null}
+    </TimelineTrackSurface>
   );
 }
