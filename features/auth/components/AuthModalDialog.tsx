@@ -221,7 +221,12 @@ export default function AuthModalDialog({
           <Stack spacing={2.5} component="form" sx={{ mt: 1 }} onSubmit={handleSubmit(onSubmit)}>
             <Box>
               <Typography color="text.secondary">
-                {authCopy?.modalDescription || t('auth.dialog.description')}
+                {authCopy?.modalDescription ||
+                  (reason === 'my-progressions'
+                    ? t('auth.reason.myProgressions')
+                    : reason === 'save-arrangement'
+                      ? t('auth.reason.saveArrangement')
+                      : t('auth.dialog.description'))}
               </Typography>
             </Box>
 

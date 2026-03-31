@@ -3,7 +3,9 @@ import { expect } from '@playwright/test';
 import { test } from './fixtures/test';
 
 test.describe('marketing CMS admin workflow', () => {
-  test('admin can create, translate, and publish marketing content', async ({ api, page }) => {
+  // Admin dashboard UI tests live in admin-dashboard/e2e/marketing-content.spec.ts
+  // They require the admin dashboard app running on its own port.
+  test.skip('admin can create, translate, and publish marketing content', async ({ api, page }) => {
     // Login as admin
     await api.mockAdminUser();
     await page.goto('/admin');
@@ -108,7 +110,8 @@ test.describe('marketing CMS admin workflow', () => {
     await expect(anyText).toBeTruthy();
   });
 
-  test('stale translation indicator appears when source locale is updated', async ({
+  // Admin dashboard UI test — covered in admin-dashboard/e2e/marketing-content.spec.ts
+  test.skip('stale translation indicator appears when source locale is updated', async ({
     api,
     page,
   }) => {

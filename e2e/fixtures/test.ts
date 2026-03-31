@@ -64,15 +64,26 @@ class ApiMocker {
 
   async mockPublishedMarketingContent(content: PublishedMarketingContent) {
     await this.page.route('**/api/marketing-content/public**', async (route) => {
-      // Match the query params for surface and locale
       const searchParams = new URL(route.request().url()).searchParams;
-      const requestSurface = searchParams.get('surface');
+      const requestKey = searchParams.get('contentKey');
       const requestLocale = searchParams.get('locale');
 
-      if (requestSurface === content.surface && requestLocale === content.locale) {
-        await fulfillJson(route, content);
+      if (requestKey === content.surface && requestLocale === content.locale) {
+        // Return the shape the client expects: { item: PublicMarketingContentResult }
+        await fulfillJson(route, {
+          item: {
+            contentKey: content.surface,
+            requestedLocale: content.locale,
+            resolvedLocale: content.locale,
+            versionId: 'mock-version-id',
+            versionNumber: 1,
+            content: content.content,
+            updatedAt: new Date().toISOString(),
+          },
+        });
       } else {
-        await fulfillJson(route, { error: 'Not found' }, 404);
+        // Return null item (no published content) — client handles this as "no CMS content"
+        await fulfillJson(route, { item: null }, 404);
       }
     });
   }
