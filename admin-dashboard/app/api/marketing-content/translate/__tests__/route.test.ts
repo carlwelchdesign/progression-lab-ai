@@ -216,6 +216,11 @@ describe('POST /api/marketing-content/translate', () => {
         versionNumber: 4,
       }),
     });
+    expect(mockGetMarketingContentSourceVersion).toHaveBeenCalledWith({
+      contentKey: 'homepage',
+      locale: 'en',
+      sourceVersionId: 'source-1',
+    });
     expect(mockOpenAIResponsesCreate).toHaveBeenCalledTimes(1);
     expect(mockSaveMarketingContentDraft).toHaveBeenCalledWith(
       expect.objectContaining({

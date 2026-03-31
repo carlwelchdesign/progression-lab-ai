@@ -605,27 +605,75 @@ export async function getMarketingContentSourceVersion(params: {
   locale: string;
   sourceVersionId?: string | null;
 }): Promise<MarketingContentVersionRecord | null> {
-  const where = {
-    locale: params.locale,
+  const include = {
     marketingContent: {
-      key: params.contentKey,
-    },
-    ...(params.sourceVersionId ? { id: params.sourceVersionId } : {}),
-  };
-
-  const source = await prisma.marketingContentVersion.findFirst({
-    where,
-    include: {
-      marketingContent: {
-        select: {
-          key: true,
-          contentKind: true,
-          schemaVersion: true,
-        },
+      select: {
+        key: true,
+        contentKind: true,
+        schemaVersion: true,
       },
     },
-    orderBy: [{ isDraft: 'desc' }, { isActive: 'desc' }, { versionNumber: 'desc' }],
+  };
+
+  if (params.sourceVersionId) {
+    const source = await prisma.marketingContentVersion.findFirst({
+      where: {
+        id: params.sourceVersionId,
+        locale: params.locale,
+        marketingContent: {
+          key: params.contentKey,
+        },
+      },
+      include,
+    });
+
+    return source ? toMarketingContentVersionRecord(source as MarketingContentVersionRow) : null;
+  }
+
+  const activeSource = await prisma.marketingContentVersion.findFirst({
+    where: {
+      locale: params.locale,
+      isActive: true,
+      marketingContent: {
+        key: params.contentKey,
+      },
+    },
+    include,
+    orderBy: [{ versionNumber: 'desc' }, { createdAt: 'desc' }],
   });
 
-  return source ? toMarketingContentVersionRecord(source as MarketingContentVersionRow) : null;
+  if (activeSource) {
+    return toMarketingContentVersionRecord(activeSource as MarketingContentVersionRow);
+  }
+
+  const publishedSource = await prisma.marketingContentVersion.findFirst({
+    where: {
+      locale: params.locale,
+      isDraft: false,
+      marketingContent: {
+        key: params.contentKey,
+      },
+    },
+    include,
+    orderBy: [{ versionNumber: 'desc' }, { createdAt: 'desc' }],
+  });
+
+  if (publishedSource) {
+    return toMarketingContentVersionRecord(publishedSource as MarketingContentVersionRow);
+  }
+
+  const fallbackSource = await prisma.marketingContentVersion.findFirst({
+    where: {
+      locale: params.locale,
+      marketingContent: {
+        key: params.contentKey,
+      },
+    },
+    include,
+    orderBy: [{ versionNumber: 'desc' }, { createdAt: 'desc' }],
+  });
+
+  return fallbackSource
+    ? toMarketingContentVersionRecord(fallbackSource as MarketingContentVersionRow)
+    : null;
 }
