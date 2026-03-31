@@ -48,13 +48,26 @@ describe('GET /api/analytics/summary', () => {
         },
       ])
       .mockResolvedValueOnce([
-        { eventType: 'page_view', properties: { locale: 'en-US', persona: 'beginner' } },
+        {
+          eventType: 'page_view',
+          properties: { locale: 'en-US', persona: 'beginner' },
+          createdAt: new Date('2026-03-30T00:00:00.000Z'),
+        },
         {
           eventType: 'auth_modal_opened',
           properties: { locale: 'en-US', persona: 'beginner' },
+          createdAt: new Date('2026-03-30T00:00:00.000Z'),
         },
-        { eventType: 'auth_completed', properties: { locale: 'en-US', persona: 'beginner' } },
-        { eventType: 'upgrade_intent', properties: { locale: 'fr-FR', persona: 'pro' } },
+        {
+          eventType: 'auth_completed',
+          properties: { locale: 'en-US', persona: 'beginner' },
+          createdAt: new Date('2026-03-31T00:00:00.000Z'),
+        },
+        {
+          eventType: 'upgrade_intent',
+          properties: { locale: 'fr-FR', persona: 'pro' },
+          createdAt: new Date('2026-03-31T00:00:00.000Z'),
+        },
       ]);
   });
 
@@ -72,6 +85,7 @@ describe('GET /api/analytics/summary', () => {
 
     expect(response.status).toBe(200);
     expect(body.rangeMode).toBe('lookback');
+    expect(body.filters).toEqual({ locale: null, persona: null });
     expect(body.totals).toEqual({
       totalEvents: 42,
       uniqueSessions: 2,
@@ -85,15 +99,15 @@ describe('GET /api/analytics/summary', () => {
       { eventType: 'upgrade_completed', count: 2 },
     ]);
     expect(body.funnel).toEqual({
-      pageViews: 20,
-      authStarted: 10,
-      authCompleted: 7,
-      upgradeIntent: 4,
-      upgradeCompleted: 2,
-      authStartRateFromViews: 50,
-      authCompletionRateFromStarts: 70,
-      upgradeIntentRateFromAuthCompletion: 57.1,
-      upgradeCompletionRateFromIntent: 50,
+      pageViews: 1,
+      authStarted: 1,
+      authCompleted: 1,
+      upgradeIntent: 1,
+      upgradeCompleted: 0,
+      authStartRateFromViews: 100,
+      authCompletionRateFromStarts: 100,
+      upgradeIntentRateFromAuthCompletion: 100,
+      upgradeCompletionRateFromIntent: 0,
     });
     expect(body.breakdownByLocale).toEqual([
       {
@@ -148,6 +162,7 @@ describe('GET /api/analytics/summary', () => {
       },
     ]);
     expect(body.recentEvents).toHaveLength(1);
+    expect(Array.isArray(body.dailyFunnelTrend)).toBe(true);
   });
 
   it('supports custom date range params', async () => {
@@ -161,5 +176,24 @@ describe('GET /api/analytics/summary', () => {
     expect(response.status).toBe(200);
     expect(body.rangeMode).toBe('custom');
     expect(body.days).toBe(9);
+  });
+
+  it('applies locale/persona filters to funnel metrics', async () => {
+    const response = await GET(
+      new NextRequest(
+        'http://localhost/api/analytics/summary?days=7&locale=en-US&persona=beginner',
+      ),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.filters).toEqual({ locale: 'en-US', persona: 'beginner' });
+    expect(body.funnel).toMatchObject({
+      pageViews: 1,
+      authStarted: 1,
+      authCompleted: 1,
+      upgradeIntent: 0,
+      upgradeCompleted: 0,
+    });
   });
 });

@@ -272,6 +272,8 @@ export async function fetchAnalyticsSummary(params?: {
   days?: number;
   startDate?: string;
   endDate?: string;
+  locale?: string;
+  persona?: string;
 }): Promise<AnalyticsSummary> {
   const searchParams = new URLSearchParams();
   if (typeof params?.days === 'number') {
@@ -284,6 +286,12 @@ export async function fetchAnalyticsSummary(params?: {
   }
   if (params?.endDate) {
     searchParams.set('endDate', params.endDate);
+  }
+  if (params?.locale) {
+    searchParams.set('locale', params.locale);
+  }
+  if (params?.persona) {
+    searchParams.set('persona', params.persona);
   }
   const response = await fetch(`/api/analytics/summary?${searchParams.toString()}`, {
     credentials: 'include',

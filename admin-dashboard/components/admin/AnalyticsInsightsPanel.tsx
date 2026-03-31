@@ -40,6 +40,8 @@ export default function AnalyticsInsightsPanel() {
   const [rangeMode, setRangeMode] = useState<'lookback' | 'custom'>('lookback');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [localeFilter, setLocaleFilter] = useState<string>('');
+  const [personaFilter, setPersonaFilter] = useState<string>('');
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,15 +53,24 @@ export default function AnalyticsInsightsPanel() {
 
       const result =
         rangeMode === 'custom' && startDate && endDate
-          ? await fetchAnalyticsSummary({ startDate, endDate })
-          : await fetchAnalyticsSummary({ days });
+          ? await fetchAnalyticsSummary({
+              startDate,
+              endDate,
+              locale: localeFilter || undefined,
+              persona: personaFilter || undefined,
+            })
+          : await fetchAnalyticsSummary({
+              days,
+              locale: localeFilter || undefined,
+              persona: personaFilter || undefined,
+            });
       setSummary(result);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load analytics summary');
     } finally {
       setIsLoading(false);
     }
-  }, [days, endDate, rangeMode, startDate]);
+  }, [days, endDate, localeFilter, personaFilter, rangeMode, startDate]);
 
   useEffect(() => {
     if (rangeMode === 'custom' && (!startDate || !endDate)) {
@@ -138,6 +149,23 @@ export default function AnalyticsInsightsPanel() {
                     />
                   </Stack>
                 )}
+
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  <TextField
+                    label="Locale filter"
+                    size="small"
+                    value={localeFilter}
+                    onChange={(event) => setLocaleFilter(event.target.value)}
+                    placeholder="e.g. en-US"
+                  />
+                  <TextField
+                    label="Persona filter"
+                    size="small"
+                    value={personaFilter}
+                    onChange={(event) => setPersonaFilter(event.target.value)}
+                    placeholder="e.g. beginner"
+                  />
+                </Stack>
               </Stack>
             </Stack>
 
@@ -151,6 +179,14 @@ export default function AnalyticsInsightsPanel() {
               </Alert>
             ) : (
               <Stack spacing={2}>
+                {(summary?.filters.locale || summary?.filters.persona) && (
+                  <Alert severity="info">
+                    Applying filters
+                    {summary?.filters.locale ? ` locale=${summary.filters.locale}` : ''}
+                    {summary?.filters.persona ? ` persona=${summary.filters.persona}` : ''}
+                  </Alert>
+                )}
+
                 <Box
                   sx={{
                     display: 'grid',
@@ -239,6 +275,44 @@ export default function AnalyticsInsightsPanel() {
                     </CardContent>
                   </Card>
                 </Box>
+
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                      Daily Funnel Trend
+                    </Typography>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Date</TableCell>
+                          <TableCell align="right">Views</TableCell>
+                          <TableCell align="right">Auth Starts</TableCell>
+                          <TableCell align="right">Auth Completions</TableCell>
+                          <TableCell align="right">Upgrade Intent</TableCell>
+                          <TableCell align="right">Upgrade Completions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {(summary?.dailyFunnelTrend ?? []).length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6}>No daily trend data in this window.</TableCell>
+                          </TableRow>
+                        ) : (
+                          (summary?.dailyFunnelTrend ?? []).map((row) => (
+                            <TableRow key={row.date}>
+                              <TableCell>{row.date}</TableCell>
+                              <TableCell align="right">{row.pageViews}</TableCell>
+                              <TableCell align="right">{row.authStarted}</TableCell>
+                              <TableCell align="right">{row.authCompleted}</TableCell>
+                              <TableCell align="right">{row.upgradeIntent}</TableCell>
+                              <TableCell align="right">{row.upgradeCompleted}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
 
                 <Card variant="outlined">
                   <CardContent>

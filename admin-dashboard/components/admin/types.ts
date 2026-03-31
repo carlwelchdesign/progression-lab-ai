@@ -343,6 +343,10 @@ export type AnalyticsSummary = {
   since: string;
   until: string;
   rangeMode: 'lookback' | 'custom';
+  filters: {
+    locale: string | null;
+    persona: string | null;
+  };
   totals: {
     totalEvents: number;
     uniqueSessions: number;
@@ -361,8 +365,18 @@ export type AnalyticsSummary = {
   };
   breakdownByLocale: AnalyticsFunnelBreakdownRow[];
   breakdownByPersona: AnalyticsFunnelBreakdownRow[];
+  dailyFunnelTrend: AnalyticsFunnelTrendRow[];
   eventsByType: AnalyticsEventSummaryRow[];
   recentEvents: AnalyticsRecentEvent[];
+};
+
+export type AnalyticsFunnelTrendRow = {
+  date: string;
+  pageViews: number;
+  authStarted: number;
+  authCompleted: number;
+  upgradeIntent: number;
+  upgradeCompleted: number;
 };
 
 export type AnalyticsFunnelBreakdownRow = {

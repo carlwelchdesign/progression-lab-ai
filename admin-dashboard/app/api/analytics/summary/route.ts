@@ -43,6 +43,7 @@ type AnalyticsEventModel = {
 type FunnelEventRow = {
   eventType: string;
   properties: unknown;
+  createdAt: Date;
 };
 
 type AnalyticsWindow = {
@@ -50,6 +51,11 @@ type AnalyticsWindow = {
   until: Date;
   days: number;
   mode: 'lookback' | 'custom';
+};
+
+type AnalyticsFilters = {
+  locale: string | null;
+  persona: string | null;
 };
 
 function toPercent(part: number, whole: number): number {
@@ -98,6 +104,21 @@ function parseWindow(request: NextRequest): AnalyticsWindow {
   return { since, until, days, mode: 'lookback' };
 }
 
+function parseFilterParam(raw: string | null): string | null {
+  if (!raw) {
+    return null;
+  }
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function parseFilters(request: NextRequest): AnalyticsFilters {
+  return {
+    locale: parseFilterParam(request.nextUrl.searchParams.get('locale')),
+    persona: parseFilterParam(request.nextUrl.searchParams.get('persona')),
+  };
+}
+
 function readStringProperty(properties: unknown, keys: string[]): string | null {
   if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
     return null;
@@ -114,6 +135,16 @@ function readStringProperty(properties: unknown, keys: string[]): string | null 
     }
   }
   return null;
+}
+
+function matchesFilter(value: string | null, filterValue: string | null): boolean {
+  if (!filterValue) {
+    return true;
+  }
+  if (!value) {
+    return false;
+  }
+  return value.toLowerCase() === filterValue.toLowerCase();
 }
 
 type BreakdownAccumulator = {
@@ -187,6 +218,65 @@ function computeBreakdownRows(
     .slice(0, 10);
 }
 
+function computeFunnelCounts(events: FunnelEventRow[]) {
+  const counts: BreakdownAccumulator = {
+    pageViews: 0,
+    authStarted: 0,
+    authCompleted: 0,
+    upgradeIntent: 0,
+    upgradeCompleted: 0,
+  };
+
+  for (const event of events) {
+    incrementFunnelCount(counts, event.eventType);
+  }
+
+  return {
+    ...counts,
+    authStartRateFromViews: toPercent(counts.authStarted, counts.pageViews),
+    authCompletionRateFromStarts: toPercent(counts.authCompleted, counts.authStarted),
+    upgradeIntentRateFromAuthCompletion: toPercent(counts.upgradeIntent, counts.authCompleted),
+    upgradeCompletionRateFromIntent: toPercent(counts.upgradeCompleted, counts.upgradeIntent),
+  };
+}
+
+function getUtcDayKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function computeDailyTrend(events: FunnelEventRow[], since: Date, until: Date) {
+  const dayMap = new Map<string, BreakdownAccumulator>();
+  const cursor = new Date(
+    Date.UTC(since.getUTCFullYear(), since.getUTCMonth(), since.getUTCDate()),
+  );
+  const end = new Date(Date.UTC(until.getUTCFullYear(), until.getUTCMonth(), until.getUTCDate()));
+
+  while (cursor <= end) {
+    dayMap.set(getUtcDayKey(cursor), {
+      pageViews: 0,
+      authStarted: 0,
+      authCompleted: 0,
+      upgradeIntent: 0,
+      upgradeCompleted: 0,
+    });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  for (const event of events) {
+    const dayKey = getUtcDayKey(event.createdAt);
+    const existing = dayMap.get(dayKey);
+    if (!existing) {
+      continue;
+    }
+    incrementFunnelCount(existing, event.eventType);
+  }
+
+  return Array.from(dayMap.entries()).map(([date, values]) => ({
+    date,
+    ...values,
+  }));
+}
+
 export async function GET(request: NextRequest) {
   try {
     const adminUser = await getAdminUserFromRequest(request);
@@ -195,6 +285,7 @@ export async function GET(request: NextRequest) {
     }
 
     const window = parseWindow(request);
+    const filters = parseFilters(request);
 
     // Narrow prisma model access explicitly to avoid stale editor type metadata issues.
     const analyticsEventModel = (prisma as unknown as { analyticsEvent: AnalyticsEventModel })
@@ -271,6 +362,7 @@ export async function GET(request: NextRequest) {
           select: {
             eventType: true,
             properties: true,
+            createdAt: true,
           },
         }) as Promise<FunnelEventRow[]>,
       ]);
@@ -279,11 +371,13 @@ export async function GET(request: NextRequest) {
       eventsByTypeRows.map((row) => [row.eventType, row._count._all]),
     );
 
-    const pageViews = eventCountByType.get('page_view') ?? 0;
-    const authStarted = eventCountByType.get('auth_modal_opened') ?? 0;
-    const authCompleted = eventCountByType.get('auth_completed') ?? 0;
-    const upgradeIntent = eventCountByType.get('upgrade_intent') ?? 0;
-    const upgradeCompleted = eventCountByType.get('upgrade_completed') ?? 0;
+    const filteredFunnelEvents = funnelEvents.filter((event) => {
+      const locale = readStringProperty(event.properties, ['locale', 'language', 'userLocale']);
+      const persona = readStringProperty(event.properties, ['persona', 'userPersona']);
+      return matchesFilter(locale, filters.locale) && matchesFilter(persona, filters.persona);
+    });
+
+    const funnel = computeFunnelCounts(filteredFunnelEvents);
 
     const conversionEventTypes = ['auth_completed', 'upgrade_intent', 'upgrade_completed'];
     const conversionEvents = eventsByTypeRows
@@ -291,15 +385,16 @@ export async function GET(request: NextRequest) {
       .reduce((acc, row) => acc + row._count._all, 0);
 
     const breakdownByLocale = computeBreakdownRows(
-      funnelEvents,
+      filteredFunnelEvents,
       ['locale', 'language', 'userLocale'],
       'unknown',
     );
     const breakdownByPersona = computeBreakdownRows(
-      funnelEvents,
+      filteredFunnelEvents,
       ['persona', 'userPersona'],
       'unknown',
     );
+    const dailyFunnelTrend = computeDailyTrend(filteredFunnelEvents, window.since, window.until);
 
     return NextResponse.json({
       days: window.days,
@@ -311,19 +406,11 @@ export async function GET(request: NextRequest) {
         uniqueSessions: sessionGroups.length,
         conversionEvents,
       },
-      funnel: {
-        pageViews,
-        authStarted,
-        authCompleted,
-        upgradeIntent,
-        upgradeCompleted,
-        authStartRateFromViews: toPercent(authStarted, pageViews),
-        authCompletionRateFromStarts: toPercent(authCompleted, authStarted),
-        upgradeIntentRateFromAuthCompletion: toPercent(upgradeIntent, authCompleted),
-        upgradeCompletionRateFromIntent: toPercent(upgradeCompleted, upgradeIntent),
-      },
+      filters,
+      funnel,
       breakdownByLocale,
       breakdownByPersona,
+      dailyFunnelTrend,
       eventsByType: eventsByTypeRows.map((row) => ({
         eventType: row.eventType,
         count: row._count._all,
