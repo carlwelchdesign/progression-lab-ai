@@ -228,3 +228,18 @@ export function downloadProgressionMidi(
   const bytes = buildMidiFile(events, progressionName, normalizeTempoBpm(tempoBpm));
   downloadMidi(bytes, `${sanitizeFileName(progressionName)}.mid`);
 }
+
+/**
+ * Builds MIDI bytes for a progression without triggering a browser download.
+ * Safe to call in Node.js/server-side contexts.
+ */
+export function buildProgressionMidiBytes(
+  progressionName: string,
+  voicings: PianoVoicing[],
+  tempoBpm?: number,
+): Uint8Array {
+  const events = voicings.flatMap((voicing, index) =>
+    getVoicingMidiEvents(voicing, index * CHORD_DURATION_TICKS),
+  );
+  return buildMidiFile(events, progressionName, normalizeTempoBpm(tempoBpm));
+}

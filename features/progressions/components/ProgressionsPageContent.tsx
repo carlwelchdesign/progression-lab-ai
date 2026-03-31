@@ -81,7 +81,31 @@ export default function ProgressionsPageContent() {
   const [deletingProgressionId, setDeletingProgressionId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [instrument] = useState<AudioInstrument>('piano');
+  const [canExportMidi, setCanExportMidi] = useState(false);
+  const [canExportPdf, setCanExportPdf] = useState(false);
   const { showError, showSuccess } = useAppSnackbar();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCanExportMidi(false);
+      setCanExportPdf(false);
+      return;
+    }
+    const controller = new AbortController();
+    fetch('/api/billing/status', { credentials: 'include', signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const body = (await res.json()) as {
+          entitlements?: { canExportMidi?: boolean; canExportPdf?: boolean };
+        };
+        setCanExportMidi(body.entitlements?.canExportMidi ?? false);
+        setCanExportPdf(body.entitlements?.canExportPdf ?? false);
+      })
+      .catch(() => {
+        /* silently ignore — export buttons will remain disabled */
+      });
+    return () => controller.abort();
+  }, [isAuthenticated]);
 
   const { control, setValue, watch } = useForm<FilterFormData>({
     defaultValues: {
@@ -451,6 +475,8 @@ export default function ProgressionsPageContent() {
                 onOpen={handleOpen}
                 canEdit={false}
                 canDelete={viewMode === 'mine' || isAdmin}
+                canExportMidi={viewMode === 'mine' && canExportMidi}
+                canExportPdf={viewMode === 'mine' && canExportPdf}
                 isDeleting={deletingProgressionId === progression.id}
                 instrument={instrument}
               />

@@ -19,9 +19,7 @@ import {
   usePlaybackToggle,
 } from '../../generator/hooks/usePlaybackToggle';
 import PlaybackToggleButton from '../../generator/components/playback/PlaybackToggleButton';
-import { downloadSessionPdf } from '../../../lib/pdf';
-import { downloadProgressionMidi } from '../../../lib/midi';
-import { progressionToPdfOptions, getProgressionFileName } from '../utils/progressionDownloadUtils';
+import { getProgressionFileName } from '../utils/progressionDownloadUtils';
 import GenericCard from './GenericCard';
 import CardStatus from './CardStatus';
 
@@ -32,6 +30,8 @@ type ProgressionCardProps = {
   onOpen?: (progression: Progression) => void;
   canDelete?: boolean;
   canEdit?: boolean;
+  canExportMidi?: boolean;
+  canExportPdf?: boolean;
   isDeleting?: boolean;
   instrument: AudioInstrument;
 };
@@ -43,6 +43,8 @@ export default function ProgressionCard({
   onOpen,
   canDelete = true,
   canEdit = true,
+  canExportMidi = false,
+  canExportPdf = false,
   isDeleting = false,
   instrument,
 }: ProgressionCardProps) {
@@ -71,8 +73,23 @@ export default function ProgressionCard({
   const handleDownloadPdf = async () => {
     try {
       setIsDownloadingPdf(true);
-      const pdfOptions = progressionToPdfOptions(progression);
-      await downloadSessionPdf(pdfOptions);
+      const response = await fetch(`/api/progressions/${progression.id}/export/pdf`, {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const body = (await response.json()) as { message?: string };
+        console.error('Failed to download PDF:', body.message);
+        return;
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${getProgressionFileName(progression.title)}_session_chart.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (error) {
       console.error('Failed to download PDF:', error);
     } finally {
@@ -80,13 +97,26 @@ export default function ProgressionCard({
     }
   };
 
-  const handleDownloadMidi = () => {
+  const handleDownloadMidi = async () => {
     try {
       setIsDownloadingMidi(true);
-      if (Array.isArray(progression.pianoVoicings) && progression.pianoVoicings.length > 0) {
-        const fileName = getProgressionFileName(progression.title);
-        downloadProgressionMidi(fileName, progression.pianoVoicings, 100);
+      const response = await fetch(`/api/progressions/${progression.id}/export/midi`, {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const body = (await response.json()) as { message?: string };
+        console.error('Failed to download MIDI:', body.message);
+        return;
       }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${getProgressionFileName(progression.title)}.mid`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (error) {
       console.error('Failed to download MIDI:', error);
     } finally {
@@ -187,8 +217,12 @@ export default function ProgressionCard({
         variant="outlined"
         startIcon={<FileDownloadIcon />}
         onClick={handleDownloadPdf}
-        disabled={isDownloadingPdf}
-        title={t('progressions.card.actions.downloadPdfTitle')}
+        disabled={isDownloadingPdf || !canExportPdf}
+        title={
+          canExportPdf
+            ? t('progressions.card.actions.downloadPdfTitle')
+            : 'PDF export requires a Composer or Studio plan'
+        }
       >
         {isDownloadingPdf
           ? t('progressions.card.actions.downloadingPdf')
@@ -200,8 +234,12 @@ export default function ProgressionCard({
         variant="outlined"
         startIcon={<AudioFileIcon />}
         onClick={handleDownloadMidi}
-        disabled={isDownloadingMidi || !canPlay}
-        title={t('progressions.card.actions.downloadMidiTitle')}
+        disabled={isDownloadingMidi || !canPlay || !canExportMidi}
+        title={
+          canExportMidi
+            ? t('progressions.card.actions.downloadMidiTitle')
+            : 'MIDI export requires a Composer or Studio plan'
+        }
       >
         {isDownloadingMidi
           ? t('progressions.card.actions.downloadingMidi')
