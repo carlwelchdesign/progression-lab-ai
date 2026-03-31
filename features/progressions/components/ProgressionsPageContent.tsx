@@ -37,12 +37,24 @@ import type { Progression } from '../../../lib/types';
 import { useAuth } from '../../../components/providers/AuthProvider';
 import { useAuthModal } from '../../../components/providers/AuthModalProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
+import { fetchPublishedMarketingContent } from '../../../lib/marketingContentClient';
 
 type ViewMode = 'mine' | 'public';
 
 type FilterFormData = {
   tagQuery: string[];
   keyQuery: string[];
+};
+
+type PublicProgressionsMarketingContent = {
+  hero?: {
+    title?: string;
+    description?: string;
+  };
+  emptyState?: {
+    description?: string;
+    cta?: string;
+  };
 };
 
 function isAbortError(error: unknown): boolean {
@@ -66,7 +78,7 @@ function getFirstChordName(progression: Progression): string {
 }
 
 export default function ProgressionsPageContent() {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, user } = useAuth();
@@ -83,7 +95,22 @@ export default function ProgressionsPageContent() {
   const [instrument] = useState<AudioInstrument>('piano');
   const [canExportMidi, setCanExportMidi] = useState(false);
   const [canExportPdf, setCanExportPdf] = useState(false);
+  const [marketingContent, setMarketingContent] =
+    useState<PublicProgressionsMarketingContent | null>(null);
   const { showError, showSuccess } = useAppSnackbar();
+
+  useEffect(() => {
+    const loadMarketingContent = async () => {
+      try {
+        const item = await fetchPublishedMarketingContent('public_progressions', i18n.language);
+        setMarketingContent((item?.content ?? null) as PublicProgressionsMarketingContent | null);
+      } catch {
+        setMarketingContent(null);
+      }
+    };
+
+    void loadMarketingContent();
+  }, [i18n.language]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -281,12 +308,13 @@ export default function ProgressionsPageContent() {
             <Typography variant="h3" component="h1" gutterBottom>
               {viewMode === 'mine'
                 ? t('progressions.page.myProgressionsTitle')
-                : t('progressions.page.examplesTitle')}
+                : marketingContent?.hero?.title?.trim() || t('progressions.page.examplesTitle')}
             </Typography>
             <Typography variant="body1" color="text.secondary">
               {viewMode === 'mine'
                 ? t('progressions.page.myProgressionsDescription')
-                : t('progressions.page.examplesDescription')}
+                : marketingContent?.hero?.description?.trim() ||
+                  t('progressions.page.examplesDescription')}
             </Typography>
           </Box>
           <Link href="/" passHref>
@@ -445,10 +473,16 @@ export default function ProgressionsPageContent() {
             <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
               {viewMode === 'mine'
                 ? t('progressions.empty.mine')
-                : t('progressions.empty.public')}
+                : marketingContent?.emptyState?.description?.trim() ||
+                  t('progressions.empty.public')}
             </Typography>
             <Link href="/" passHref>
-              <Button variant="contained">{t('progressions.actions.createProgression')}</Button>
+              <Button variant="contained">
+                {viewMode === 'mine'
+                  ? t('progressions.actions.createProgression')
+                  : marketingContent?.emptyState?.cta?.trim() ||
+                    t('progressions.actions.createProgression')}
+              </Button>
             </Link>
           </Box>
         )}

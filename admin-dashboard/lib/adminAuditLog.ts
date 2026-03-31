@@ -10,6 +10,12 @@ export const AUDIT_TARGET_TYPE_PROMPT_VERSION = 'PROMPT_VERSION';
 export const AUDIT_ACTION_PROMPT_DRAFT_SAVED = 'SAVE_PROMPT_DRAFT';
 export const AUDIT_ACTION_PROMPT_PUBLISHED = 'PUBLISH_PROMPT_DRAFT';
 export const AUDIT_ACTION_PROMPT_ROLLED_BACK = 'ROLLBACK_PROMPT_VERSION';
+export const AUDIT_TARGET_TYPE_MARKETING_CONTENT = 'MARKETING_CONTENT';
+export const AUDIT_ACTION_MARKETING_CONTENT_DRAFT_SAVED = 'SAVE_MARKETING_CONTENT_DRAFT';
+export const AUDIT_ACTION_MARKETING_CONTENT_PUBLISHED = 'PUBLISH_MARKETING_CONTENT_DRAFT';
+export const AUDIT_ACTION_MARKETING_CONTENT_ROLLED_BACK = 'ROLLBACK_MARKETING_CONTENT_VERSION';
+export const AUDIT_ACTION_MARKETING_CONTENT_TRANSLATION_GENERATED =
+  'GENERATE_MARKETING_CONTENT_TRANSLATION_DRAFT';
 export const AUDIT_TARGET_TYPE_PLAN_VERSION = 'SUBSCRIPTION_PLAN_VERSION';
 export const AUDIT_ACTION_PLAN_DRAFT_SAVED = 'SAVE_PLAN_DRAFT';
 export const AUDIT_ACTION_PLAN_PUBLISHED = 'PUBLISH_PLAN_DRAFT';
@@ -82,6 +88,31 @@ export async function recordPromptVersionAuditLog(params: {
       action: params.action,
       targetType: AUDIT_TARGET_TYPE_PROMPT_VERSION,
       targetId: params.promptKey,
+      metadata,
+    },
+  });
+}
+
+export async function recordMarketingContentAuditLog(params: {
+  actor: AdminUser;
+  action:
+    | typeof AUDIT_ACTION_MARKETING_CONTENT_DRAFT_SAVED
+    | typeof AUDIT_ACTION_MARKETING_CONTENT_PUBLISHED
+    | typeof AUDIT_ACTION_MARKETING_CONTENT_ROLLED_BACK
+    | typeof AUDIT_ACTION_MARKETING_CONTENT_TRANSLATION_GENERATED;
+  contentKey: string;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  const metadata = params.metadata as Prisma.InputJsonValue | undefined;
+
+  await prisma.adminAuditLog.create({
+    data: {
+      actorUserId: params.actor.id,
+      actorEmail: params.actor.email,
+      actorRole: params.actor.role,
+      action: params.action,
+      targetType: AUDIT_TARGET_TYPE_MARKETING_CONTENT,
+      targetId: params.contentKey,
       metadata,
     },
   });

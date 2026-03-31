@@ -8,6 +8,7 @@ import AdminSummaryCards from '../components/admin/AdminSummaryCards';
 import DashboardHeader from '../components/admin/DashboardHeader';
 import LoadingState from '../components/admin/LoadingState';
 import LoginCard from '../components/admin/LoginCard';
+import MarketingContentPanel from '../components/admin/MarketingContentPanel';
 import ProgressionDetailsDialog from '../components/admin/ProgressionDetailsDialog';
 import ProgressionsTable from '../components/admin/ProgressionsTable';
 import PlanManagerPanel from '../components/admin/PlanManagerPanel';
@@ -23,6 +24,7 @@ export default function AdminDashboardClient() {
     | 'progressions'
     | 'tier-config'
     | 'prompt-builder'
+    | 'marketing-content'
     | 'plan-manager'
     | 'promo-codes'
     | 'audit-log'
@@ -118,6 +120,7 @@ export default function AdminDashboardClient() {
                   | 'progressions'
                   | 'tier-config'
                   | 'prompt-builder'
+                  | 'marketing-content'
                   | 'plan-manager'
                   | 'promo-codes'
                   | 'audit-log',
@@ -128,6 +131,7 @@ export default function AdminDashboardClient() {
             <Tab label="Progressions" value="progressions" />
             {user.role === 'ADMIN' && <Tab label="Tier Configuration" value="tier-config" />}
             <Tab label="Prompt Builder" value="prompt-builder" />
+            <Tab label="Marketing Content" value="marketing-content" />
             {user.role === 'ADMIN' && <Tab label="Plan Manager" value="plan-manager" />}
             <Tab label="Promo &amp; Invites" value="promo-codes" />
             <Tab label="Audit Log" value="audit-log" />
@@ -186,6 +190,8 @@ export default function AdminDashboardClient() {
         {activeTab === 'tier-config' && user.role === 'ADMIN' && <TierConfigTable />}
 
         {activeTab === 'prompt-builder' && <PromptBuilderPanel role={user.role} />}
+
+        {activeTab === 'marketing-content' && <MarketingContentPanel role={user.role} />}
 
         {activeTab === 'plan-manager' && user.role === 'ADMIN' && (
           <PlanManagerPanel role={user.role} />

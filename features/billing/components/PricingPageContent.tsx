@@ -24,6 +24,7 @@ import { useAuth } from '../../../components/providers/AuthProvider';
 import { useAuthModal } from '../../../components/providers/AuthModalProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import { createCsrfHeaders, ensureCsrfCookie } from '../../../lib/csrfClient';
+import { fetchPublishedMarketingContent } from '../../../lib/marketingContentClient';
 
 type CheckoutPlan = 'COMPOSER' | 'STUDIO';
 type BillingInterval = 'monthly' | 'yearly';
@@ -62,6 +63,19 @@ type PricingTier = {
   highlighted?: boolean;
   badge?: string;
   checkoutPlan?: CheckoutPlan;
+};
+
+type PricingMarketingContent = {
+  hero?: {
+    eyebrow?: string;
+    title?: string;
+    description?: string;
+  };
+  planSummaries?: {
+    session?: string;
+    composer?: string;
+    studio?: string;
+  };
 };
 
 const TIERS: PricingTier[] = [
@@ -247,7 +261,7 @@ function getDefaultTierContent(t: (key: string) => string) {
 }
 
 export default function PricingPageContent() {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuthModal } = useAuthModal();
   const { showError } = useAppSnackbar();
@@ -258,6 +272,7 @@ export default function PricingPageContent() {
   const [tierConfigs, setTierConfigs] = useState<Record<PublicPlan, PricingTierConfig> | null>(
     null,
   );
+  const [marketingContent, setMarketingContent] = useState<PricingMarketingContent | null>(null);
 
   useEffect(() => {
     const loadTierConfigs = async () => {
@@ -289,6 +304,19 @@ export default function PricingPageContent() {
     void loadTierConfigs();
   }, []);
 
+  useEffect(() => {
+    const loadMarketingContent = async () => {
+      try {
+        const item = await fetchPublishedMarketingContent('pricing', i18n.language);
+        setMarketingContent((item?.content ?? null) as PricingMarketingContent | null);
+      } catch {
+        setMarketingContent(null);
+      }
+    };
+
+    void loadMarketingContent();
+  }, [i18n.language]);
+
   const displayedTiers = useMemo(() => {
     const defaultsByPlan = getDefaultTierContent(t);
     return TIERS.map((tier) => {
@@ -312,14 +340,19 @@ export default function PricingPageContent() {
         name: config?.displayName || defaults.name,
         priceMonthly,
         priceYearly,
-        summary: config?.description || defaults.summary,
+        summary:
+          marketingContent?.planSummaries?.[
+            tier.plan.toLowerCase() as 'session' | 'composer' | 'studio'
+          ] ||
+          config?.description ||
+          defaults.summary,
         description: defaults.description,
         features: buildFeatures(tier.plan, defaults.features, config),
         cta: defaults.cta,
         badge: defaults.badge,
       };
     });
-  }, [t, tierConfigs]);
+  }, [marketingContent, t, tierConfigs]);
 
   const handleCheckout = async (plan: CheckoutPlan) => {
     if (!isAuthenticated) {
@@ -377,7 +410,10 @@ export default function PricingPageContent() {
           >
             <Chip
               icon={<BoltIcon />}
-              label={t('billing.pricing.subscriptionPlansLabel')}
+              label={
+                marketingContent?.hero?.eyebrow?.trim() ||
+                t('billing.pricing.subscriptionPlansLabel')
+              }
               color="primary"
               variant="outlined"
               sx={{ alignSelf: 'center' }}
@@ -388,14 +424,14 @@ export default function PricingPageContent() {
               align="center"
               sx={{ width: '100%', textAlign: 'center' }}
             >
-              {t('billing.pricing.pageTitle')}
+              {marketingContent?.hero?.title?.trim() || t('billing.pricing.pageTitle')}
             </Typography>
             <Typography
               color="text.secondary"
               align="center"
               sx={{ fontSize: '1.05rem', maxWidth: 700, width: '100%', textAlign: 'center' }}
             >
-              {t('billing.pricing.pageDescription')}
+              {marketingContent?.hero?.description?.trim() || t('billing.pricing.pageDescription')}
             </Typography>
           </Stack>
         </Box>

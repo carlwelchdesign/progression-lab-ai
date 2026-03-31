@@ -67,6 +67,17 @@ enum WebAuthnFlowType {
   ADMIN_BOOTSTRAP_REGISTRATION
 }
 
+enum MarketingContentKind {
+  PAGE
+  GLOBAL_CHROME
+  DISCOVERY_SURFACE
+}
+
+enum MarketingTranslationOrigin {
+  HUMAN
+  AI_ASSISTED
+}
+
 model User {
   id           String        @id @default(cuid())
   email        String        @unique
@@ -89,6 +100,7 @@ model User {
   usageEvents  UsageEvent[]
   adminAuditLogs AdminAuditLog[]
   promptVersions PromptVersion[]
+  marketingContentVersions MarketingContentVersion[]
   webauthnCredentials WebAuthnCredential[]
   webauthnChallenges WebAuthnChallenge[]
   createdPromoCodes PromoCode[] @relation("PromoCodeCreatedBy")
@@ -300,6 +312,49 @@ model PromptVersion {
   @@index([promptKey, isActive])
   @@index([promptKey, isDraft])
   @@index([promptKey, createdAt])
+}
+
+model MarketingContent {
+  id            String                 @id @default(cuid())
+  key           String                 @unique
+  contentKind   MarketingContentKind
+  schemaVersion Int                    @default(1)
+  defaultLocale String                 @default("en")
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  versions      MarketingContentVersion[]
+
+  @@index([contentKind])
+}
+
+model MarketingContentVersion {
+  id                     String                     @id @default(cuid())
+  marketingContentId     String
+  locale                 String
+  versionNumber          Int
+  content                Json
+  notes                  String?
+  isDraft                Boolean                    @default(false)
+  isActive               Boolean                    @default(false)
+  editorUserId           String?
+  editorEmail            String?
+  publishedAt            DateTime?
+  sourceVersionId        String?
+  translationOrigin      MarketingTranslationOrigin?
+  translationModel       String?
+  translationGeneratedAt DateTime?
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+
+  marketingContent       MarketingContent           @relation(fields: [marketingContentId], references: [id], onDelete: Cascade)
+  editorUser             User?                      @relation(fields: [editorUserId], references: [id], onDelete: SetNull)
+
+  @@unique([marketingContentId, locale, versionNumber])
+  @@index([marketingContentId, locale, isActive])
+  @@index([marketingContentId, locale, isDraft])
+  @@index([locale, isActive])
+  @@index([createdAt])
 }
 
 model Progression {

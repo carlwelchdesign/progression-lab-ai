@@ -182,6 +182,71 @@ export type PlanVersionsState = {
   versions: PlanVersion[];
 };
 
+export type MarketingContentKind = 'PAGE' | 'GLOBAL_CHROME' | 'DISCOVERY_SURFACE';
+export type MarketingTranslationOrigin = 'HUMAN' | 'AI_ASSISTED';
+
+export type MarketingContentDefinition = {
+  key: string;
+  label: string;
+  description: string;
+  contentKind: MarketingContentKind;
+  schemaVersion: number;
+  defaultLocale: string;
+  defaultContent: Record<string, unknown>;
+};
+
+export type MarketingContentVersion = {
+  id: string;
+  marketingContentId: string;
+  contentKey: string;
+  contentKind: MarketingContentKind;
+  schemaVersion: number;
+  locale: string;
+  versionNumber: number;
+  content: Record<string, unknown>;
+  notes: string | null;
+  isDraft: boolean;
+  isActive: boolean;
+  editorUserId: string | null;
+  editorEmail: string | null;
+  publishedAt: string | null;
+  sourceVersionId: string | null;
+  translationOrigin: MarketingTranslationOrigin | null;
+  translationModel: string | null;
+  translationGeneratedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MarketingContentState = {
+  contentKey: string;
+  locale: string;
+  definitions: MarketingContentDefinition[];
+  supportedLocales: string[];
+  active: MarketingContentVersion | null;
+  draft: MarketingContentVersion | null;
+  versions: MarketingContentVersion[];
+  defaultContent: Record<string, unknown>;
+};
+
+export type SaveMarketingContentDraftInput = {
+  contentKey: string;
+  locale: string;
+  content: Record<string, unknown>;
+  notes: string | null;
+  sourceVersionId?: string | null;
+  translationOrigin?: MarketingTranslationOrigin | null;
+  translationModel?: string | null;
+};
+
+export type TranslateMarketingContentInput = {
+  contentKey: string;
+  sourceLocale: string;
+  targetLocale: string;
+  sourceVersionId?: string | null;
+  model?: string;
+};
+
 export type PromoCodeType = 'DISCOUNT' | 'INVITE';
 export type PromoRedemptionStatus = 'REDEEMED' | 'REJECTED';
 

@@ -22,6 +22,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
+import { fetchPublishedMarketingContent } from '../lib/marketingContentClient';
 
 import ThemeModeToggle from './ui/ThemeModeToggle';
 import LanguageSwitcher from './ui/LanguageSwitcher';
@@ -36,6 +37,16 @@ type NavItem = {
   label: string;
   href: string;
   sectionId?: ResultSectionId;
+};
+
+type MarketingChromeContent = {
+  nav?: {
+    pricingLabel?: string;
+    progressionsLabel?: string;
+  };
+  footer?: {
+    description?: string;
+  };
 };
 
 const RESULT_SECTION_IDS = ['suggestions', 'progressions', 'structure'] as const;
@@ -68,9 +79,11 @@ function StorybookIcon() {
 }
 
 export default function AppWrapper({ children }: Props) {
-  const { t } = useTranslation(['common', 'nav']);
+  const { t, i18n } = useTranslation(['common', 'nav']);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [availableSections, setAvailableSections] = useState<ResultSectionId[]>([]);
+  const [marketingChromeContent, setMarketingChromeContent] =
+    useState<MarketingChromeContent | null>(null);
   const { isAuthenticated, isLoading, logout } = useAuth();
   const { openAuthModal } = useAuthModal();
   const pathname = usePathname();
@@ -139,9 +152,30 @@ export default function AppWrapper({ children }: Props) {
     };
   }, [pathname]);
 
+  useEffect(() => {
+    const loadMarketingChrome = async () => {
+      try {
+        const item = await fetchPublishedMarketingContent('global_marketing_chrome', i18n.language);
+        setMarketingChromeContent((item?.content ?? null) as MarketingChromeContent | null);
+      } catch {
+        setMarketingChromeContent(null);
+      }
+    };
+
+    void loadMarketingChrome();
+  }, [i18n.language]);
+
   const visibleNavItems = useMemo(() => {
     return navItems.filter((item) => !item.sectionId || availableSections.includes(item.sectionId));
   }, [availableSections, navItems]);
+
+  const pricingLabel =
+    marketingChromeContent?.nav?.pricingLabel?.trim() || t('pricing', { ns: 'nav' });
+  const progressionsLabel =
+    marketingChromeContent?.nav?.progressionsLabel?.trim() || t('myProgressions', { ns: 'nav' });
+  const footerDescription =
+    marketingChromeContent?.footer?.description?.trim() ||
+    'AI-assisted songwriting tools for harmonic exploration and arrangement planning.';
 
   return (
     <Box
@@ -192,10 +226,10 @@ export default function AppWrapper({ children }: Props) {
                 </Button>
               ))}
               <Button component={Link} href="/pricing" color="inherit">
-                {t('pricing', { ns: 'nav' })}
+                {pricingLabel}
               </Button>
               <Button component={Link} href="/progressions?view=public" color="inherit">
-                {t('myProgressions', { ns: 'nav' })}
+                {progressionsLabel}
               </Button>
               {isAuthenticated ? (
                 <Button component={Link} href="/settings/billing" color="inherit">
@@ -260,14 +294,14 @@ export default function AppWrapper({ children }: Props) {
               </ListItemButton>
             ))}
             <ListItemButton component={Link} href="/pricing" onClick={() => setMobileOpen(false)}>
-              <ListItemText primary={t('pricing', { ns: 'nav' })} />
+              <ListItemText primary={pricingLabel} />
             </ListItemButton>
             <ListItemButton
               component={Link}
               href="/progressions?view=public"
               onClick={() => setMobileOpen(false)}
             >
-              <ListItemText primary={t('myProgressions', { ns: 'nav' })} />
+              <ListItemText primary={progressionsLabel} />
             </ListItemButton>
             {isAuthenticated ? (
               <ListItemButton
@@ -329,11 +363,14 @@ export default function AppWrapper({ children }: Props) {
           sx={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: 'space-between',
             gap: 2,
             px: { xs: 0, sm: 2 },
           }}
         >
+          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 560 }}>
+            {footerDescription}
+          </Typography>
           <Stack direction="row" spacing={1}>
             <IconButton
               component="a"
