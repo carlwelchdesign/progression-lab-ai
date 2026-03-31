@@ -40,8 +40,10 @@ describe('POST /api/invites/redeem', () => {
     );
 
     const response = await POST({} as never);
+    const body = await response.json();
 
     expect(response.status).toBe(403);
+    expect(body).toEqual({ message: 'CSRF token validation failed' });
     expect(mockGetSessionFromRequest).not.toHaveBeenCalled();
   });
 
@@ -110,5 +112,15 @@ describe('POST /api/invites/redeem', () => {
       message: 'Invite code is invalid or unavailable',
       reason: 'expired',
     });
+  });
+
+  it('returns 500 when invite redemption throws unexpectedly', async () => {
+    mockRedeemInviteCodeForUser.mockRejectedValue(new Error('db down'));
+
+    const response = await POST({ json: async () => ({ code: 'producer14' }) } as never);
+    const body = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(body).toEqual({ message: 'Failed to redeem invite code' });
   });
 });
