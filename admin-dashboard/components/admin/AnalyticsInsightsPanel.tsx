@@ -20,6 +20,7 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -82,6 +83,26 @@ function getImprovementTarget(
   return 'homepage';
 }
 
+type DeltaMetric = {
+  current: number;
+  previous: number;
+  delta: number;
+  percentageDelta: number | null;
+};
+
+function computeDeltaMetric(current: number, previous: number): DeltaMetric {
+  const delta = current - previous;
+  const percentageDelta =
+    previous === 0 ? (current === 0 ? 0 : null) : Number(((delta / previous) * 100).toFixed(1));
+
+  return {
+    current,
+    previous,
+    delta,
+    percentageDelta,
+  };
+}
+
 function getDayDeltaRows(summary: AnalyticsSummary | null) {
   const trend = summary?.dailyFunnelTrend ?? [];
   if (trend.length < 2) {
@@ -92,25 +113,37 @@ function getDayDeltaRows(summary: AnalyticsSummary | null) {
   const previous = trend[trend.length - 2];
 
   return {
-    pageViews: latest.pageViews - previous.pageViews,
-    authStarted: latest.authStarted - previous.authStarted,
-    authCompleted: latest.authCompleted - previous.authCompleted,
-    upgradeCompleted: latest.upgradeCompleted - previous.upgradeCompleted,
+    pageViews: computeDeltaMetric(latest.pageViews, previous.pageViews),
+    authStarted: computeDeltaMetric(latest.authStarted, previous.authStarted),
+    authCompleted: computeDeltaMetric(latest.authCompleted, previous.authCompleted),
+    upgradeCompleted: computeDeltaMetric(latest.upgradeCompleted, previous.upgradeCompleted),
   };
 }
 
-function renderDeltaChip(label: string, delta: number) {
-  if (delta === 0) {
-    return <Chip size="small" label={`${label}: 0`} color="default" variant="outlined" />;
+function renderDeltaChip(label: string, metric: DeltaMetric) {
+  const percentageText =
+    metric.percentageDelta === null
+      ? 'new'
+      : `${metric.percentageDelta > 0 ? '+' : ''}${metric.percentageDelta}%`;
+  const tooltipTitle = `Current: ${metric.current} | Previous: ${metric.previous}`;
+
+  if (metric.delta === 0) {
+    return (
+      <Tooltip title={tooltipTitle}>
+        <Chip size="small" label={`${label}: 0 (0%)`} color="default" variant="outlined" />
+      </Tooltip>
+    );
   }
 
   return (
-    <Chip
-      size="small"
-      label={`${label}: ${delta > 0 ? '+' : ''}${delta}`}
-      color={delta > 0 ? 'success' : 'error'}
-      variant="outlined"
-    />
+    <Tooltip title={tooltipTitle}>
+      <Chip
+        size="small"
+        label={`${label}: ${metric.delta > 0 ? '+' : ''}${metric.delta} (${percentageText})`}
+        color={metric.delta > 0 ? 'success' : 'error'}
+        variant="outlined"
+      />
+    </Tooltip>
   );
 }
 
