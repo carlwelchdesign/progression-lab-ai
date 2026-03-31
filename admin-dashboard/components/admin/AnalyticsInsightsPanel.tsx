@@ -147,6 +147,40 @@ function renderDeltaChip(label: string, metric: DeltaMetric) {
   );
 }
 
+function formatTrendDelta(current: number, previous: number | null): string {
+  if (previous === null) {
+    return 'n/a';
+  }
+
+  const delta = current - previous;
+  if (delta === 0) {
+    return '0 (0%)';
+  }
+
+  if (previous === 0) {
+    return `${delta > 0 ? '+' : ''}${delta} (new)`;
+  }
+
+  const percentage = Number(((delta / previous) * 100).toFixed(1));
+  return `${delta > 0 ? '+' : ''}${delta} (${percentage > 0 ? '+' : ''}${percentage}%)`;
+}
+
+function getTrendDeltaTone(
+  current: number,
+  previous: number | null,
+): 'default' | 'success.main' | 'error.main' {
+  if (previous === null) {
+    return 'default';
+  }
+
+  const delta = current - previous;
+  if (delta === 0) {
+    return 'default';
+  }
+
+  return delta > 0 ? 'success.main' : 'error.main';
+}
+
 export default function AnalyticsInsightsPanel({ onJumpToMarketing }: AnalyticsInsightsPanelProps) {
   const [days, setDays] = useState<number>(7);
   const [rangeMode, setRangeMode] = useState<'lookback' | 'custom'>('lookback');
@@ -575,16 +609,97 @@ export default function AnalyticsInsightsPanel({ onJumpToMarketing }: AnalyticsI
                             <TableCell colSpan={6}>No daily trend data in this window.</TableCell>
                           </TableRow>
                         ) : (
-                          (summary?.dailyFunnelTrend ?? []).map((row) => (
-                            <TableRow key={row.date}>
-                              <TableCell>{row.date}</TableCell>
-                              <TableCell align="right">{row.pageViews}</TableCell>
-                              <TableCell align="right">{row.authStarted}</TableCell>
-                              <TableCell align="right">{row.authCompleted}</TableCell>
-                              <TableCell align="right">{row.upgradeIntent}</TableCell>
-                              <TableCell align="right">{row.upgradeCompleted}</TableCell>
-                            </TableRow>
-                          ))
+                          (summary?.dailyFunnelTrend ?? []).map((row, index, allRows) => {
+                            const previous = index > 0 ? allRows[index - 1] : null;
+
+                            return (
+                              <TableRow key={row.date}>
+                                <TableCell>{row.date}</TableCell>
+                                <TableCell align="right">
+                                  <Stack spacing={0.25} alignItems="flex-end">
+                                    <Typography variant="body2">{row.pageViews}</Typography>
+                                    <Typography
+                                      variant="caption"
+                                      color={getTrendDeltaTone(
+                                        row.pageViews,
+                                        previous?.pageViews ?? null,
+                                      )}
+                                    >
+                                      {formatTrendDelta(row.pageViews, previous?.pageViews ?? null)}
+                                    </Typography>
+                                  </Stack>
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Stack spacing={0.25} alignItems="flex-end">
+                                    <Typography variant="body2">{row.authStarted}</Typography>
+                                    <Typography
+                                      variant="caption"
+                                      color={getTrendDeltaTone(
+                                        row.authStarted,
+                                        previous?.authStarted ?? null,
+                                      )}
+                                    >
+                                      {formatTrendDelta(
+                                        row.authStarted,
+                                        previous?.authStarted ?? null,
+                                      )}
+                                    </Typography>
+                                  </Stack>
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Stack spacing={0.25} alignItems="flex-end">
+                                    <Typography variant="body2">{row.authCompleted}</Typography>
+                                    <Typography
+                                      variant="caption"
+                                      color={getTrendDeltaTone(
+                                        row.authCompleted,
+                                        previous?.authCompleted ?? null,
+                                      )}
+                                    >
+                                      {formatTrendDelta(
+                                        row.authCompleted,
+                                        previous?.authCompleted ?? null,
+                                      )}
+                                    </Typography>
+                                  </Stack>
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Stack spacing={0.25} alignItems="flex-end">
+                                    <Typography variant="body2">{row.upgradeIntent}</Typography>
+                                    <Typography
+                                      variant="caption"
+                                      color={getTrendDeltaTone(
+                                        row.upgradeIntent,
+                                        previous?.upgradeIntent ?? null,
+                                      )}
+                                    >
+                                      {formatTrendDelta(
+                                        row.upgradeIntent,
+                                        previous?.upgradeIntent ?? null,
+                                      )}
+                                    </Typography>
+                                  </Stack>
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Stack spacing={0.25} alignItems="flex-end">
+                                    <Typography variant="body2">{row.upgradeCompleted}</Typography>
+                                    <Typography
+                                      variant="caption"
+                                      color={getTrendDeltaTone(
+                                        row.upgradeCompleted,
+                                        previous?.upgradeCompleted ?? null,
+                                      )}
+                                    >
+                                      {formatTrendDelta(
+                                        row.upgradeCompleted,
+                                        previous?.upgradeCompleted ?? null,
+                                      )}
+                                    </Typography>
+                                  </Stack>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
                         )}
                       </TableBody>
                     </Table>
