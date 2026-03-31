@@ -26,7 +26,7 @@ function hasActiveBypass(until: Date | null): boolean {
 
 /**
  * Admin login endpoint with rate limiting to prevent brute force attacks.
- * Rate limit: 5 attempts per 15 minutes per IP
+ * Rate limit: 5 attempts per 15 minutes per IP address
  */
 export async function POST(request: NextRequest) {
   try {
