@@ -268,8 +268,23 @@ export async function fetchAdminAuditLogs(limit = 100): Promise<AdminAuditLogIte
   return data.items;
 }
 
-export async function fetchAnalyticsSummary(days = 7): Promise<AnalyticsSummary> {
-  const searchParams = new URLSearchParams({ days: String(days) });
+export async function fetchAnalyticsSummary(params?: {
+  days?: number;
+  startDate?: string;
+  endDate?: string;
+}): Promise<AnalyticsSummary> {
+  const searchParams = new URLSearchParams();
+  if (typeof params?.days === 'number') {
+    searchParams.set('days', String(params.days));
+  } else {
+    searchParams.set('days', '7');
+  }
+  if (params?.startDate) {
+    searchParams.set('startDate', params.startDate);
+  }
+  if (params?.endDate) {
+    searchParams.set('endDate', params.endDate);
+  }
   const response = await fetch(`/api/analytics/summary?${searchParams.toString()}`, {
     credentials: 'include',
     cache: 'no-store',

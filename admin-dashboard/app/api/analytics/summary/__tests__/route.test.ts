@@ -37,15 +37,25 @@ describe('GET /api/analytics/summary', () => {
         { eventType: 'upgrade_completed', _count: { _all: 2 } },
       ])
       .mockResolvedValueOnce([{ sessionId: 'session-1' }, { sessionId: 'session-2' }]);
-    mockFindMany.mockResolvedValue([
-      {
-        id: 'evt-1',
-        eventType: 'auth_completed',
-        sessionId: 'session-1',
-        createdAt: new Date('2026-03-31T00:00:00.000Z'),
-        properties: { mode: 'register' },
-      },
-    ]);
+    mockFindMany
+      .mockResolvedValueOnce([
+        {
+          id: 'evt-1',
+          eventType: 'auth_completed',
+          sessionId: 'session-1',
+          createdAt: new Date('2026-03-31T00:00:00.000Z'),
+          properties: { mode: 'register', locale: 'en-US' },
+        },
+      ])
+      .mockResolvedValueOnce([
+        { eventType: 'page_view', properties: { locale: 'en-US', persona: 'beginner' } },
+        {
+          eventType: 'auth_modal_opened',
+          properties: { locale: 'en-US', persona: 'beginner' },
+        },
+        { eventType: 'auth_completed', properties: { locale: 'en-US', persona: 'beginner' } },
+        { eventType: 'upgrade_intent', properties: { locale: 'fr-FR', persona: 'pro' } },
+      ]);
   });
 
   it('returns 403 when user is not authorized', async () => {
@@ -61,6 +71,7 @@ describe('GET /api/analytics/summary', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
+    expect(body.rangeMode).toBe('lookback');
     expect(body.totals).toEqual({
       totalEvents: 42,
       uniqueSessions: 2,
@@ -84,6 +95,71 @@ describe('GET /api/analytics/summary', () => {
       upgradeIntentRateFromAuthCompletion: 57.1,
       upgradeCompletionRateFromIntent: 50,
     });
+    expect(body.breakdownByLocale).toEqual([
+      {
+        key: 'en-US',
+        pageViews: 1,
+        authStarted: 1,
+        authCompleted: 1,
+        upgradeIntent: 0,
+        upgradeCompleted: 0,
+        authStartRateFromViews: 100,
+        authCompletionRateFromStarts: 100,
+        upgradeIntentRateFromAuthCompletion: 0,
+        upgradeCompletionRateFromIntent: 0,
+      },
+      {
+        key: 'fr-FR',
+        pageViews: 0,
+        authStarted: 0,
+        authCompleted: 0,
+        upgradeIntent: 1,
+        upgradeCompleted: 0,
+        authStartRateFromViews: 0,
+        authCompletionRateFromStarts: 0,
+        upgradeIntentRateFromAuthCompletion: 0,
+        upgradeCompletionRateFromIntent: 0,
+      },
+    ]);
+    expect(body.breakdownByPersona).toEqual([
+      {
+        key: 'beginner',
+        pageViews: 1,
+        authStarted: 1,
+        authCompleted: 1,
+        upgradeIntent: 0,
+        upgradeCompleted: 0,
+        authStartRateFromViews: 100,
+        authCompletionRateFromStarts: 100,
+        upgradeIntentRateFromAuthCompletion: 0,
+        upgradeCompletionRateFromIntent: 0,
+      },
+      {
+        key: 'pro',
+        pageViews: 0,
+        authStarted: 0,
+        authCompleted: 0,
+        upgradeIntent: 1,
+        upgradeCompleted: 0,
+        authStartRateFromViews: 0,
+        authCompletionRateFromStarts: 0,
+        upgradeIntentRateFromAuthCompletion: 0,
+        upgradeCompletionRateFromIntent: 0,
+      },
+    ]);
     expect(body.recentEvents).toHaveLength(1);
+  });
+
+  it('supports custom date range params', async () => {
+    const response = await GET(
+      new NextRequest(
+        'http://localhost/api/analytics/summary?startDate=2026-03-01T00:00:00.000Z&endDate=2026-03-10T00:00:00.000Z',
+      ),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.rangeMode).toBe('custom');
+    expect(body.days).toBe(9);
   });
 });

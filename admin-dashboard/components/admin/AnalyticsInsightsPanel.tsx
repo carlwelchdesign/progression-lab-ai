@@ -6,6 +6,10 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  FormControlLabel,
+  FormLabel,
+  Radio,
+  RadioGroup,
   MenuItem,
   Stack,
   Table,
@@ -33,26 +37,37 @@ function formatProperties(value: unknown): string {
 
 export default function AnalyticsInsightsPanel() {
   const [days, setDays] = useState<number>(7);
+  const [rangeMode, setRangeMode] = useState<'lookback' | 'custom'>('lookback');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadSummary = useCallback(async (lookbackDays: number) => {
+  const loadSummary = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const result = await fetchAnalyticsSummary(lookbackDays);
+
+      const result =
+        rangeMode === 'custom' && startDate && endDate
+          ? await fetchAnalyticsSummary({ startDate, endDate })
+          : await fetchAnalyticsSummary({ days });
       setSummary(result);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load analytics summary');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [days, endDate, rangeMode, startDate]);
 
   useEffect(() => {
-    void loadSummary(days);
-  }, [days, loadSummary]);
+    if (rangeMode === 'custom' && (!startDate || !endDate)) {
+      setIsLoading(false);
+      return;
+    }
+    void loadSummary();
+  }, [loadSummary, rangeMode, startDate, endDate]);
 
   const topEvents = useMemo(() => summary?.eventsByType.slice(0, 8) ?? [], [summary?.eventsByType]);
 
@@ -69,26 +84,71 @@ export default function AnalyticsInsightsPanel() {
               justifyContent="space-between"
             >
               <Typography variant="h6">Analytics Insights</Typography>
-              <TextField
-                select
-                label="Lookback window"
-                size="small"
-                value={days}
-                onChange={(event) => setDays(Number(event.target.value))}
-                sx={{ minWidth: 180 }}
-              >
-                {DAY_OPTIONS.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    Last {option} day{option === 1 ? '' : 's'}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <Stack spacing={1} alignItems={{ xs: 'stretch', sm: 'flex-end' }}>
+                <FormLabel>Range</FormLabel>
+                <RadioGroup
+                  row
+                  value={rangeMode}
+                  onChange={(event) => setRangeMode(event.target.value as 'lookback' | 'custom')}
+                >
+                  <FormControlLabel
+                    value="lookback"
+                    control={<Radio size="small" />}
+                    label="Preset"
+                  />
+                  <FormControlLabel
+                    value="custom"
+                    control={<Radio size="small" />}
+                    label="Custom"
+                  />
+                </RadioGroup>
+
+                {rangeMode === 'lookback' ? (
+                  <TextField
+                    select
+                    label="Lookback window"
+                    size="small"
+                    value={days}
+                    onChange={(event) => setDays(Number(event.target.value))}
+                    sx={{ minWidth: 180 }}
+                  >
+                    {DAY_OPTIONS.map((option) => (
+                      <MenuItem key={option} value={option}>
+                        Last {option} day{option === 1 ? '' : 's'}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                ) : (
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                    <TextField
+                      label="Start"
+                      type="datetime-local"
+                      size="small"
+                      value={startDate}
+                      onChange={(event) => setStartDate(event.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                    <TextField
+                      label="End"
+                      type="datetime-local"
+                      size="small"
+                      value={endDate}
+                      onChange={(event) => setEndDate(event.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Stack>
+                )}
+              </Stack>
             </Stack>
 
             {isLoading ? (
               <Stack alignItems="center" justifyContent="center" sx={{ py: 4 }}>
                 <CircularProgress />
               </Stack>
+            ) : rangeMode === 'custom' && (!startDate || !endDate) ? (
+              <Alert severity="info">
+                Set both start and end date to load custom-range analytics.
+              </Alert>
             ) : (
               <Stack spacing={2}>
                 <Box
@@ -198,6 +258,86 @@ export default function AnalyticsInsightsPanel() {
                         ))
                       )}
                     </Stack>
+                  </CardContent>
+                </Card>
+
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                      Funnel Breakdown by Locale
+                    </Typography>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Locale</TableCell>
+                          <TableCell align="right">Views</TableCell>
+                          <TableCell align="right">Auth Starts</TableCell>
+                          <TableCell align="right">Auth Completions</TableCell>
+                          <TableCell align="right">Upgrade Intent</TableCell>
+                          <TableCell align="right">Upgrade Completions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {(summary?.breakdownByLocale ?? []).length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6}>
+                              No locale breakdown data in this window.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          (summary?.breakdownByLocale ?? []).map((row) => (
+                            <TableRow key={row.key}>
+                              <TableCell>{row.key}</TableCell>
+                              <TableCell align="right">{row.pageViews}</TableCell>
+                              <TableCell align="right">{row.authStarted}</TableCell>
+                              <TableCell align="right">{row.authCompleted}</TableCell>
+                              <TableCell align="right">{row.upgradeIntent}</TableCell>
+                              <TableCell align="right">{row.upgradeCompleted}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                      Funnel Breakdown by Persona
+                    </Typography>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Persona</TableCell>
+                          <TableCell align="right">Views</TableCell>
+                          <TableCell align="right">Auth Starts</TableCell>
+                          <TableCell align="right">Auth Completions</TableCell>
+                          <TableCell align="right">Upgrade Intent</TableCell>
+                          <TableCell align="right">Upgrade Completions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {(summary?.breakdownByPersona ?? []).length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6}>
+                              No persona breakdown data in this window.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          (summary?.breakdownByPersona ?? []).map((row) => (
+                            <TableRow key={row.key}>
+                              <TableCell>{row.key}</TableCell>
+                              <TableCell align="right">{row.pageViews}</TableCell>
+                              <TableCell align="right">{row.authStarted}</TableCell>
+                              <TableCell align="right">{row.authCompleted}</TableCell>
+                              <TableCell align="right">{row.upgradeIntent}</TableCell>
+                              <TableCell align="right">{row.upgradeCompleted}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
                   </CardContent>
                 </Card>
 

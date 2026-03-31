@@ -341,6 +341,8 @@ export type AnalyticsRecentEvent = {
 export type AnalyticsSummary = {
   days: number;
   since: string;
+  until: string;
+  rangeMode: 'lookback' | 'custom';
   totals: {
     totalEvents: number;
     uniqueSessions: number;
@@ -357,6 +359,21 @@ export type AnalyticsSummary = {
     upgradeIntentRateFromAuthCompletion: number;
     upgradeCompletionRateFromIntent: number;
   };
+  breakdownByLocale: AnalyticsFunnelBreakdownRow[];
+  breakdownByPersona: AnalyticsFunnelBreakdownRow[];
   eventsByType: AnalyticsEventSummaryRow[];
   recentEvents: AnalyticsRecentEvent[];
+};
+
+export type AnalyticsFunnelBreakdownRow = {
+  key: string;
+  pageViews: number;
+  authStarted: number;
+  authCompleted: number;
+  upgradeIntent: number;
+  upgradeCompleted: number;
+  authStartRateFromViews: number;
+  authCompletionRateFromStarts: number;
+  upgradeIntentRateFromAuthCompletion: number;
+  upgradeCompletionRateFromIntent: number;
 };
