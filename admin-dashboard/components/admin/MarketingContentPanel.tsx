@@ -32,6 +32,8 @@ import type { MarketingContentState, MarketingContentVersion, Role } from './typ
 
 type MarketingContentPanelProps = {
   role: Role;
+  initialContentKey?: string;
+  initialLocale?: string;
 };
 
 function stringifyContent(content: Record<string, unknown>): string {
@@ -185,7 +187,11 @@ function getPreviewLines(contentKey: string, content: Record<string, unknown>): 
   return ['No preview available for this content surface.'];
 }
 
-export default function MarketingContentPanel({ role }: MarketingContentPanelProps) {
+export default function MarketingContentPanel({
+  role,
+  initialContentKey,
+  initialLocale,
+}: MarketingContentPanelProps) {
   const [state, setState] = useState<MarketingContentState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -193,9 +199,9 @@ export default function MarketingContentPanel({ role }: MarketingContentPanelPro
   const [isGeneratingTranslation, setIsGeneratingTranslation] = useState(false);
   const [rollingBackVersionId, setRollingBackVersionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedContentKey, setSelectedContentKey] = useState('');
+  const [selectedContentKey, setSelectedContentKey] = useState(initialContentKey ?? '');
   const [sourceLocale, setSourceLocale] = useState('en');
-  const [selectedLocale, setSelectedLocale] = useState('en');
+  const [selectedLocale, setSelectedLocale] = useState(initialLocale ?? 'en');
   const [draftContent, setDraftContent] = useState('');
   const [draftNotes, setDraftNotes] = useState('');
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -233,6 +239,15 @@ export default function MarketingContentPanel({ role }: MarketingContentPanelPro
   useEffect(() => {
     void loadState();
   }, [loadState]);
+
+  useEffect(() => {
+    if (initialContentKey) {
+      setSelectedContentKey(initialContentKey);
+    }
+    if (initialLocale) {
+      setSelectedLocale(initialLocale);
+    }
+  }, [initialContentKey, initialLocale]);
 
   useEffect(() => {
     if (!selectedContentKey || !selectedLocale || !sourceLocale) {

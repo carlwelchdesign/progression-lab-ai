@@ -31,6 +31,9 @@ export default function AdminDashboardClient() {
     | 'analytics'
     | 'audit-log'
   >('overview');
+  const [marketingFocus, setMarketingFocus] = useState<
+    { contentKey: string; locale?: string } | undefined
+  >(undefined);
 
   const {
     user,
@@ -195,7 +198,13 @@ export default function AdminDashboardClient() {
 
         {activeTab === 'prompt-builder' && <PromptBuilderPanel role={user.role} />}
 
-        {activeTab === 'marketing-content' && <MarketingContentPanel role={user.role} />}
+        {activeTab === 'marketing-content' && (
+          <MarketingContentPanel
+            role={user.role}
+            initialContentKey={marketingFocus?.contentKey}
+            initialLocale={marketingFocus?.locale}
+          />
+        )}
 
         {activeTab === 'plan-manager' && user.role === 'ADMIN' && (
           <PlanManagerPanel role={user.role} />
@@ -203,7 +212,14 @@ export default function AdminDashboardClient() {
 
         {activeTab === 'promo-codes' && <PromoCodesPanel role={user.role} />}
 
-        {activeTab === 'analytics' && <AnalyticsInsightsPanel />}
+        {activeTab === 'analytics' && (
+          <AnalyticsInsightsPanel
+            onJumpToMarketing={(focus) => {
+              setMarketingFocus(focus);
+              setActiveTab('marketing-content');
+            }}
+          />
+        )}
 
         {activeTab === 'audit-log' && <AdminAuditLogTable />}
 

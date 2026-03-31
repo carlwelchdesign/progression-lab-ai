@@ -3,6 +3,7 @@
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   CircularProgress,
@@ -35,7 +36,51 @@ function formatProperties(value: unknown): string {
   return entries.map(([key, item]) => `${key}: ${String(item)}`).join(' | ');
 }
 
-export default function AnalyticsInsightsPanel() {
+type MarketingFocus = {
+  contentKey: string;
+  locale?: string;
+};
+
+type AnalyticsInsightsPanelProps = {
+  onJumpToMarketing?: (focus: MarketingFocus) => void;
+};
+
+function buildSparklinePoints(values: number[]): string {
+  if (values.length === 0) {
+    return '';
+  }
+
+  const width = 140;
+  const height = 40;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = Math.max(1, max - min);
+
+  return values
+    .map((value, index) => {
+      const x = (index / Math.max(1, values.length - 1)) * width;
+      const y = height - ((value - min) / range) * height;
+      return `${x},${y}`;
+    })
+    .join(' ');
+}
+
+function getImprovementTarget(
+  authCompletionRateFromStarts: number,
+  upgradeCompletionRateFromIntent: number,
+): string {
+  if (authCompletionRateFromStarts < 50) {
+    return 'auth_flow_copy';
+  }
+
+  if (upgradeCompletionRateFromIntent < 30) {
+    return 'pricing';
+  }
+
+  return 'homepage';
+}
+
+export default function AnalyticsInsightsPanel({ onJumpToMarketing }: AnalyticsInsightsPanelProps) {
   const [days, setDays] = useState<number>(7);
   const [rangeMode, setRangeMode] = useState<'lookback' | 'custom'>('lookback');
   const [startDate, setStartDate] = useState<string>('');
@@ -81,6 +126,15 @@ export default function AnalyticsInsightsPanel() {
   }, [loadSummary, rangeMode, startDate, endDate]);
 
   const topEvents = useMemo(() => summary?.eventsByType.slice(0, 8) ?? [], [summary?.eventsByType]);
+  const sparklineSeries = useMemo(
+    () => ({
+      views: (summary?.dailyFunnelTrend ?? []).map((row) => row.pageViews),
+      authStarts: (summary?.dailyFunnelTrend ?? []).map((row) => row.authStarted),
+      authCompleted: (summary?.dailyFunnelTrend ?? []).map((row) => row.authCompleted),
+      upgrades: (summary?.dailyFunnelTrend ?? []).map((row) => row.upgradeCompleted),
+    }),
+    [summary?.dailyFunnelTrend],
+  );
 
   return (
     <Stack spacing={2}>
@@ -279,6 +333,49 @@ export default function AnalyticsInsightsPanel() {
                 <Card variant="outlined">
                   <CardContent>
                     <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                      Funnel Trend Snapshot
+                    </Typography>
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 2 }}>
+                      {[
+                        { label: 'Views', values: sparklineSeries.views, color: '#1e88e5' },
+                        {
+                          label: 'Auth Starts',
+                          values: sparklineSeries.authStarts,
+                          color: '#00897b',
+                        },
+                        {
+                          label: 'Auth Completed',
+                          values: sparklineSeries.authCompleted,
+                          color: '#43a047',
+                        },
+                        {
+                          label: 'Upgrades',
+                          values: sparklineSeries.upgrades,
+                          color: '#fb8c00',
+                        },
+                      ].map((item) => (
+                        <Box key={item.label} sx={{ minWidth: 160 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            {item.label}
+                          </Typography>
+                          {item.values.length === 0 ? (
+                            <Typography variant="body2" color="text.secondary">
+                              No data
+                            </Typography>
+                          ) : (
+                            <svg width="140" height="40" aria-label={`${item.label} trend`}>
+                              <polyline
+                                fill="none"
+                                stroke={item.color}
+                                strokeWidth="2"
+                                points={buildSparklinePoints(item.values)}
+                              />
+                            </svg>
+                          )}
+                        </Box>
+                      ))}
+                    </Stack>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
                       Daily Funnel Trend
                     </Typography>
                     <Table size="small">
@@ -349,12 +446,13 @@ export default function AnalyticsInsightsPanel() {
                           <TableCell align="right">Auth Completions</TableCell>
                           <TableCell align="right">Upgrade Intent</TableCell>
                           <TableCell align="right">Upgrade Completions</TableCell>
+                          <TableCell align="right">Action</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {(summary?.breakdownByLocale ?? []).length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={6}>
+                            <TableCell colSpan={7}>
                               No locale breakdown data in this window.
                             </TableCell>
                           </TableRow>
@@ -367,6 +465,24 @@ export default function AnalyticsInsightsPanel() {
                               <TableCell align="right">{row.authCompleted}</TableCell>
                               <TableCell align="right">{row.upgradeIntent}</TableCell>
                               <TableCell align="right">{row.upgradeCompleted}</TableCell>
+                              <TableCell align="right">
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => {
+                                    const contentKey = getImprovementTarget(
+                                      row.authCompletionRateFromStarts,
+                                      row.upgradeCompletionRateFromIntent,
+                                    );
+                                    onJumpToMarketing?.({
+                                      contentKey,
+                                      locale: row.key === 'unknown' ? undefined : row.key,
+                                    });
+                                  }}
+                                >
+                                  Improve copy
+                                </Button>
+                              </TableCell>
                             </TableRow>
                           ))
                         )}
@@ -389,12 +505,13 @@ export default function AnalyticsInsightsPanel() {
                           <TableCell align="right">Auth Completions</TableCell>
                           <TableCell align="right">Upgrade Intent</TableCell>
                           <TableCell align="right">Upgrade Completions</TableCell>
+                          <TableCell align="right">Action</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {(summary?.breakdownByPersona ?? []).length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={6}>
+                            <TableCell colSpan={7}>
                               No persona breakdown data in this window.
                             </TableCell>
                           </TableRow>
@@ -407,6 +524,21 @@ export default function AnalyticsInsightsPanel() {
                               <TableCell align="right">{row.authCompleted}</TableCell>
                               <TableCell align="right">{row.upgradeIntent}</TableCell>
                               <TableCell align="right">{row.upgradeCompleted}</TableCell>
+                              <TableCell align="right">
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => {
+                                    const contentKey = getImprovementTarget(
+                                      row.authCompletionRateFromStarts,
+                                      row.upgradeCompletionRateFromIntent,
+                                    );
+                                    onJumpToMarketing?.({ contentKey });
+                                  }}
+                                >
+                                  Improve copy
+                                </Button>
+                              </TableCell>
                             </TableRow>
                           ))
                         )}
