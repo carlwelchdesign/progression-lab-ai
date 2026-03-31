@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { fetchPublishedMarketingContent } from '../lib/marketingContentClient';
+import { trackEvent } from '../lib/analytics';
 
 import ThemeModeToggle from './ui/ThemeModeToggle';
 import LanguageSwitcher from './ui/LanguageSwitcher';
@@ -253,6 +254,7 @@ export default function AppWrapper({ children }: Props) {
                 <Button
                   color="inherit"
                   onClick={() => {
+                    trackEvent('auth_modal_opened', { intent: 'nav_cta', mode: 'login' });
                     openAuthModal({ mode: 'login' });
                   }}
                 >

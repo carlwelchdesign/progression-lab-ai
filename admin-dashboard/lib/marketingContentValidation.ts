@@ -23,7 +23,7 @@ function isOptionalBoolean(value: unknown): boolean {
   return value === undefined || value === null || typeof value === 'boolean';
 }
 
-function isOptionalArray<T>(value: unknown, itemValidator: (item: unknown) => boolean): boolean {
+function isOptionalArray<_T>(value: unknown, itemValidator: (item: unknown) => boolean): boolean {
   return (
     value === undefined ||
     value === null ||
@@ -245,6 +245,35 @@ function validateGlobalMarketingChrome(content: Record<string, unknown>, errors:
   }
 }
 
+function validateAuthFlowCopy(content: Record<string, unknown>, errors: string[]) {
+  const intents = ['save-arrangement', 'my-progressions', 'upgrade-plan', 'generic'];
+
+  for (const intent of intents) {
+    const intentCopy = content[intent];
+    if (intentCopy !== undefined && !isRecord(intentCopy)) {
+      errors.push(`auth_flow_copy.${intent} must be an object`);
+      continue;
+    }
+    if (isRecord(intentCopy)) {
+      if (!isOptionalString(intentCopy.modalTitle)) {
+        errors.push(`auth_flow_copy.${intent}.modalTitle must be a string`);
+      }
+      if (!isOptionalString(intentCopy.modalDescription)) {
+        errors.push(`auth_flow_copy.${intent}.modalDescription must be a string`);
+      }
+      if (!isOptionalString(intentCopy.loginButtonLabel)) {
+        errors.push(`auth_flow_copy.${intent}.loginButtonLabel must be a string`);
+      }
+      if (!isOptionalString(intentCopy.registerButtonLabel)) {
+        errors.push(`auth_flow_copy.${intent}.registerButtonLabel must be a string`);
+      }
+      if (!isOptionalString(intentCopy.benefitDescription)) {
+        errors.push(`auth_flow_copy.${intent}.benefitDescription must be a string`);
+      }
+    }
+  }
+}
+
 function validatePublicProgressions(content: Record<string, unknown>, errors: string[]) {
   const hero = content.hero;
   if (hero !== undefined && !isRecord(hero)) {
@@ -304,6 +333,9 @@ export function validateMarketingContentShape(
       break;
     case 'public_progressions':
       validatePublicProgressions(content, errors);
+      break;
+    case 'auth_flow_copy':
+      validateAuthFlowCopy(content, errors);
       break;
     default:
       errors.push('Unsupported marketing content key');
