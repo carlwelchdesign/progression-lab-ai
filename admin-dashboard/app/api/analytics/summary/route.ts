@@ -7,6 +7,38 @@ const DEFAULT_DAYS = 7;
 const MAX_DAYS = 90;
 const RECENT_LIMIT = 50;
 
+type EventTypeCountRow = {
+  eventType: string;
+  _count: {
+    _all: number;
+  };
+};
+
+type SessionGroupRow = {
+  sessionId: string | null;
+};
+
+type RecentEventRow = {
+  id: string;
+  eventType: string;
+  sessionId: string | null;
+  createdAt: Date;
+  properties: unknown;
+};
+
+type AnalyticsEventModel = {
+  count: (args: unknown) => Promise<number>;
+  groupBy: (args: unknown) => Promise<unknown>;
+  findMany: (args: unknown) => Promise<unknown>;
+};
+
+function toPercent(part: number, whole: number): number {
+  if (whole <= 0) {
+    return 0;
+  }
+  return Math.round((part / whole) * 1000) / 10;
+}
+
 function parseDays(raw: string | null): number {
   const parsed = Number.parseInt(raw ?? '', 10);
   if (!Number.isFinite(parsed) || parsed < 1) {
@@ -25,15 +57,19 @@ export async function GET(request: NextRequest) {
     const days = parseDays(request.nextUrl.searchParams.get('days'));
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
+    // Narrow prisma model access explicitly to avoid stale editor type metadata issues.
+    const analyticsEventModel = (prisma as unknown as { analyticsEvent: AnalyticsEventModel })
+      .analyticsEvent;
+
     const [totalEvents, eventsByTypeRows, recentEvents, sessionGroups] = await Promise.all([
-      prisma.analyticsEvent.count({
+      analyticsEventModel.count({
         where: {
           createdAt: {
             gte: since,
           },
         },
       }),
-      prisma.analyticsEvent.groupBy({
+      analyticsEventModel.groupBy({
         by: ['eventType'],
         where: {
           createdAt: {
@@ -48,8 +84,8 @@ export async function GET(request: NextRequest) {
             eventType: 'desc',
           },
         },
-      }),
-      prisma.analyticsEvent.findMany({
+      }) as Promise<EventTypeCountRow[]>,
+      analyticsEventModel.findMany({
         where: {
           createdAt: {
             gte: since,
@@ -66,8 +102,8 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           properties: true,
         },
-      }),
-      prisma.analyticsEvent.groupBy({
+      }) as Promise<RecentEventRow[]>,
+      analyticsEventModel.groupBy({
         by: ['sessionId'],
         where: {
           createdAt: {
@@ -77,8 +113,18 @@ export async function GET(request: NextRequest) {
             not: null,
           },
         },
-      }),
+      }) as Promise<SessionGroupRow[]>,
     ]);
+
+    const eventCountByType = new Map(
+      eventsByTypeRows.map((row) => [row.eventType, row._count._all]),
+    );
+
+    const pageViews = eventCountByType.get('page_view') ?? 0;
+    const authStarted = eventCountByType.get('auth_modal_opened') ?? 0;
+    const authCompleted = eventCountByType.get('auth_completed') ?? 0;
+    const upgradeIntent = eventCountByType.get('upgrade_intent') ?? 0;
+    const upgradeCompleted = eventCountByType.get('upgrade_completed') ?? 0;
 
     const conversionEventTypes = ['auth_completed', 'upgrade_intent', 'upgrade_completed'];
     const conversionEvents = eventsByTypeRows
@@ -92,6 +138,17 @@ export async function GET(request: NextRequest) {
         totalEvents,
         uniqueSessions: sessionGroups.length,
         conversionEvents,
+      },
+      funnel: {
+        pageViews,
+        authStarted,
+        authCompleted,
+        upgradeIntent,
+        upgradeCompleted,
+        authStartRateFromViews: toPercent(authStarted, pageViews),
+        authCompletionRateFromStarts: toPercent(authCompleted, authStarted),
+        upgradeIntentRateFromAuthCompletion: toPercent(upgradeIntent, authCompleted),
+        upgradeCompletionRateFromIntent: toPercent(upgradeCompleted, upgradeIntent),
       },
       eventsByType: eventsByTypeRows.map((row) => ({
         eventType: row.eventType,

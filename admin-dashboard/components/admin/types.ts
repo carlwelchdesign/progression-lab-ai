@@ -346,6 +346,17 @@ export type AnalyticsSummary = {
     uniqueSessions: number;
     conversionEvents: number;
   };
+  funnel: {
+    pageViews: number;
+    authStarted: number;
+    authCompleted: number;
+    upgradeIntent: number;
+    upgradeCompleted: number;
+    authStartRateFromViews: number;
+    authCompletionRateFromStarts: number;
+    upgradeIntentRateFromAuthCompletion: number;
+    upgradeCompletionRateFromIntent: number;
+  };
   eventsByType: AnalyticsEventSummaryRow[];
   recentEvents: AnalyticsRecentEvent[];
 };

@@ -122,6 +122,62 @@ export default function AnalyticsInsightsPanel() {
                       <Typography variant="h5">{summary?.totals.conversionEvents ?? 0}</Typography>
                     </CardContent>
                   </Card>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="caption" color="text.secondary">
+                        Auth Starts From Views
+                      </Typography>
+                      <Typography variant="h5">
+                        {summary?.funnel.authStartRateFromViews ?? 0}%
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {(summary?.funnel.authStarted ?? 0).toLocaleString()} /{' '}
+                        {(summary?.funnel.pageViews ?? 0).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="caption" color="text.secondary">
+                        Auth Completion Rate
+                      </Typography>
+                      <Typography variant="h5">
+                        {summary?.funnel.authCompletionRateFromStarts ?? 0}%
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {(summary?.funnel.authCompleted ?? 0).toLocaleString()} /{' '}
+                        {(summary?.funnel.authStarted ?? 0).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="caption" color="text.secondary">
+                        Upgrade Intent From Auth
+                      </Typography>
+                      <Typography variant="h5">
+                        {summary?.funnel.upgradeIntentRateFromAuthCompletion ?? 0}%
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {(summary?.funnel.upgradeIntent ?? 0).toLocaleString()} /{' '}
+                        {(summary?.funnel.authCompleted ?? 0).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="caption" color="text.secondary">
+                        Upgrade Completion Rate
+                      </Typography>
+                      <Typography variant="h5">
+                        {summary?.funnel.upgradeCompletionRateFromIntent ?? 0}%
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {(summary?.funnel.upgradeCompleted ?? 0).toLocaleString()} /{' '}
+                        {(summary?.funnel.upgradeIntent ?? 0).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
                 </Box>
 
                 <Card variant="outlined">

@@ -31,8 +31,10 @@ describe('GET /api/analytics/summary', () => {
     mockGroupBy
       .mockResolvedValueOnce([
         { eventType: 'page_view', _count: { _all: 20 } },
+        { eventType: 'auth_modal_opened', _count: { _all: 10 } },
         { eventType: 'auth_completed', _count: { _all: 7 } },
         { eventType: 'upgrade_intent', _count: { _all: 4 } },
+        { eventType: 'upgrade_completed', _count: { _all: 2 } },
       ])
       .mockResolvedValueOnce([{ sessionId: 'session-1' }, { sessionId: 'session-2' }]);
     mockFindMany.mockResolvedValue([
@@ -62,13 +64,26 @@ describe('GET /api/analytics/summary', () => {
     expect(body.totals).toEqual({
       totalEvents: 42,
       uniqueSessions: 2,
-      conversionEvents: 11,
+      conversionEvents: 13,
     });
     expect(body.eventsByType).toEqual([
       { eventType: 'page_view', count: 20 },
+      { eventType: 'auth_modal_opened', count: 10 },
       { eventType: 'auth_completed', count: 7 },
       { eventType: 'upgrade_intent', count: 4 },
+      { eventType: 'upgrade_completed', count: 2 },
     ]);
+    expect(body.funnel).toEqual({
+      pageViews: 20,
+      authStarted: 10,
+      authCompleted: 7,
+      upgradeIntent: 4,
+      upgradeCompleted: 2,
+      authStartRateFromViews: 50,
+      authCompletionRateFromStarts: 70,
+      upgradeIntentRateFromAuthCompletion: 57.1,
+      upgradeCompletionRateFromIntent: 50,
+    });
     expect(body.recentEvents).toHaveLength(1);
   });
 });
