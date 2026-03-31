@@ -137,6 +137,7 @@ export interface AudioPlaybackEngine {
     isDownbeat: boolean,
     opts?: PlayMetronomePulseOptions,
   ) => Promise<void>;
+  updatePlaybackTempo: (tempoBpm: number) => void;
   updateMetronomeTempo: (tempoBpm: number) => void;
   playChordVoicing: (params: PlayChordVoicingParams) => Promise<void>;
   playProgression: (

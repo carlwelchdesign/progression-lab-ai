@@ -115,11 +115,18 @@ export const createToneAudioEngine = (): AudioEngine => {
 
   const { playChordVoicing, playProgression, playChordPattern } = progressionPlayback;
 
+  const updatePlaybackTempo = (tempoBpm: number): void => {
+    const normalizedTempo = Number.isFinite(tempoBpm) ? Math.min(240, Math.max(40, tempoBpm)) : 100;
+    Tone.Transport.bpm.value = normalizedTempo;
+    updateMetronomeTempo(normalizedTempo);
+  };
+
   return {
     ...effectsChain,
     startAudio,
     playMetronomeClick,
     playMetronomePulse,
+    updatePlaybackTempo,
     updateMetronomeTempo,
     stopAllAudio,
     playChordVoicing,
@@ -196,6 +203,8 @@ export const setPhaserFrequency: AudioEngine['setPhaserFrequency'] = (value) =>
 export const setPhaserOctaves: AudioEngine['setPhaserOctaves'] = (value) =>
   getAudioEngine().setPhaserOctaves(value);
 export const setPhaserQ: AudioEngine['setPhaserQ'] = (value) => getAudioEngine().setPhaserQ(value);
+export const updatePlaybackTempo: AudioEngine['updatePlaybackTempo'] = (tempoBpm) =>
+  getAudioEngine().updatePlaybackTempo(tempoBpm);
 export const updateMetronomeTempo: AudioEngine['updateMetronomeTempo'] = (tempoBpm) =>
   getAudioEngine().updateMetronomeTempo(tempoBpm);
 
