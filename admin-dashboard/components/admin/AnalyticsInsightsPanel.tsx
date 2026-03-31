@@ -135,6 +135,26 @@ export default function AnalyticsInsightsPanel({ onJumpToMarketing }: AnalyticsI
     }),
     [summary?.dailyFunnelTrend],
   );
+  const weakestLocale = useMemo(() => {
+    const rows = (summary?.breakdownByLocale ?? []).filter((row) => row.upgradeIntent > 0);
+    if (rows.length === 0) {
+      return null;
+    }
+
+    return [...rows].sort(
+      (a, b) => a.upgradeCompletionRateFromIntent - b.upgradeCompletionRateFromIntent,
+    )[0];
+  }, [summary?.breakdownByLocale]);
+  const weakestPersona = useMemo(() => {
+    const rows = (summary?.breakdownByPersona ?? []).filter((row) => row.upgradeIntent > 0);
+    if (rows.length === 0) {
+      return null;
+    }
+
+    return [...rows].sort(
+      (a, b) => a.upgradeCompletionRateFromIntent - b.upgradeCompletionRateFromIntent,
+    )[0];
+  }, [summary?.breakdownByPersona]);
 
   return (
     <Stack spacing={2}>
@@ -326,6 +346,77 @@ export default function AnalyticsInsightsPanel({ onJumpToMarketing }: AnalyticsI
                         {(summary?.funnel.upgradeCompleted ?? 0).toLocaleString()} /{' '}
                         {(summary?.funnel.upgradeIntent ?? 0).toLocaleString()}
                       </Typography>
+                    </CardContent>
+                  </Card>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+                    gap: 2,
+                  }}
+                >
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Lowest Pricing Completion Locale
+                      </Typography>
+                      {weakestLocale ? (
+                        <Stack spacing={1} sx={{ mt: 1 }}>
+                          <Typography variant="h6">{weakestLocale.key}</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {weakestLocale.upgradeCompleted} / {weakestLocale.upgradeIntent}{' '}
+                            completed from intent ({weakestLocale.upgradeCompletionRateFromIntent}%)
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() =>
+                              onJumpToMarketing?.({
+                                contentKey: 'pricing',
+                                locale:
+                                  weakestLocale.key === 'unknown' ? undefined : weakestLocale.key,
+                              })
+                            }
+                          >
+                            Tune pricing copy
+                          </Button>
+                        </Stack>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                          Not enough localized upgrade-intent data yet.
+                        </Typography>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Lowest Pricing Completion Persona
+                      </Typography>
+                      {weakestPersona ? (
+                        <Stack spacing={1} sx={{ mt: 1 }}>
+                          <Typography variant="h6">{weakestPersona.key}</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {weakestPersona.upgradeCompleted} / {weakestPersona.upgradeIntent}{' '}
+                            completed from intent ({weakestPersona.upgradeCompletionRateFromIntent}
+                            %)
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => onJumpToMarketing?.({ contentKey: 'pricing' })}
+                          >
+                            Tune pricing copy
+                          </Button>
+                        </Stack>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                          Not enough persona upgrade-intent data yet.
+                        </Typography>
+                      )}
                     </CardContent>
                   </Card>
                 </Box>
