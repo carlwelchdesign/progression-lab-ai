@@ -99,6 +99,16 @@ export async function PATCH(
       updates.canSharePublicly = body.canSharePublicly;
     }
 
+    if (body.canUseAdvancedVoicingControls !== undefined) {
+      if (typeof body.canUseAdvancedVoicingControls !== 'boolean') {
+        return NextResponse.json(
+          { message: 'Invalid canUseAdvancedVoicingControls' },
+          { status: 400 },
+        );
+      }
+      updates.canUseAdvancedVoicingControls = body.canUseAdvancedVoicingControls;
+    }
+
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ message: 'No valid updates provided' }, { status: 400 });
     }

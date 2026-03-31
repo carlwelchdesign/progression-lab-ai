@@ -90,6 +90,7 @@ export default function TierConfigTable() {
         canExportMidi: row.canExportMidi,
         canExportPdf: row.canExportPdf,
         canSharePublicly: row.canSharePublicly,
+        canUseAdvancedVoicingControls: row.canUseAdvancedVoicingControls,
       });
 
       setRows((prevRows) =>
@@ -148,6 +149,7 @@ export default function TierConfigTable() {
               <TableCell align="center">Export MIDI</TableCell>
               <TableCell align="center">Export PDF</TableCell>
               <TableCell align="center">Public Share</TableCell>
+              <TableCell align="center">Advanced Voicing</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -262,6 +264,17 @@ export default function TierConfigTable() {
                   <Checkbox
                     checked={row.canSharePublicly}
                     onChange={(e) => updateField(row.plan, 'canSharePublicly', e.target.checked)}
+                    disabled={row.isSaving}
+                  />
+                </TableCell>
+
+                {/* Advanced Voicing */}
+                <TableCell align="center">
+                  <Checkbox
+                    checked={row.canUseAdvancedVoicingControls}
+                    onChange={(e) =>
+                      updateField(row.plan, 'canUseAdvancedVoicingControls', e.target.checked)
+                    }
                     disabled={row.isSaving}
                   />
                 </TableCell>

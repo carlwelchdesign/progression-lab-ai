@@ -88,6 +88,7 @@ export type SubscriptionTierConfig = {
   canExportMidi: boolean;
   canExportPdf: boolean;
   canSharePublicly: boolean;
+  canUseAdvancedVoicingControls: boolean;
 };
 
 export type AdminAuditLogItem = {

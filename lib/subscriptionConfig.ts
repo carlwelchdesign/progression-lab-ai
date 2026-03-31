@@ -11,6 +11,7 @@ export type SubscriptionTierConfig = {
   canExportMidi: boolean;
   canExportPdf: boolean;
   canSharePublicly: boolean;
+  canUseAdvancedVoicingControls: boolean;
 };
 
 // Hardcoded fallback for backward compatibility
@@ -25,6 +26,7 @@ const FALLBACK_TIER_CONFIGS: Record<SubscriptionPlan, SubscriptionTierConfig> = 
     canExportMidi: false,
     canExportPdf: false,
     canSharePublicly: true,
+    canUseAdvancedVoicingControls: false,
   },
   [SubscriptionPlan.COMPOSER]: {
     plan: SubscriptionPlan.COMPOSER,
@@ -36,6 +38,7 @@ const FALLBACK_TIER_CONFIGS: Record<SubscriptionPlan, SubscriptionTierConfig> = 
     canExportMidi: true,
     canExportPdf: true,
     canSharePublicly: true,
+    canUseAdvancedVoicingControls: true,
   },
   [SubscriptionPlan.STUDIO]: {
     plan: SubscriptionPlan.STUDIO,
@@ -47,6 +50,7 @@ const FALLBACK_TIER_CONFIGS: Record<SubscriptionPlan, SubscriptionTierConfig> = 
     canExportMidi: true,
     canExportPdf: true,
     canSharePublicly: true,
+    canUseAdvancedVoicingControls: true,
   },
   [SubscriptionPlan.COMP]: {
     plan: SubscriptionPlan.COMP,
@@ -58,6 +62,7 @@ const FALLBACK_TIER_CONFIGS: Record<SubscriptionPlan, SubscriptionTierConfig> = 
     canExportMidi: true,
     canExportPdf: true,
     canSharePublicly: true,
+    canUseAdvancedVoicingControls: true,
   },
   [SubscriptionPlan.INVITE]: {
     plan: SubscriptionPlan.INVITE,
@@ -69,6 +74,7 @@ const FALLBACK_TIER_CONFIGS: Record<SubscriptionPlan, SubscriptionTierConfig> = 
     canExportMidi: true,
     canExportPdf: true,
     canSharePublicly: false,
+    canUseAdvancedVoicingControls: true,
   },
 };
 
@@ -103,6 +109,9 @@ export async function getAllTierConfigs(): Promise<
             canExportMidi: dbConfig.canExportMidi,
             canExportPdf: dbConfig.canExportPdf,
             canSharePublicly: dbConfig.canSharePublicly,
+            canUseAdvancedVoicingControls:
+              dbConfig.canUseAdvancedVoicingControls ??
+              FALLBACK_TIER_CONFIGS[plan as SubscriptionPlan].canUseAdvancedVoicingControls,
           }
         : FALLBACK_TIER_CONFIGS[plan as SubscriptionPlan];
     }
@@ -146,6 +155,9 @@ export async function updateTierConfig(
       canExportMidi: updates.canExportMidi ?? FALLBACK_TIER_CONFIGS[plan].canExportMidi,
       canExportPdf: updates.canExportPdf ?? FALLBACK_TIER_CONFIGS[plan].canExportPdf,
       canSharePublicly: updates.canSharePublicly ?? FALLBACK_TIER_CONFIGS[plan].canSharePublicly,
+      canUseAdvancedVoicingControls:
+        updates.canUseAdvancedVoicingControls ??
+        FALLBACK_TIER_CONFIGS[plan].canUseAdvancedVoicingControls,
     },
   });
 
@@ -162,6 +174,7 @@ export async function updateTierConfig(
     canExportMidi: updated.canExportMidi,
     canExportPdf: updated.canExportPdf,
     canSharePublicly: updated.canSharePublicly,
+    canUseAdvancedVoicingControls: updated.canUseAdvancedVoicingControls,
   };
 }
 

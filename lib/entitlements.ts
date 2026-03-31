@@ -184,7 +184,7 @@ export async function getAccessContextForSession(session: {
     canSharePublicly: tierConfig.canSharePublicly,
     canUseVocalTrackRecording: PLAN_ENTITLEMENTS[plan].canUseVocalTrackRecording,
     maxVocalTakesPerArrangement: PLAN_ENTITLEMENTS[plan].maxVocalTakesPerArrangement,
-    canUseAdvancedVoicingControls: PLAN_ENTITLEMENTS[plan].canUseAdvancedVoicingControls,
+    canUseAdvancedVoicingControls: tierConfig.canUseAdvancedVoicingControls,
     canUsePremiumAiModel: tierConfig.gptModel !== 'gpt-3.5-turbo',
     gptModel: tierConfig.gptModel,
   };

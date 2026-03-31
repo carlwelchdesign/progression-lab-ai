@@ -224,6 +224,7 @@ model SubscriptionTierConfig {
   canExportMidi          Boolean          @default(false)
   canExportPdf           Boolean          @default(false)
   canSharePublicly       Boolean          @default(true)
+  canUseAdvancedVoicingControls Boolean?
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
 }
