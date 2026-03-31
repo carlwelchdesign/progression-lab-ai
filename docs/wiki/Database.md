@@ -31,9 +31,9 @@ Migration history:
 ## Local Workflow
 
 ```bash
-yarn db:generate
-yarn db:push
-npx prisma migrate deploy
+make db-generate
+make db-push
+make db-migrate-deploy
 ```
 
 ## Production Workflow
@@ -41,9 +41,13 @@ npx prisma migrate deploy
 Recommended sequence:
 
 ```bash
-npx prisma generate
-npx prisma migrate deploy
-yarn build
+make build
+```
+
+For build verification without running DB migrations, use:
+
+```bash
+make build-app
 ```
 
 ## References

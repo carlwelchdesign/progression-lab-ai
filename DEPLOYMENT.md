@@ -63,7 +63,7 @@
    - Bundles assets
 
 3. **Migration Phase**
-   - Runs `npx prisma migrate deploy`
+   - Runs `make db-migrate-deploy`
    - Executes `20260330193000_add_prompt_versioning` migration
    - Seeds initial PromptVersion record
 

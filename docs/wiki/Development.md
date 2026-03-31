@@ -3,7 +3,6 @@
 ## Prerequisites
 
 - Node version aligned with `.nvmrc`
-- Yarn package manager
 - Docker for local Postgres
 - GNU Make
 
@@ -47,25 +46,25 @@ make db-studio
 
 ```bash
 make test
-yarn test:watch
-yarn test:coverage
+npx vitest --watch
+npx vitest run --coverage
 ```
 
 ### End-to-End
 
 ```bash
-yarn playwright install chromium
+npx playwright install chromium
 make test-e2e
 ```
 
 ## Storybook
 
 ```bash
-yarn storybook
-yarn build-storybook
+npx storybook dev -p 6006
+npx storybook build
 ```
 
-Use `make help` to list all supported workflow commands. Direct Yarn commands are still available for scripts that are not wrapped by Make targets.
+Use `make help` to list the supported workflow commands. Prefer Make targets for day-to-day development, and use direct tool commands only when a Make target is not available.
 
 ## Related References
 

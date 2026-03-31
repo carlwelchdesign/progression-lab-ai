@@ -161,7 +161,7 @@ make admin-build
 make wiki-publish
 ```
 
-Prefer `make` as the default command surface for local workflows. Direct Yarn commands remain available when needed.
+Prefer `make` as the default command surface for local workflows.
 
 ## Contributing
 

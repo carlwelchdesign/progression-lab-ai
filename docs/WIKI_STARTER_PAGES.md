@@ -136,7 +136,7 @@ Suggested sections:
 
 Suggested sections:
 
-- Core yarn commands
+- Core Make commands (preferred)
 - DB and migration commands
 - Admin app commands
 - Makefile shortcuts

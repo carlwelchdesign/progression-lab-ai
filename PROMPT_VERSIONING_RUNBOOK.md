@@ -143,9 +143,9 @@ The system automatically falls back to `app/api/chord-suggestions/instructions.t
 
 ### Pre-Deployment
 
-- [ ] All tests passing: `yarn jest`
-- [ ] Admin and main app builds successful: `yarn build`
-- [ ] Migrations tested locally: `npx prisma migrate deploy`
+- [ ] All tests passing: `make test`
+- [ ] Admin and main app builds successful: `make build`
+- [ ] Migrations tested locally: `make db-migrate-deploy`
 - [ ] Feature branch merged to main via pull request
 - [ ] Code review approved
 

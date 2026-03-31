@@ -45,7 +45,7 @@ Core architectural layers:
 Admin is intentionally separated for stronger operational isolation and independent deploy cadence.
 
 - Admin app path: `admin-dashboard/`
-- Local command: `yarn admin:dev`
+- Local command: `make admin-dev`
 - Admin docs: `admin-dashboard/README.md`
 
 ## Related Pages
