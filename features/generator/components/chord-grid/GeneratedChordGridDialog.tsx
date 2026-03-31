@@ -521,6 +521,8 @@ export default function GeneratedChordGridDialog({
           tempoBpm={tempoBpm}
           loopLengthBars={loopLengthBars}
           leadInBars={showRecordingLeadIn ? RECORDING_LEAD_IN_BARS : 0}
+          scrollToStep={showRecordingLeadIn ? stepsPerBar * RECORDING_LEAD_IN_BARS : 0}
+          scrollRequestKey={trackScrollRequestKey}
           isPlaying={engine$.isSequencerPlaying || engine$.isCountInActive}
           isRecording={vocal$.isVocalRecording}
           selectedTakeId={vocal$.selectedTakeId}

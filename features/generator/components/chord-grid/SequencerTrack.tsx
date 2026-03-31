@@ -13,6 +13,7 @@ import TimelineTrackSurface, {
   TRACK_PIXELS_PER_STEP,
   TRACK_RULER_HEIGHT,
 } from './TimelineTrackSurface';
+import useTimelinePlaybackMotion from './useTimelinePlaybackMotion';
 
 type SequencerTrackProps = {
   currentStep: number;
@@ -56,7 +57,6 @@ const PIXELS_PER_STEP = TRACK_PIXELS_PER_STEP;
 const RULER_HEIGHT = TRACK_RULER_HEIGHT;
 const LANE_HEIGHT = TRACK_LANE_HEIGHT;
 const CLIP_HEIGHT = 42;
-const PLAYHEAD_ANCHOR_RATIO = 0.5;
 
 function getClipTone(chordName: string, palette: readonly string[]): string {
   if (/sus/i.test(chordName)) {
@@ -110,35 +110,38 @@ export default function SequencerTrack({
 }: SequencerTrackProps) {
   const theme = useTheme();
   const { appColors } = theme.palette;
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const playheadRef = useRef<HTMLDivElement | null>(null);
-  const scrollAnimationFrameRef = useRef<number | null>(null);
   const rulerCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const laneCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const clipCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const currentStepRef = useRef(currentStep);
-  const stepTickStartedAtRef = useRef(performance.now());
-  const previousStepRef = useRef(currentStep);
-  const [viewportWidth, setViewportWidth] = useState(0);
   const dragSourceStepRef = useRef<number | null>(null);
   const [dragGhostStep, setDragGhostStep] = useState<number | null>(null);
   const [padDropPreviewStep, setPadDropPreviewStep] = useState<number | null>(null);
   const cursorDragStartRef = useRef<{ x: number; step: number } | null>(null);
   const cursorDragThresholdPx = 5;
   const stepsPerBeat = stepsPerBar / beatsPerBar;
-  const normalizedLeadInBars = Math.max(0, leadInBars);
-  const leadInSteps = normalizedLeadInBars * stepsPerBar;
-  const displayCurrentStep = !isPlaying && currentStep === 0 ? 0 : currentStep + leadInSteps;
-  const displayTotalSteps = totalSteps + leadInSteps;
-  const stepDurationMs = Math.max(45, 60_000 / Math.max(tempoBpm, 1) / Math.max(stepsPerBeat, 1));
-  const totalWidth = Math.max(displayTotalSteps * PIXELS_PER_STEP, 360);
-  const playheadAnchorPx = viewportWidth * PLAYHEAD_ANCHOR_RATIO;
-  const extendedTrackWidth = totalWidth + playheadAnchorPx;
-  const playheadCenterPx = displayCurrentStep * PIXELS_PER_STEP + PIXELS_PER_STEP / 2;
-  const maxScrollLeft = Math.max(0, extendedTrackWidth - viewportWidth);
-  const centeredDesiredScroll = playheadCenterPx - playheadAnchorPx;
-  const isCenteredOverlayActive =
-    viewportWidth > 0 && centeredDesiredScroll > 0 && centeredDesiredScroll < maxScrollLeft;
+  const {
+    scrollRef,
+    playheadRef,
+    normalizedLeadInBars,
+    leadInSteps,
+    displayCurrentStep,
+    displayTotalSteps,
+    totalWidth,
+    extendedTrackWidth,
+    playheadAnchorPx,
+    isCenteredOverlayActive,
+  } = useTimelinePlaybackMotion({
+    currentStep,
+    totalSteps,
+    stepsPerBar,
+    beatsPerBar,
+    tempoBpm,
+    isPlaying,
+    leadInBars,
+    scrollToStep,
+    scrollRequestKey,
+    pixelsPerStep: PIXELS_PER_STEP,
+  });
   const laneTop = (LANE_HEIGHT - CLIP_HEIGHT) / 2;
   const isDarkMode = theme.palette.mode === 'dark';
   const barLineColor = alpha(theme.palette.common.white, isDarkMode ? 0.18 : 0.28);
@@ -147,141 +150,6 @@ export default function SequencerTrack({
   const playheadColor = appColors.accent.chordPadActiveBorder;
   const insertionCursorColor = appColors.accent.chordPadEditBorder;
   const loopSummary = `${loopLengthBars} bar${loopLengthBars === 1 ? '' : 's'}`;
-
-  const stepDelta = displayCurrentStep - previousStepRef.current;
-  const isLoopWrapJump = stepDelta < 0;
-  previousStepRef.current = displayCurrentStep;
-
-  const setPlayheadTransform = (step: number) => {
-    if (!playheadRef.current) {
-      return;
-    }
-
-    playheadRef.current.style.transform = `translate3d(${step * PIXELS_PER_STEP}px, 0, 0)`;
-  };
-
-  useEffect(() => {
-    currentStepRef.current = displayCurrentStep;
-    stepTickStartedAtRef.current = performance.now();
-  }, [displayCurrentStep]);
-
-  useEffect(() => {
-    if (isPlaying && !isLoopWrapJump) {
-      return;
-    }
-
-    setPlayheadTransform(displayCurrentStep);
-  }, [displayCurrentStep, isLoopWrapJump, isPlaying]);
-
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) {
-      return;
-    }
-
-    const updateViewportWidth = () => {
-      setViewportWidth(container.clientWidth);
-    };
-
-    updateViewportWidth();
-
-    const resizeObserver = new ResizeObserver(updateViewportWidth);
-    resizeObserver.observe(container);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || !isPlaying) {
-      return;
-    }
-
-    const desiredScrollLeft = Math.max(0, Math.min(maxScrollLeft, centeredDesiredScroll));
-    container.scrollLeft = desiredScrollLeft;
-  }, [centeredDesiredScroll, isPlaying, maxScrollLeft]);
-
-  useEffect(() => {
-    if (!isLoopWrapJump) {
-      return;
-    }
-
-    const container = scrollRef.current;
-    if (!container) {
-      return;
-    }
-
-    const desiredScrollLeft = Math.max(0, Math.min(maxScrollLeft, centeredDesiredScroll));
-    container.scrollLeft = desiredScrollLeft;
-  }, [centeredDesiredScroll, isLoopWrapJump, maxScrollLeft]);
-
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || scrollToStep === undefined) {
-      return;
-    }
-
-    const step = Math.max(0, Math.min(displayTotalSteps, scrollToStep));
-    const desiredScrollLeft = Math.max(
-      0,
-      Math.min(maxScrollLeft, step * PIXELS_PER_STEP - playheadAnchorPx),
-    );
-    container.scrollLeft = desiredScrollLeft;
-  }, [displayTotalSteps, maxScrollLeft, playheadAnchorPx, scrollRequestKey, scrollToStep]);
-
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || !isPlaying) {
-      if (scrollAnimationFrameRef.current !== null) {
-        cancelAnimationFrame(scrollAnimationFrameRef.current);
-        scrollAnimationFrameRef.current = null;
-      }
-
-      return;
-    }
-
-    const animateScroll = () => {
-      const container = scrollRef.current;
-      if (!container) {
-        scrollAnimationFrameRef.current = null;
-        return;
-      }
-
-      const elapsedSinceTickMs = performance.now() - stepTickStartedAtRef.current;
-      const stepProgress = Math.min(1, Math.max(0, elapsedSinceTickMs / stepDurationMs));
-      const interpolatedStep = currentStepRef.current + stepProgress;
-      setPlayheadTransform(interpolatedStep);
-      const playheadCenterPx = interpolatedStep * PIXELS_PER_STEP + PIXELS_PER_STEP / 2;
-      const desiredScrollLeft = Math.max(
-        0,
-        Math.min(maxScrollLeft, playheadCenterPx - playheadAnchorPx),
-      );
-
-      if (!isCenteredOverlayActive) {
-        container.scrollLeft = desiredScrollLeft;
-      } else {
-        container.scrollLeft = desiredScrollLeft;
-      }
-
-      if (isPlaying) {
-        scrollAnimationFrameRef.current = requestAnimationFrame(animateScroll);
-        return;
-      }
-
-      scrollAnimationFrameRef.current = null;
-    };
-
-    scrollAnimationFrameRef.current = requestAnimationFrame(animateScroll);
-
-    return () => {
-      if (scrollAnimationFrameRef.current !== null) {
-        cancelAnimationFrame(scrollAnimationFrameRef.current);
-        scrollAnimationFrameRef.current = null;
-      }
-    };
-  }, [isCenteredOverlayActive, isPlaying, maxScrollLeft, playheadAnchorPx, stepDurationMs]);
 
   useEffect(() => {
     if (!cursorDragStartRef.current) {
