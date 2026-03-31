@@ -8,6 +8,7 @@ import type {
   AdminAuditLogItem,
   CreatePromoCodeInput,
   MarketingContentState,
+  MarketingContentOperationResponse,
   MarketingContentVersion,
   PlanVersion,
   PlanVersionsState,
@@ -23,6 +24,7 @@ import type {
   SubscriptionPlan,
   SubscriptionTierConfig,
   UpdatePromoCodeInput,
+  AnalyticsSummary,
 } from './types';
 
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
@@ -264,6 +266,20 @@ export async function fetchAdminAuditLogs(limit = 100): Promise<AdminAuditLogIte
 
   const data = (await response.json()) as { items: AdminAuditLogItem[] };
   return data.items;
+}
+
+export async function fetchAnalyticsSummary(days = 7): Promise<AnalyticsSummary> {
+  const searchParams = new URLSearchParams({ days: String(days) });
+  const response = await fetch(`/api/analytics/summary?${searchParams.toString()}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to fetch analytics summary'));
+  }
+
+  return (await response.json()) as AnalyticsSummary;
 }
 
 export async function fetchPromptBuilderState(promptKey?: string): Promise<PromptBuilderState> {

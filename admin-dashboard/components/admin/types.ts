@@ -324,3 +324,28 @@ export type SavePlanDraftInput = {
   canSharePublicly: boolean;
   canUsePremiumAiModel: boolean;
 };
+
+export type AnalyticsEventSummaryRow = {
+  eventType: string;
+  count: number;
+};
+
+export type AnalyticsRecentEvent = {
+  id: string;
+  eventType: string;
+  sessionId: string | null;
+  createdAt: string;
+  properties: unknown;
+};
+
+export type AnalyticsSummary = {
+  days: number;
+  since: string;
+  totals: {
+    totalEvents: number;
+    uniqueSessions: number;
+    conversionEvents: number;
+  };
+  eventsByType: AnalyticsEventSummaryRow[];
+  recentEvents: AnalyticsRecentEvent[];
+};

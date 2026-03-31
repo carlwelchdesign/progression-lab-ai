@@ -10,6 +10,10 @@ import {
   Button,
   Chip,
   Container,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   Skeleton,
   Stack,
   Typography,
@@ -38,8 +42,11 @@ import { useAuth } from '../../../components/providers/AuthProvider';
 import { useAuthModal } from '../../../components/providers/AuthModalProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import { fetchPublishedMarketingContent } from '../../../lib/marketingContentClient';
+import { getSampleProgressionsByPersona, type UserPersona } from '../../../lib/sampleContent';
+import { trackEvent } from '../../../lib/analytics';
 
 type ViewMode = 'mine' | 'public';
+type SortMode = 'recent' | 'oldest' | 'title' | 'chord_count';
 
 type FilterFormData = {
   tagQuery: string[];
@@ -50,6 +57,11 @@ type PublicProgressionsMarketingContent = {
   hero?: {
     title?: string;
     description?: string;
+  };
+  spotlight?: {
+    title?: string;
+    description?: string;
+    maxItems?: number;
   };
   emptyState?: {
     description?: string;
@@ -93,6 +105,8 @@ export default function ProgressionsPageContent() {
   const [deletingProgressionId, setDeletingProgressionId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [instrument] = useState<AudioInstrument>('piano');
+  const [sortMode, setSortMode] = useState<SortMode>('recent');
+  const [spotlightPersona, setSpotlightPersona] = useState<UserPersona>('beginner');
   const [canExportMidi, setCanExportMidi] = useState(false);
   const [canExportPdf, setCanExportPdf] = useState(false);
   const [marketingContent, setMarketingContent] =
@@ -256,6 +270,33 @@ export default function ProgressionsPageContent() {
   }, [myProgressions, tagQuery, keyQuery]);
 
   const displayedProgressions = viewMode === 'mine' ? filteredMyProgressions : publicProgressions;
+  const sortedDisplayedProgressions = useMemo(() => {
+    const items = [...displayedProgressions];
+
+    if (sortMode === 'title') {
+      items.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+      return items;
+    }
+
+    if (sortMode === 'chord_count') {
+      items.sort((a, b) => (b.chords?.length ?? 0) - (a.chords?.length ?? 0));
+      return items;
+    }
+
+    if (sortMode === 'oldest') {
+      items.sort((a, b) => +new Date(a.updatedAt) - +new Date(b.updatedAt));
+      return items;
+    }
+
+    items.sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt));
+    return items;
+  }, [displayedProgressions, sortMode]);
+
+  const spotlightSamples = useMemo(
+    () => getSampleProgressionsByPersona(spotlightPersona),
+    [spotlightPersona],
+  );
+
   const hasActiveFilters = tagQuery.length > 0 || keyQuery.length > 0;
 
   const handleClearFilters = () => {
@@ -296,7 +337,23 @@ export default function ProgressionsPageContent() {
   };
 
   const handleOpen = (progression: Progression) => {
+    trackEvent('cms_cta_clicked', {
+      surface: 'progressions',
+      mode: viewMode,
+      action: 'open_progression',
+      progressionId: progression.id,
+    });
     sessionStorage.setItem('loadedProgression', JSON.stringify(progression));
+    router.push('/');
+  };
+
+  const handleSampleOpen = (sample: { name: string; chords: string }) => {
+    trackEvent('sample_content_selected', {
+      surface: 'public_progressions',
+      persona: spotlightPersona,
+      sampleName: sample.name,
+    });
+    sessionStorage.setItem('onboarding_seed_chords', sample.chords);
     router.push('/');
   };
 
@@ -338,6 +395,11 @@ export default function ProgressionsPageContent() {
                   return;
                 }
 
+                trackEvent('cms_cta_clicked', {
+                  surface: 'progressions',
+                  action: 'switch_mode',
+                  mode: 'mine',
+                });
                 setViewMode('mine');
               }}
             >
@@ -345,7 +407,14 @@ export default function ProgressionsPageContent() {
             </Button>
             <Button
               variant={viewMode === 'public' ? 'contained' : 'outlined'}
-              onClick={() => setViewMode('public')}
+              onClick={() => {
+                trackEvent('cms_cta_clicked', {
+                  surface: 'progressions',
+                  action: 'switch_mode',
+                  mode: 'public',
+                });
+                setViewMode('public');
+              }}
             >
               {t('progressions.page.examplesTitle')}
             </Button>
@@ -454,6 +523,124 @@ export default function ProgressionsPageContent() {
           </Box>
         </Stack>
 
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+            {t('progressions.page.resultSummary', {
+              defaultValue: '{{count}} progressions found',
+              count: sortedDisplayedProgressions.length,
+            })}
+          </Typography>
+          <FormControl size="small" sx={{ minWidth: 220 }}>
+            <InputLabel id="progressions-sort-label">
+              {t('progressions.filters.sortBy', { defaultValue: 'Sort by' })}
+            </InputLabel>
+            <Select
+              labelId="progressions-sort-label"
+              value={sortMode}
+              label={t('progressions.filters.sortBy', { defaultValue: 'Sort by' })}
+              onChange={(event) => {
+                const nextSort = event.target.value as SortMode;
+                setSortMode(nextSort);
+                trackEvent('cms_section_viewed', {
+                  surface: 'public_progressions',
+                  section: 'sort_control',
+                  sort: nextSort,
+                });
+              }}
+            >
+              <MenuItem value="recent">
+                {t('progressions.filters.sortRecent', { defaultValue: 'Recently updated' })}
+              </MenuItem>
+              <MenuItem value="oldest">
+                {t('progressions.filters.sortOldest', { defaultValue: 'Oldest updated' })}
+              </MenuItem>
+              <MenuItem value="title">
+                {t('progressions.filters.sortTitle', { defaultValue: 'Title (A-Z)' })}
+              </MenuItem>
+              <MenuItem value="chord_count">
+                {t('progressions.filters.sortChordCount', { defaultValue: 'Most chord-rich' })}
+              </MenuItem>
+            </Select>
+          </FormControl>
+        </Stack>
+
+        {viewMode === 'public' && (
+          <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2 }}>
+            <Stack spacing={1.5}>
+              <Typography variant="h6">
+                {marketingContent?.spotlight?.title?.trim() ||
+                  t('progressions.page.spotlightTitle', {
+                    defaultValue: 'Spotlight: curated starter progressions',
+                  })}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {marketingContent?.spotlight?.description?.trim() ||
+                  t('progressions.page.spotlightDescription', {
+                    defaultValue:
+                      'Load a proven progression into the generator and iterate from a strong musical foundation.',
+                  })}
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                {(['beginner', 'intermediate', 'professional'] as UserPersona[]).map((persona) => (
+                  <Chip
+                    key={persona}
+                    clickable
+                    color={spotlightPersona === persona ? 'primary' : 'default'}
+                    label={t(persona)}
+                    onClick={() => {
+                      setSpotlightPersona(persona);
+                      trackEvent('cms_section_viewed', {
+                        surface: 'public_progressions',
+                        section: 'spotlight_persona',
+                        persona,
+                      });
+                    }}
+                  />
+                ))}
+              </Stack>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gap: 1.5,
+                  gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
+                }}
+              >
+                {spotlightSamples
+                  .slice(0, Math.max(1, marketingContent?.spotlight?.maxItems ?? 3))
+                  .map((sample) => (
+                    <Box
+                      key={sample.name}
+                      sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        p: 1.5,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 0.75,
+                      }}
+                    >
+                      <Typography variant="subtitle2">{sample.name}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {sample.description}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {sample.chords}
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => handleSampleOpen(sample)}
+                      >
+                        {t('progressions.actions.loadSample', { defaultValue: 'Load sample' })}
+                      </Button>
+                    </Box>
+                  ))}
+              </Box>
+            </Stack>
+          </Box>
+        )}
+
         {error && (
           <Alert severity="error" onClose={() => setError('')}>
             {error}
@@ -468,7 +655,7 @@ export default function ProgressionsPageContent() {
           </Stack>
         )}
 
-        {!loading && displayedProgressions.length === 0 && (
+        {!loading && sortedDisplayedProgressions.length === 0 && (
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
               {viewMode === 'mine'
@@ -487,7 +674,7 @@ export default function ProgressionsPageContent() {
           </Box>
         )}
 
-        {!loading && displayedProgressions.length > 0 && (
+        {!loading && sortedDisplayedProgressions.length > 0 && (
           <Box
             sx={{
               display: 'grid',
@@ -501,7 +688,7 @@ export default function ProgressionsPageContent() {
               gap: 2,
             }}
           >
-            {displayedProgressions.map((progression) => (
+            {sortedDisplayedProgressions.map((progression) => (
               <ProgressionCard
                 key={progression.id}
                 progression={progression}

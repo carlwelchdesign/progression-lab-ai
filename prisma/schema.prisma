@@ -103,6 +103,7 @@ model User {
   arrangements Arrangement[]
   subscription Subscription?
   usageEvents  UsageEvent[]
+  analyticsEvents AnalyticsEvent[]
   adminAuditLogs AdminAuditLog[]
   promptVersions PromptVersion[]
   marketingContentVersions MarketingContentVersion[]
@@ -359,6 +360,22 @@ model MarketingContentVersion {
   @@index([marketingContentId, locale, isActive])
   @@index([marketingContentId, locale, isDraft])
   @@index([locale, isActive])
+  @@index([createdAt])
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  eventType  String
+  properties Json?
+  sessionId  String?
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([userId, createdAt])
   @@index([createdAt])
 }
 

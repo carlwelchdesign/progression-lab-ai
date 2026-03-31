@@ -44,6 +44,39 @@ const PRICING_PAGE_TEMPLATE = {
   trustCopy: {
     billing: 'Upgrade or cancel with clear billing terms.',
   },
+  upgradeFlow: {
+    signInHint: 'Create an account to start a paid plan and keep billing history in one place.',
+    composerCta: 'Start Composer',
+    studioCta: 'Start Studio',
+    checkoutPendingLabel: 'Preparing checkout...',
+    keepUsingSessionLabel: 'Continue with Session plan',
+  },
+};
+
+const AUTH_FLOW_COPY_TEMPLATE = {
+  generic: {
+    modalTitle: 'Create your free account',
+    modalDescription: 'Save progressions, revisit arrangements, and keep momentum across sessions.',
+    loginButtonLabel: 'Sign in',
+    registerButtonLabel: 'Create account',
+    benefitDescription: 'Unlock save, export, and progression history.',
+  },
+  'my-progressions': {
+    modalTitle: 'Access your progressions',
+    modalDescription: 'Sign in to manage saved progressions and arrangements.',
+    benefitDescription: 'Keep your best ideas organized and shareable.',
+  },
+  'save-arrangement': {
+    modalTitle: 'Save this arrangement',
+    modalDescription: 'Create an account to store this arrangement and continue refining it later.',
+    benefitDescription: 'Stored arrangements are synced to your account.',
+  },
+  'upgrade-plan': {
+    modalTitle: 'Upgrade your workflow',
+    modalDescription:
+      'Create your account first, then choose the plan that fits your writing cadence.',
+    benefitDescription: 'Paid plans unlock more generations, exports, and sharing limits.',
+  },
 };
 
 const GLOBAL_MARKETING_CHROME_TEMPLATE = {
@@ -159,6 +192,15 @@ export const MARKETING_CONTENT_DEFINITIONS: readonly MarketingContentDefinition[
     schemaVersion: 1,
     defaultLocale: 'en',
     defaultContent: PUBLIC_PROGRESSIONS_TEMPLATE,
+  },
+  {
+    key: 'auth_flow_copy',
+    label: 'Auth Flow Copy',
+    description: 'Intent-specific login/register messaging for save, upgrade, and access prompts.',
+    contentKind: 'PAGE',
+    schemaVersion: 1,
+    defaultLocale: 'en',
+    defaultContent: AUTH_FLOW_COPY_TEMPLATE,
   },
 ] as const;
 

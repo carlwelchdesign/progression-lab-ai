@@ -41,6 +41,25 @@ jest.mock('../../components/providers/AuthModalProvider', () => ({
   }),
 }));
 
+jest.mock('../../features/generator/hooks/useVocalTrack', () => ({
+  useVocalTrack: () => ({
+    takes: [],
+    isVocalRecording: false,
+    permissionStatus: 'granted',
+    errorMessage: null,
+    selectedTakeId: null,
+    setSelectedTakeId: jest.fn(),
+    requestMicPermission: jest.fn(async () => true),
+    startVocalRecording: jest.fn(async () => true),
+    stopVocalRecording: jest.fn(),
+    startVocalPlayback: jest.fn(async () => undefined),
+    stopVocalPlayback: jest.fn(),
+    deleteTake: jest.fn(),
+    toggleMuteTake: jest.fn(),
+    setTakeGain: jest.fn(),
+  }),
+}));
+
 jest.mock('../../domain/audio/audio', () => ({
   PAD_PATTERN_LABELS: {
     single: 'Single',
@@ -54,6 +73,7 @@ jest.mock('../../domain/audio/audio', () => ({
     '3/4': '3/4',
     '6/8': '6/8',
   },
+  applyAudioEffectsState: jest.fn(),
   playChordVoicing: jest.fn(),
   playChordPattern: jest.fn(),
   playProgression: jest.fn(),

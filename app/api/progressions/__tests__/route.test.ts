@@ -5,6 +5,9 @@ import { NextResponse } from 'next/server';
 var mockGetSessionFromRequest = jest.fn();
 var mockCheckCsrfToken = jest.fn();
 var mockProgressionCreate = jest.fn();
+var mockProgressionCount = jest.fn();
+var mockArrangementCount = jest.fn();
+var mockGetAccessContextForSession = jest.fn();
 
 jest.mock('../../../../lib/auth', () => ({
   getSessionFromRequest: (...args: unknown[]) => mockGetSessionFromRequest(...args),
@@ -14,10 +17,19 @@ jest.mock('../../../../lib/csrf', () => ({
   checkCsrfToken: (...args: unknown[]) => mockCheckCsrfToken(...args),
 }));
 
+jest.mock('../../../../lib/entitlements', () => ({
+  getAccessContextForSession: (...args: unknown[]) => mockGetAccessContextForSession(...args),
+  hasReachedLimit: () => false,
+}));
+
 jest.mock('../../../../lib/prisma', () => ({
   prisma: {
     progression: {
       create: (...args: unknown[]) => mockProgressionCreate(...args),
+      count: (...args: unknown[]) => mockProgressionCount(...args),
+    },
+    arrangement: {
+      count: (...args: unknown[]) => mockArrangementCount(...args),
     },
   },
 }));
@@ -29,7 +41,21 @@ describe('POST /api/progressions', () => {
     mockGetSessionFromRequest.mockReset();
     mockCheckCsrfToken.mockReset();
     mockProgressionCreate.mockReset();
+    mockProgressionCount.mockReset();
+    mockArrangementCount.mockReset();
+    mockGetAccessContextForSession.mockReset();
     console.error = jest.fn();
+
+    // Default: authenticated user with full entitlements
+    mockGetAccessContextForSession.mockResolvedValue({
+      plan: 'pro',
+      entitlements: {
+        maxSavedProgressions: null,
+        canSharePublicly: true,
+      },
+    });
+    mockProgressionCount.mockResolvedValue(0);
+    mockArrangementCount.mockResolvedValue(0);
   });
 
   it('returns 403 when the CSRF token is missing', async () => {

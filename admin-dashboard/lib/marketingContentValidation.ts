@@ -179,6 +179,28 @@ function validatePricing(content: Record<string, unknown>, errors: string[]) {
     errors.push('pricing.promoCodeLabel must be a string');
   }
 
+  const upgradeFlow = content.upgradeFlow;
+  if (upgradeFlow !== undefined && !isRecord(upgradeFlow)) {
+    errors.push('pricing.upgradeFlow must be an object');
+  }
+  if (isRecord(upgradeFlow)) {
+    if (!isOptionalString(upgradeFlow.signInHint)) {
+      errors.push('pricing.upgradeFlow.signInHint must be a string');
+    }
+    if (!isOptionalString(upgradeFlow.composerCta)) {
+      errors.push('pricing.upgradeFlow.composerCta must be a string');
+    }
+    if (!isOptionalString(upgradeFlow.studioCta)) {
+      errors.push('pricing.upgradeFlow.studioCta must be a string');
+    }
+    if (!isOptionalString(upgradeFlow.checkoutPendingLabel)) {
+      errors.push('pricing.upgradeFlow.checkoutPendingLabel must be a string');
+    }
+    if (!isOptionalString(upgradeFlow.keepUsingSessionLabel)) {
+      errors.push('pricing.upgradeFlow.keepUsingSessionLabel must be a string');
+    }
+  }
+
   const trustSection = content.trustSection;
   if (trustSection !== undefined && !isRecord(trustSection)) {
     errors.push('pricing.trustSection must be an object');
@@ -304,6 +326,22 @@ function validatePublicProgressions(content: Record<string, unknown>, errors: st
     }
     if (!isOptionalString(emptyState.cta)) {
       errors.push('public_progressions.emptyState.cta must be a string');
+    }
+  }
+
+  const spotlight = content.spotlight;
+  if (spotlight !== undefined && !isRecord(spotlight)) {
+    errors.push('public_progressions.spotlight must be an object');
+  }
+  if (isRecord(spotlight)) {
+    if (!isOptionalString(spotlight.title)) {
+      errors.push('public_progressions.spotlight.title must be a string');
+    }
+    if (!isOptionalString(spotlight.description)) {
+      errors.push('public_progressions.spotlight.description must be a string');
+    }
+    if (spotlight.maxItems !== undefined && typeof spotlight.maxItems !== 'number') {
+      errors.push('public_progressions.spotlight.maxItems must be a number');
     }
   }
 }

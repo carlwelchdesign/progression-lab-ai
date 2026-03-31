@@ -70,6 +70,121 @@ function getDiffPreview(current: string, previous: string): string {
   return preview.length ? preview.join('\n') : 'No changes from previous version.';
 }
 
+function getStarterTemplate(contentKey: string): Record<string, unknown> {
+  if (contentKey === 'homepage') {
+    return {
+      hero: {
+        eyebrow: 'Compose with confidence',
+        title: 'From idea to polished progression in minutes',
+        description:
+          'Generate, refine, and save chord progressions with practical voicings and arrangement-friendly ideas.',
+        ctaPrimary: 'Start generating',
+        ctaSecondary: 'View pricing',
+      },
+      proofStrip: [
+        'Used by songwriters',
+        'Built for fast iteration',
+        'Designed for musical clarity',
+      ],
+    };
+  }
+
+  if (contentKey === 'pricing') {
+    return {
+      hero: {
+        title: 'Pick a plan that matches your studio workflow',
+        description:
+          'Start free, then unlock advanced export and collaboration features as you grow.',
+      },
+      comparisonIntro:
+        'All plans include the core generator. Paid tiers unlock deeper production workflows.',
+      upgradeFlow: {
+        signInHint: 'Create an account to start a paid plan and keep billing history in one place.',
+        composerCta: 'Start Composer',
+        studioCta: 'Start Studio',
+        checkoutPendingLabel: 'Preparing checkout...',
+      },
+    };
+  }
+
+  if (contentKey === 'public_progressions') {
+    return {
+      hero: {
+        title: 'Discover progressions from the community',
+        description:
+          'Browse proven harmonic ideas, then load one into the generator and make it yours.',
+      },
+      spotlight: {
+        title: 'Spotlight: curated starter progressions',
+        description: 'Choose a skill level and start from a musically strong progression.',
+        maxItems: 3,
+      },
+      emptyState: {
+        description: 'No public progressions match these filters yet.',
+        cta: 'Create a progression',
+      },
+    };
+  }
+
+  if (contentKey === 'auth_flow_copy') {
+    return {
+      generic: {
+        modalTitle: 'Create your free account',
+        modalDescription: 'Save your ideas and continue from any device.',
+        loginButtonLabel: 'Sign in',
+        registerButtonLabel: 'Create account',
+        benefitDescription: 'Unlock save, export, and progress tracking.',
+      },
+      'my-progressions': {
+        modalTitle: 'Access your progressions',
+        modalDescription: 'Sign in to view, edit, and manage your saved progressions.',
+      },
+    };
+  }
+
+  return {};
+}
+
+function getPreviewLines(contentKey: string, content: Record<string, unknown>): string[] {
+  if (contentKey === 'homepage') {
+    const hero = content.hero as Record<string, unknown> | undefined;
+    return [
+      `Hero: ${String(hero?.title ?? '(not set)')}`,
+      `Subtext: ${String(hero?.description ?? '(not set)')}`,
+    ];
+  }
+
+  if (contentKey === 'pricing') {
+    const hero = content.hero as Record<string, unknown> | undefined;
+    const upgradeFlow = content.upgradeFlow as Record<string, unknown> | undefined;
+    return [
+      `Page hero: ${String(hero?.title ?? '(not set)')}`,
+      `Comparison intro: ${String(content.comparisonIntro ?? '(not set)')}`,
+      `Composer CTA: ${String(upgradeFlow?.composerCta ?? '(not set)')}`,
+    ];
+  }
+
+  if (contentKey === 'public_progressions') {
+    const hero = content.hero as Record<string, unknown> | undefined;
+    const spotlight = content.spotlight as Record<string, unknown> | undefined;
+    return [
+      `Hero: ${String(hero?.title ?? '(not set)')}`,
+      `Spotlight: ${String(spotlight?.title ?? '(not set)')}`,
+      `Spotlight max items: ${String(spotlight?.maxItems ?? '(default)')}`,
+    ];
+  }
+
+  if (contentKey === 'auth_flow_copy') {
+    const generic = content.generic as Record<string, unknown> | undefined;
+    return [
+      `Auth title: ${String(generic?.modalTitle ?? '(not set)')}`,
+      `Auth CTA: ${String(generic?.registerButtonLabel ?? '(not set)')}`,
+    ];
+  }
+
+  return ['No preview available for this content surface.'];
+}
+
 export default function MarketingContentPanel({ role }: MarketingContentPanelProps) {
   const [state, setState] = useState<MarketingContentState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -128,6 +243,18 @@ export default function MarketingContentPanel({ role }: MarketingContentPanelPro
   }, [loadState, selectedContentKey, selectedLocale, sourceLocale]);
 
   const versions = useMemo(() => state?.versions ?? [], [state?.versions]);
+  const parsedDraftPreview = useMemo(() => {
+    try {
+      const parsed = JSON.parse(draftContent) as Record<string, unknown>;
+      if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+        return null;
+      }
+
+      return parsed;
+    } catch {
+      return null;
+    }
+  }, [draftContent]);
 
   const selectedDiffPreview = useMemo(() => {
     const latestVersion = versions[0];
@@ -393,6 +520,30 @@ export default function MarketingContentPanel({ role }: MarketingContentPanelPro
 
             <Stack direction="row" spacing={1.5}>
               <Button
+                variant="text"
+                onClick={() =>
+                  setDraftContent(stringifyContent(getStarterTemplate(selectedContentKey)))
+                }
+                disabled={role !== 'ADMIN' || isSaving || isPublishing || isGeneratingTranslation}
+              >
+                Load starter template
+              </Button>
+              <Button
+                variant="text"
+                onClick={() => {
+                  try {
+                    const parsed = JSON.parse(draftContent) as Record<string, unknown>;
+                    setDraftContent(stringifyContent(parsed));
+                    setJsonError(null);
+                  } catch {
+                    setJsonError('Draft content must be valid JSON before formatting.');
+                  }
+                }}
+                disabled={role !== 'ADMIN' || isSaving || isPublishing || isGeneratingTranslation}
+              >
+                Format JSON
+              </Button>
+              <Button
                 variant="contained"
                 onClick={() => void handleSaveDraft()}
                 disabled={
@@ -480,6 +631,40 @@ export default function MarketingContentPanel({ role }: MarketingContentPanelPro
               <Typography component="pre" sx={{ m: 0, fontSize: '0.8rem', whiteSpace: 'pre-wrap' }}>
                 {selectedDiffPreview}
               </Typography>
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent>
+          <Stack spacing={1}>
+            <Typography variant="h6">Live Content Preview</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Quick sanity-check preview based on current draft JSON.
+            </Typography>
+            <Box
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                p: 2,
+                backgroundColor: '#fafafa',
+              }}
+            >
+              {parsedDraftPreview ? (
+                <Stack spacing={0.5}>
+                  {getPreviewLines(selectedContentKey, parsedDraftPreview).map((line) => (
+                    <Typography key={line} variant="body2">
+                      {line}
+                    </Typography>
+                  ))}
+                </Stack>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Draft JSON is not valid. Fix syntax errors to render preview.
+                </Typography>
+              )}
             </Box>
           </Stack>
         </CardContent>

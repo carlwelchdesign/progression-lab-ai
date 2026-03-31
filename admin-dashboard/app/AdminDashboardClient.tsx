@@ -4,6 +4,7 @@ import { Alert, Container, Stack, Box, Tabs, Tab } from '@mui/material';
 import { useState } from 'react';
 
 import AdminAuditLogTable from '../components/admin/AdminAuditLogTable';
+import AnalyticsInsightsPanel from '../components/admin/AnalyticsInsightsPanel';
 import AdminSummaryCards from '../components/admin/AdminSummaryCards';
 import DashboardHeader from '../components/admin/DashboardHeader';
 import LoadingState from '../components/admin/LoadingState';
@@ -27,6 +28,7 @@ export default function AdminDashboardClient() {
     | 'marketing-content'
     | 'plan-manager'
     | 'promo-codes'
+    | 'analytics'
     | 'audit-log'
   >('overview');
 
@@ -123,6 +125,7 @@ export default function AdminDashboardClient() {
                   | 'marketing-content'
                   | 'plan-manager'
                   | 'promo-codes'
+                  | 'analytics'
                   | 'audit-log',
               )
             }
@@ -134,6 +137,7 @@ export default function AdminDashboardClient() {
             <Tab label="Marketing Content" value="marketing-content" />
             {user.role === 'ADMIN' && <Tab label="Plan Manager" value="plan-manager" />}
             <Tab label="Promo &amp; Invites" value="promo-codes" />
+            <Tab label="Analytics" value="analytics" />
             <Tab label="Audit Log" value="audit-log" />
           </Tabs>
         </Box>
@@ -198,6 +202,8 @@ export default function AdminDashboardClient() {
         )}
 
         {activeTab === 'promo-codes' && <PromoCodesPanel role={user.role} />}
+
+        {activeTab === 'analytics' && <AnalyticsInsightsPanel />}
 
         {activeTab === 'audit-log' && <AdminAuditLogTable />}
 

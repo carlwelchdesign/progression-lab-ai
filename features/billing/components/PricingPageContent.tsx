@@ -24,6 +24,7 @@ import { useAuth } from '../../../components/providers/AuthProvider';
 import { useAuthModal } from '../../../components/providers/AuthModalProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import { createCsrfHeaders, ensureCsrfCookie } from '../../../lib/csrfClient';
+import { trackEvent } from '../../../lib/analytics';
 import { fetchPublishedMarketingContent } from '../../../lib/marketingContentClient';
 
 type CheckoutPlan = 'COMPOSER' | 'STUDIO';
@@ -89,6 +90,13 @@ type PricingMarketingContent = {
       question?: string;
       answer?: string;
     }>;
+  };
+  upgradeFlow?: {
+    signInHint?: string;
+    composerCta?: string;
+    studioCta?: string;
+    checkoutPendingLabel?: string;
+    keepUsingSessionLabel?: string;
   };
 };
 
@@ -349,6 +357,13 @@ export default function PricingPageContent() {
             : `$${config.yearlyPrice}`
           : defaults.priceYearly;
 
+      const upgradeCtaOverride =
+        tier.plan === 'COMPOSER'
+          ? marketingContent?.upgradeFlow?.composerCta
+          : tier.plan === 'STUDIO'
+            ? marketingContent?.upgradeFlow?.studioCta
+            : undefined;
+
       return {
         ...tier,
         name: config?.displayName || defaults.name,
@@ -362,15 +377,22 @@ export default function PricingPageContent() {
           defaults.summary,
         description: defaults.description,
         features: buildFeatures(tier.plan, defaults.features, config),
-        cta: defaults.cta,
+        cta: upgradeCtaOverride?.trim() || defaults.cta,
         badge: defaults.badge,
       };
     });
   }, [marketingContent, t, tierConfigs]);
 
   const handleCheckout = async (plan: CheckoutPlan) => {
+    trackEvent('upgrade_intent', {
+      plan,
+      interval: selectedInterval,
+      authenticated: isAuthenticated,
+      source: 'pricing_page',
+    });
+
     if (!isAuthenticated) {
-      openAuthModal({ mode: 'register' });
+      openAuthModal({ mode: 'register', reason: 'upgrade-plan' });
       return;
     }
 
@@ -494,7 +516,9 @@ export default function PricingPageContent() {
         </Box>
 
         {!isLoading && !isAuthenticated ? (
-          <Alert severity="info">{t('billing.pricing.signInHint')}</Alert>
+          <Alert severity="info">
+            {marketingContent?.upgradeFlow?.signInHint?.trim() || t('billing.pricing.signInHint')}
+          </Alert>
         ) : null}
 
         <Box
@@ -568,12 +592,14 @@ export default function PricingPageContent() {
                       disabled={pendingPlan === tier.checkoutPlan}
                     >
                       {pendingPlan === tier.checkoutPlan
-                        ? t('billing.pricing.startingCheckout')
+                        ? marketingContent?.upgradeFlow?.checkoutPendingLabel?.trim() ||
+                          t('billing.pricing.startingCheckout')
                         : tier.cta}
                     </Button>
                   ) : isAuthenticated ? (
                     <Button fullWidth component={Link} href="/" variant="outlined">
-                      {t('billing.pricing.keepUsingSession')}
+                      {marketingContent?.upgradeFlow?.keepUsingSessionLabel?.trim() ||
+                        t('billing.pricing.keepUsingSession')}
                     </Button>
                   ) : (
                     <Button
