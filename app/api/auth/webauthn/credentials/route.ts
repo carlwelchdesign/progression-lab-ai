@@ -4,9 +4,9 @@ import { getSessionFromRequest } from '../../../../../lib/auth';
 import { checkCsrfToken } from '../../../../../lib/csrf';
 import { listActiveCredentials } from '../../../../../lib/webauthn';
 import { prisma } from '../../../../../lib/prisma';
-import type { WebAuthnCredential as PrismaWebAuthnCredential } from '@prisma/client';
+import type { StoredWebAuthnCredential } from '@carlwelchdesign/webauthn-core';
 
-function serializeCredential(c: PrismaWebAuthnCredential) {
+function serializeCredential(c: StoredWebAuthnCredential) {
   return {
     id: c.id,
     credentialId: c.credentialId,
