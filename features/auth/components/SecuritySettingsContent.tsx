@@ -29,6 +29,7 @@ import type {
 import { useTranslation } from 'react-i18next';
 
 import { createCsrfHeaders, ensureCsrfCookie } from '../../../lib/csrfClient';
+import { useAuth } from '../../../components/providers/AuthProvider';
 
 type Credential = {
   id: string;
@@ -163,8 +164,15 @@ async function revokeCredential(credentialId: string): Promise<void> {
   }
 }
 
-export default function SecuritySettingsContent() {
+type SecuritySettingsContentProps = {
+  suppressUnauthenticatedNotice?: boolean;
+};
+
+export default function SecuritySettingsContent({
+  suppressUnauthenticatedNotice = false,
+}: SecuritySettingsContentProps) {
   const { t } = useTranslation('common');
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -188,8 +196,19 @@ export default function SecuritySettingsContent() {
   }, [t]);
 
   useEffect(() => {
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      setCredentials([]);
+      return;
+    }
+
+    setIsLoading(true);
     void loadCredentials();
-  }, [loadCredentials]);
+  }, [isAuthenticated, isAuthLoading, loadCredentials]);
 
   const handleAddKey = async () => {
     setEnrollError(null);
@@ -204,8 +223,7 @@ export default function SecuritySettingsContent() {
       await loadCredentials();
     } catch (error) {
       const securityError = error as ApiError;
-      const message =
-        securityError.message ?? t('auth.security.errors.enrollmentFailed');
+      const message = securityError.message ?? t('auth.security.errors.enrollmentFailed');
       setEnrollError(
         message.includes('NotAllowedError') || message.includes('The operation')
           ? t('auth.security.errors.cancelledOrTimedOut')
@@ -228,11 +246,35 @@ export default function SecuritySettingsContent() {
       await loadCredentials();
     } catch (error) {
       const securityError = error as ApiError;
-      setEnrollError(t(resolveSecurityErrorKey(securityError, 'auth.security.errors.removeFailed')));
+      setEnrollError(
+        t(resolveSecurityErrorKey(securityError, 'auth.security.errors.removeFailed')),
+      );
     } finally {
       setRemovingId(null);
     }
   };
+
+  if (isAuthLoading) {
+    return (
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress size={28} />
+        </Box>
+      </Container>
+    );
+  }
+
+  if (!isAuthenticated) {
+    if (suppressUnauthenticatedNotice) {
+      return null;
+    }
+
+    return (
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Alert severity="info">{t('auth.security.errors.unauthorized')}</Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
@@ -241,9 +283,7 @@ export default function SecuritySettingsContent() {
           <Typography variant="h5" component="h1" gutterBottom>
             {t('auth.security.title')}
           </Typography>
-          <Typography color="text.secondary">
-            {t('auth.security.description')}
-          </Typography>
+          <Typography color="text.secondary">{t('auth.security.description')}</Typography>
         </Box>
 
         {loadError ? <Alert severity="error">{loadError}</Alert> : null}

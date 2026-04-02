@@ -1,12 +1,15 @@
 import { Container, Divider, Stack } from '@mui/material';
-import { Suspense } from 'react';
+import { Suspense, lazy } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import PageSuspenseFallback from '../../components/ui/PageSuspenseFallback';
-import SecuritySettingsContent from '../../features/auth/components/SecuritySettingsContent';
-import BillingPageContent from '../../features/billing/components/BillingPageContent';
+import BillingSection from './BillingSection';
 import { parseSessionToken } from '../../lib/auth';
+
+const SecuritySettingsContent = lazy(
+  () => import('../../features/auth/components/SecuritySettingsContent'),
+);
 
 export const metadata = {
   title: 'Account',
@@ -33,9 +36,31 @@ export default async function AccountPage() {
     >
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Stack spacing={4}>
-          <BillingPageContent />
+          <Suspense
+            fallback={
+              <PageSuspenseFallback
+                messageKey="settings.loadingBilling"
+                maxWidth="md"
+                padded={false}
+                variant="account"
+              />
+            }
+          >
+            <BillingSection session={{ userId: session.userId, role: session.role }} />
+          </Suspense>
           <Divider />
-          <SecuritySettingsContent />
+          <Suspense
+            fallback={
+              <PageSuspenseFallback
+                messageKey="settings.loadingSecurity"
+                maxWidth="md"
+                padded={false}
+                variant="account"
+              />
+            }
+          >
+            <SecuritySettingsContent suppressUnauthenticatedNotice />
+          </Suspense>
         </Stack>
       </Container>
     </Suspense>
