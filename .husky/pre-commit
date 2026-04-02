@@ -1,1 +1,1 @@
-yarn lint-staged
+NPM_TOKEN="${NPM_TOKEN:-local-dev-placeholder}" yarn lint-staged
