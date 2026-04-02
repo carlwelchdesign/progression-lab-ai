@@ -1,4 +1,4 @@
-import { Box, Divider } from '@mui/material';
+import { Container, Divider, Stack } from '@mui/material';
 import { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -23,13 +23,15 @@ export default async function AccountPage() {
 
   return (
     <Suspense
-      fallback={<PageSuspenseFallback messageKey="settings.loadingAccount" maxWidth="lg" />}
+      fallback={<PageSuspenseFallback messageKey="settings.loadingAccount" maxWidth="md" />}
     >
-      <Box>
-        <BillingPageContent />
-        <Divider sx={{ my: 2 }} />
-        <SecuritySettingsContent />
-      </Box>
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Stack spacing={4}>
+          <BillingPageContent />
+          <Divider />
+          <SecuritySettingsContent />
+        </Stack>
+      </Container>
     </Suspense>
   );
 }
