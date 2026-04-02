@@ -60,6 +60,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Install admin dashboard dependencies
+        run: yarn --cwd admin-dashboard install --frozen-lockfile
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
