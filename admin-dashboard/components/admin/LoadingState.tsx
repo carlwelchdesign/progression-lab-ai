@@ -1,6 +1,6 @@
 'use client';
 
-import { Container, LinearProgress, Stack, Typography } from '@mui/material';
+import { Container, Skeleton, Stack, Typography } from '@mui/material';
 
 type LoadingStateProps = {
   message: string;
@@ -9,9 +9,13 @@ type LoadingStateProps = {
 export default function LoadingState({ message }: LoadingStateProps) {
   return (
     <Container maxWidth="lg" sx={{ py: 8 }}>
-      <Stack spacing={2} alignItems="center">
+      <Stack spacing={2} aria-live="polite" aria-busy>
         <Typography color="text.secondary">{message}</Typography>
-        <LinearProgress sx={{ width: '100%', maxWidth: 320 }} />
+        <Skeleton variant="rounded" height={10} animation="wave" />
+        <Stack spacing={1}>
+          <Skeleton variant="rounded" height={56} animation="wave" />
+          <Skeleton variant="rounded" height={56} animation="wave" />
+        </Stack>
       </Stack>
     </Container>
   );

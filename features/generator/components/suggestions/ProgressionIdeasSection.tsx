@@ -1,10 +1,9 @@
 'use client';
 
-import { Box, Button, Divider, Stack, Typography } from '@mui/material';
+import { Suspense, lazy } from 'react';
+import { Box, Button, Divider, Skeleton, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
-import GuitarChordDiagram from '../diagrams/GuitarChordDiagram';
-import PianoChordDiagram from '../diagrams/PianoChordDiagram';
 import Card from '../../../../components/ui/Card';
 import MidiDownloadButton from '../../../../components/ui/MidiDownloadButton';
 import PdfDownloadButton from '../../../../components/ui/PdfDownloadButton';
@@ -26,6 +25,21 @@ import type { ChordItem, ChordSuggestionResponse, GuitarVoicing } from '../../..
 import PlaybackToggleButton from '../playback/PlaybackToggleButton';
 import type { ProgressionDiagramInstrument } from '../../types';
 import { getProgressionAutoResetMs, usePlaybackToggle } from '../../hooks/usePlaybackToggle';
+
+const GuitarChordDiagram = lazy(() => import('../diagrams/GuitarChordDiagram'));
+const PianoChordDiagram = lazy(() => import('../diagrams/PianoChordDiagram'));
+
+function ChartLoadingFallback({ kind }: { kind: 'guitar' | 'piano' }) {
+  return kind === 'guitar' ? (
+    <Box sx={{ width: 220 }}>
+      <Skeleton variant="rounded" height={160} animation="wave" />
+    </Box>
+  ) : (
+    <Box sx={{ width: '100%', maxWidth: { xs: '100%', md: '800px' } }}>
+      <Skeleton variant="rounded" height={132} animation="wave" />
+    </Box>
+  );
+}
 
 /**
  * Props for progression idea cards and interaction callbacks.
@@ -355,10 +369,12 @@ export default function ProgressionIdeasSection({
                                   maxWidth: { xs: '100%', md: '800px' },
                                 }}
                               >
-                                <PianoChordDiagram
-                                  leftHand={voicing.leftHand}
-                                  rightHand={voicing.rightHand}
-                                />
+                                <Suspense fallback={<ChartLoadingFallback kind="piano" />}>
+                                  <PianoChordDiagram
+                                    leftHand={voicing.leftHand}
+                                    rightHand={voicing.rightHand}
+                                  />
+                                </Suspense>
                               </Box>
                             </Box>
 
@@ -412,33 +428,37 @@ export default function ProgressionIdeasSection({
                             </Typography>
                             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                               {suggestedGuitarVoicing ? (
-                                <GuitarChordDiagram
-                                  title={suggestedGuitarVoicing.title}
-                                  position={
-                                    typeof suggestedGuitarVoicing.position === 'number' &&
-                                    suggestedGuitarVoicing.position >= 1
-                                      ? suggestedGuitarVoicing.position
-                                      : 1
-                                  }
-                                  fingers={suggestedGuitarVoicing.fingers.map((finger) =>
-                                    finger.finger
-                                      ? [finger.string, finger.fret, finger.finger]
-                                      : [finger.string, finger.fret],
-                                  )}
-                                  barres={suggestedGuitarVoicing.barres.map((barre) => ({
-                                    fromString: barre.fromString,
-                                    toString: barre.toString,
-                                    fret: barre.fret,
-                                    text: barre.text ?? undefined,
-                                  }))}
-                                />
+                                <Suspense fallback={<ChartLoadingFallback kind="guitar" />}>
+                                  <GuitarChordDiagram
+                                    title={suggestedGuitarVoicing.title}
+                                    position={
+                                      typeof suggestedGuitarVoicing.position === 'number' &&
+                                      suggestedGuitarVoicing.position >= 1
+                                        ? suggestedGuitarVoicing.position
+                                        : 1
+                                    }
+                                    fingers={suggestedGuitarVoicing.fingers.map((finger) =>
+                                      finger.finger
+                                        ? [finger.string, finger.fret, finger.finger]
+                                        : [finger.string, finger.fret],
+                                    )}
+                                    barres={suggestedGuitarVoicing.barres.map((barre) => ({
+                                      fromString: barre.fromString,
+                                      toString: barre.toString,
+                                      fret: barre.fret,
+                                      text: barre.text ?? undefined,
+                                    }))}
+                                  />
+                                </Suspense>
                               ) : fallbackGuitarDiagram ? (
-                                <GuitarChordDiagram
-                                  title={fallbackGuitarDiagram.title}
-                                  position={fallbackGuitarDiagram.position}
-                                  fingers={fallbackFingers ?? fallbackGuitarDiagram.fingers}
-                                  barres={fallbackBarres}
-                                />
+                                <Suspense fallback={<ChartLoadingFallback kind="guitar" />}>
+                                  <GuitarChordDiagram
+                                    title={fallbackGuitarDiagram.title}
+                                    position={fallbackGuitarDiagram.position}
+                                    fingers={fallbackFingers ?? fallbackGuitarDiagram.fingers}
+                                    barres={fallbackBarres}
+                                  />
+                                </Suspense>
                               ) : null}
                             </Box>
                             {voicing ? (

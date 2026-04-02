@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 
-import PianoChordDiagram from './PianoChordDiagram';
+import PianoChordDiagram from '../PianoChordDiagram';
 
 const mockCreate = jest.fn();
 const mockKeyDown = jest.fn();
@@ -77,5 +77,14 @@ describe('PianoChordDiagram', () => {
     unmount();
 
     expect(mockDestroy).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not recreate instrument when rerendered with identical notes', () => {
+    const { rerender } = render(<PianoChordDiagram leftHand={['C3']} rightHand={['E4']} />);
+
+    rerender(<PianoChordDiagram leftHand={['C3']} rightHand={['E4']} />);
+
+    expect(mockInstrument).toHaveBeenCalledTimes(1);
+    expect(mockDestroy).toHaveBeenCalledTimes(0);
   });
 });

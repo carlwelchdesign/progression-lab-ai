@@ -1,10 +1,9 @@
 'use client';
 
-import { Box, Stack, Typography } from '@mui/material';
+import { Suspense, lazy } from 'react';
+import { Box, Skeleton, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
-import GuitarChordDiagram from '../diagrams/GuitarChordDiagram';
-import PianoChordDiagram from '../diagrams/PianoChordDiagram';
 import Card from '../../../../components/ui/Card';
 import MidiDownloadButton from '../../../../components/ui/MidiDownloadButton';
 import PdfDownloadButton from '../../../../components/ui/PdfDownloadButton';
@@ -22,6 +21,21 @@ import type { ChordSuggestionResponse } from '../../../../lib/types';
 import PlaybackToggleButton from '../playback/PlaybackToggleButton';
 import { getProgressionAutoResetMs, usePlaybackToggle } from '../../hooks/usePlaybackToggle';
 import type { ProgressionDiagramInstrument } from '../../types';
+
+const GuitarChordDiagram = lazy(() => import('../diagrams/GuitarChordDiagram'));
+const PianoChordDiagram = lazy(() => import('../diagrams/PianoChordDiagram'));
+
+function ChartLoadingFallback({ kind }: { kind: 'guitar' | 'piano' }) {
+  return kind === 'guitar' ? (
+    <Box sx={{ width: 220 }}>
+      <Skeleton variant="rounded" height={160} animation="wave" />
+    </Box>
+  ) : (
+    <Box sx={{ width: '100%', maxWidth: { xs: '100%', md: '800px' } }}>
+      <Skeleton variant="rounded" height={132} animation="wave" />
+    </Box>
+  );
+}
 
 /**
  * Props for rendering next-chord recommendation cards.
@@ -216,10 +230,12 @@ export default function NextChordSuggestionsSection({
                   {progressionDiagramInstrument === 'piano' && pianoVoicing ? (
                     <Box sx={{ mt: 1 }}>
                       <Typography variant="body2">
-                        <strong>{t('ui.labels.leftHandLabel')}</strong> {pianoVoicing.leftHand.join(', ')}
+                        <strong>{t('ui.labels.leftHandLabel')}</strong>{' '}
+                        {pianoVoicing.leftHand.join(', ')}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>{t('ui.labels.rightHandLabel')}</strong> {pianoVoicing.rightHand.join(', ')}
+                        <strong>{t('ui.labels.rightHandLabel')}</strong>{' '}
+                        {pianoVoicing.rightHand.join(', ')}
                       </Typography>
                     </Box>
                   ) : null}
@@ -243,26 +259,28 @@ export default function NextChordSuggestionsSection({
                     }}
                   >
                     {progressionDiagramInstrument === 'guitar' && item.guitarVoicing && (
-                      <GuitarChordDiagram
-                        title={item.guitarVoicing.title}
-                        position={
-                          typeof item.guitarVoicing.position === 'number' &&
-                          item.guitarVoicing.position >= 1
-                            ? item.guitarVoicing.position
-                            : 1
-                        }
-                        fingers={item.guitarVoicing.fingers.map((finger) =>
-                          finger.finger
-                            ? [finger.string, finger.fret, finger.finger]
-                            : [finger.string, finger.fret],
-                        )}
-                        barres={item.guitarVoicing.barres.map((barre) => ({
-                          fromString: barre.fromString,
-                          toString: barre.toString,
-                          fret: barre.fret,
-                          text: barre.text ?? undefined,
-                        }))}
-                      />
+                      <Suspense fallback={<ChartLoadingFallback kind="guitar" />}>
+                        <GuitarChordDiagram
+                          title={item.guitarVoicing.title}
+                          position={
+                            typeof item.guitarVoicing.position === 'number' &&
+                            item.guitarVoicing.position >= 1
+                              ? item.guitarVoicing.position
+                              : 1
+                          }
+                          fingers={item.guitarVoicing.fingers.map((finger) =>
+                            finger.finger
+                              ? [finger.string, finger.fret, finger.finger]
+                              : [finger.string, finger.fret],
+                          )}
+                          barres={item.guitarVoicing.barres.map((barre) => ({
+                            fromString: barre.fromString,
+                            toString: barre.toString,
+                            fret: barre.fret,
+                            text: barre.text ?? undefined,
+                          }))}
+                        />
+                      </Suspense>
                     )}
                     {progressionDiagramInstrument === 'piano' && pianoVoicing ? (
                       <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
@@ -272,10 +290,12 @@ export default function NextChordSuggestionsSection({
                             maxWidth: { xs: '100%', md: '800px' },
                           }}
                         >
-                          <PianoChordDiagram
-                            leftHand={pianoVoicing.leftHand}
-                            rightHand={pianoVoicing.rightHand}
-                          />
+                          <Suspense fallback={<ChartLoadingFallback kind="piano" />}>
+                            <PianoChordDiagram
+                              leftHand={pianoVoicing.leftHand}
+                              rightHand={pianoVoicing.rightHand}
+                            />
+                          </Suspense>
                         </Box>
                       </Box>
                     ) : null}

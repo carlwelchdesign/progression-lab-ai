@@ -23,7 +23,13 @@ export default async function AccountPage() {
 
   return (
     <Suspense
-      fallback={<PageSuspenseFallback messageKey="settings.loadingAccount" maxWidth="md" />}
+      fallback={
+        <PageSuspenseFallback
+          messageKey="settings.loadingAccount"
+          maxWidth="md"
+          variant="account"
+        />
+      }
     >
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Stack spacing={4}>

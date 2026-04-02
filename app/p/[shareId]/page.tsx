@@ -152,6 +152,7 @@ export default function SharedProgressionPage() {
               messageKey="sharedProgression.loading"
               maxWidth="lg"
               padded={false}
+              variant="sharedProgression"
             />
           }
         >

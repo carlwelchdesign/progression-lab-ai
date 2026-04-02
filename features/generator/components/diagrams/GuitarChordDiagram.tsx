@@ -1,7 +1,7 @@
 'use client';
 
 import { Box, useTheme } from '@mui/material';
-import { useEffect, useId } from 'react';
+import { memo, useEffect, useId, useMemo } from 'react';
 import { SVGuitarChord } from 'svguitar';
 
 type Finger = [number, number | 'x', string?];
@@ -13,18 +13,38 @@ type Barre = {
   text?: string;
 };
 
-type Props = {
+type GuitarChordDiagramProps = {
   title: string;
   fingers: Finger[];
   barres?: Barre[];
   position?: number | null;
 };
 
-export default function GuitarChordDiagram({ title, fingers, barres = [], position }: Props) {
+function GuitarChordDiagram({ title, fingers, barres = [], position }: GuitarChordDiagramProps) {
   const id = useId().replace(/:/g, '');
   const theme = useTheme();
+  const textColor = theme.palette.text.primary;
+  const primaryColor = theme.palette.primary.main;
+  const contrastColor = theme.palette.getContrastText(primaryColor);
   const visibleFrets = 4;
   const fullBarreSpan = 6;
+  const fingersSignature = useMemo(
+    () =>
+      fingers
+        .map(([stringNumber, fret, text]) => `${stringNumber}:${fret}:${text ?? ''}`)
+        .join('|'),
+    [fingers],
+  );
+  const barresSignature = useMemo(
+    () =>
+      barres
+        .map(
+          ({ fromString, toString, fret, text }) =>
+            `${fromString}:${toString}:${fret}:${text ?? ''}`,
+        )
+        .join('|'),
+    [barres],
+  );
 
   useEffect(() => {
     const selector = `#guitar-chart-${id}`;
@@ -134,9 +154,9 @@ export default function GuitarChordDiagram({ title, fingers, barres = [], positi
           tuning: ['E', 'A', 'D', 'G', 'B', 'E'],
           fingerSize: 1,
           backgroundColor: 'transparent',
-          color: theme.palette.text.primary,
-          fingerColor: theme.palette.primary.main,
-          fingerTextColor: theme.palette.getContrastText(theme.palette.primary.main),
+          color: textColor,
+          fingerColor: primaryColor,
+          fingerTextColor: contrastColor,
         })
         .chord({
           title,
@@ -154,7 +174,18 @@ export default function GuitarChordDiagram({ title, fingers, barres = [], positi
         error,
       });
     }
-  }, [id, title, fingers, barres, position, theme]);
+  }, [
+    id,
+    title,
+    fingers,
+    barres,
+    position,
+    textColor,
+    primaryColor,
+    contrastColor,
+    fingersSignature,
+    barresSignature,
+  ]);
 
   return (
     <Box
@@ -173,3 +204,45 @@ export default function GuitarChordDiagram({ title, fingers, barres = [], positi
     />
   );
 }
+
+function areFingersEqual(previous: Finger[], next: Finger[]): boolean {
+  if (previous.length !== next.length) {
+    return false;
+  }
+
+  return previous.every((finger, index) => {
+    const nextFinger = next[index];
+    return (
+      finger[0] === nextFinger[0] &&
+      finger[1] === nextFinger[1] &&
+      (finger[2] ?? '') === (nextFinger[2] ?? '')
+    );
+  });
+}
+
+function areBarresEqual(previous: Barre[] = [], next: Barre[] = []): boolean {
+  if (previous.length !== next.length) {
+    return false;
+  }
+
+  return previous.every((barre, index) => {
+    const nextBarre = next[index];
+    return (
+      barre.fromString === nextBarre.fromString &&
+      barre.toString === nextBarre.toString &&
+      barre.fret === nextBarre.fret &&
+      (barre.text ?? '') === (nextBarre.text ?? '')
+    );
+  });
+}
+
+function arePropsEqual(previous: GuitarChordDiagramProps, next: GuitarChordDiagramProps): boolean {
+  return (
+    previous.title === next.title &&
+    previous.position === next.position &&
+    areFingersEqual(previous.fingers, next.fingers) &&
+    areBarresEqual(previous.barres, next.barres)
+  );
+}
+
+export default memo(GuitarChordDiagram, arePropsEqual);

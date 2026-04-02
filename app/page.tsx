@@ -5,7 +5,11 @@ import PageSuspenseFallback from '../components/ui/PageSuspenseFallback';
 export default function HomePage() {
   // No-op update to trigger production deployment.
   return (
-    <Suspense fallback={<PageSuspenseFallback messageKey="settings.loadingStudio" maxWidth="xl" />}>
+    <Suspense
+      fallback={
+        <PageSuspenseFallback messageKey="settings.loadingStudio" maxWidth="xl" variant="studio" />
+      }
+    >
       <HomePageLayout />
     </Suspense>
   );

@@ -14,11 +14,11 @@
     "switchToDarkMode": "Switch to dark mode"
   },
   "settings": {
-    "loadingDefault": "Loading...",
-    "loadingStudio": "Loading studio...",
-    "loadingPricing": "Loading pricing...",
-    "loadingProgressions": "Loading progressions...",
-    "loadingAccount": "Loading account...",
+    "loadingDefault": "Loading your workspace...",
+    "loadingStudio": "Loading studio controls and suggestion canvas...",
+    "loadingPricing": "Loading plans and feature comparisons...",
+    "loadingProgressions": "Loading saved progressions and voicing snapshots...",
+    "loadingAccount": "Loading account security and billing settings...",
     "loadingSecurity": "Loading security settings...",
     "loadingBilling": "Loading billing..."
   },
@@ -31,7 +31,7 @@
   },
   "sharedProgression": {
     "title": "Shared Progression",
-    "loading": "Loading shared progression...",
+    "loading": "Loading shared progression and playback controls...",
     "actions": {
       "play": "Play progression",
       "stop": "Stop progression",
@@ -260,6 +260,11 @@
       "searchTagsPlaceholder": "house, cinematic, jazz...",
       "searchKeyLabel": "Search key/Chord(s)",
       "searchKeyPlaceholder": "C, F#m, Bb..."
+    },
+    "loading": {
+      "mine": "Loading your saved progressions...",
+      "publicInitial": "Loading curated progressions and spotlight samples...",
+      "publicRefreshing": "Refreshing public progressions..."
     },
     "empty": {
       "mine": "You haven't saved any progressions yet.",

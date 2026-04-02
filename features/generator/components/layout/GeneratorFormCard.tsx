@@ -19,6 +19,7 @@ import {
   Chip,
   Stack,
   TextField as MuiTextField,
+  Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
@@ -432,6 +433,12 @@ export default function GeneratorFormCard({
             {loading ? t('form.actions.generating') : t('form.actions.generateIdeas')}
           </Button>
         </Stack>
+
+        {loading ? (
+          <Typography variant="body2" color="text.secondary" aria-live="polite">
+            {t('status.generatingPendingHint')}
+          </Typography>
+        ) : null}
 
         {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
       </Stack>
