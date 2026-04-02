@@ -91,13 +91,13 @@ export default function AuthPageContent() {
             <Typography variant="h4" component="h1" gutterBottom>
               {t('auth.dialog.title')}
             </Typography>
-            <Typography color="text.secondary">
-              {t('auth.dialog.description')}
-            </Typography>
+            <Typography color="text.secondary">{t('auth.dialog.description')}</Typography>
           </Box>
 
           {reason === 'my-progressions' ? (
             <Alert severity="info">{t('auth.reason.myProgressions')}</Alert>
+          ) : reason === 'account' ? (
+            <Alert severity="info">{t('auth.reason.account')}</Alert>
           ) : null}
 
           <ToggleButtonGroup
@@ -181,7 +181,8 @@ export default function AuthPageContent() {
                 disabled={isSubmitting}
                 error={!!error}
                 helperText={
-                  error?.message || (mode === 'register' ? t('auth.form.passwordMinLengthHint') : undefined)
+                  error?.message ||
+                  (mode === 'register' ? t('auth.form.passwordMinLengthHint') : undefined)
                 }
               />
             )}

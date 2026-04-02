@@ -28,7 +28,12 @@ import { trackEvent } from '../../../lib/analytics';
 import { getSampleProgressionsByPersona, type UserPersona } from '../../../lib/sampleContent';
 
 export type AuthMode = 'login' | 'register';
-export type AuthDialogReason = 'my-progressions' | 'save-arrangement' | 'upgrade-plan' | 'generic';
+export type AuthDialogReason =
+  | 'my-progressions'
+  | 'save-arrangement'
+  | 'upgrade-plan'
+  | 'account'
+  | 'generic';
 
 type AuthFormData = {
   name: string;
@@ -59,7 +64,12 @@ type AuthModalDialogProps = {
 };
 
 const getReasonKey = (reason: AuthDialogReason | undefined): string => {
-  if (reason === 'my-progressions' || reason === 'save-arrangement' || reason === 'upgrade-plan') {
+  if (
+    reason === 'my-progressions' ||
+    reason === 'save-arrangement' ||
+    reason === 'upgrade-plan' ||
+    reason === 'account'
+  ) {
     return reason;
   }
   return 'generic';
@@ -226,7 +236,9 @@ export default function AuthModalDialog({
                     ? t('auth.reason.myProgressions')
                     : reason === 'save-arrangement'
                       ? t('auth.reason.saveArrangement')
-                      : t('auth.dialog.description'))}
+                      : reason === 'account'
+                        ? t('auth.reason.account')
+                        : t('auth.dialog.description'))}
               </Typography>
             </Box>
 

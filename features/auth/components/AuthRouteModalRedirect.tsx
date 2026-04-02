@@ -29,7 +29,9 @@ export default function AuthRouteModalRedirect() {
           ? 'save-arrangement'
           : reasonParam === 'upgrade-plan'
             ? 'upgrade-plan'
-            : 'generic';
+            : reasonParam === 'account'
+              ? 'account'
+              : 'generic';
 
     openAuthModal({ mode, reason });
     router.replace('/');

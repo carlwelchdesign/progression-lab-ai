@@ -18,6 +18,7 @@
     "loadingStudio": "Loading studio...",
     "loadingPricing": "Loading pricing...",
     "loadingProgressions": "Loading progressions...",
+    "loadingAccount": "Loading account...",
     "loadingSecurity": "Loading security settings...",
     "loadingBilling": "Loading billing..."
   },
@@ -45,7 +46,8 @@
     },
     "reason": {
       "myProgressions": "Create an account to access your personal saved progressions.",
-      "saveArrangement": "Sign in or create an account to save this arrangement."
+      "saveArrangement": "Sign in or create an account to save this arrangement.",
+      "account": "Sign in or create an account to manage billing and security settings."
     },
     "form": {
       "nameLabel": "Name",

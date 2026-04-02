@@ -4,7 +4,7 @@ export default class SecuritySettingsPage {
   constructor(private readonly page: Page) {}
 
   async goto() {
-    await this.page.goto('/settings/security');
+    await this.page.goto('/account');
     await this.page.waitForLoadState('networkidle');
   }
 

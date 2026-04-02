@@ -133,7 +133,7 @@ describe('POST /api/billing/checkout', () => {
         customer: 'cus_123',
         client_reference_id: 'user-1',
         line_items: [{ price: 'price_123', quantity: 1 }],
-        success_url: 'http://localhost:3000/settings/billing?checkout=success',
+        success_url: 'http://localhost:3000/account?checkout=success',
         cancel_url: 'http://localhost:3000/pricing?checkout=cancelled',
         metadata: {
           userId: 'user-1',
