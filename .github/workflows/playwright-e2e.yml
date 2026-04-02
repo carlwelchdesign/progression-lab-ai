@@ -7,6 +7,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   e2e:
     name: E2E (${{ matrix.project }})
@@ -24,6 +28,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configure npm auth for GitHub Packages
+        shell: bash
+        env:
+          GH_PACKAGES_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN_FALLBACK: ${{ github.token }}
+        run: |
+          TOKEN="$GH_PACKAGES_TOKEN"
+          if [ -z "$TOKEN" ]; then
+            TOKEN="$GITHUB_TOKEN_FALLBACK"
+          fi
+          echo "//npm.pkg.github.com/:_authToken=${TOKEN}" > "$HOME/.npmrc"
 
       - name: Setup Node
         uses: actions/setup-node@v4
