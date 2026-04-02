@@ -315,6 +315,8 @@ export default function ProgressionsPageContent() {
   );
 
   const hasActiveFilters = tagQuery.length > 0 || keyQuery.length > 0;
+  const isPublicRefresh = viewMode === 'public' && loading && publicProgressions.length > 0;
+  const showInitialLoadingSkeleton = loading && !isPublicRefresh;
 
   const handleClearFilters = () => {
     setValue('tagQuery', []);
@@ -667,13 +669,71 @@ export default function ProgressionsPageContent() {
           </Alert>
         )}
 
-        {loading && (
-          <Stack spacing={1.25} sx={{ py: 2 }}>
-            <Skeleton variant="rounded" height={64} />
-            <Skeleton variant="rounded" height={64} />
-            <Skeleton variant="rounded" height={64} />
+        {isPublicRefresh ? (
+          <Stack spacing={1} aria-live="polite" aria-busy>
+            <Typography variant="body2" color="text.secondary">
+              {t('progressions.loading.publicRefreshing', {
+                defaultValue: 'Refreshing public progressions...',
+              })}
+            </Typography>
+            <Skeleton variant="rounded" height={10} animation="wave" />
           </Stack>
-        )}
+        ) : null}
+
+        {showInitialLoadingSkeleton ? (
+          <Stack spacing={1.5} sx={{ py: 2 }} aria-live="polite" aria-busy>
+            <Typography variant="body2" color="text.secondary">
+              {viewMode === 'public'
+                ? t('progressions.loading.publicInitial', {
+                    defaultValue: 'Loading curated progressions and spotlight samples...',
+                  })
+                : t('progressions.loading.mine', {
+                    defaultValue: 'Loading your saved progressions...',
+                  })}
+            </Typography>
+            {viewMode === 'public' ? (
+              <>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gap: 1,
+                    gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(3, minmax(0, 1fr))' },
+                  }}
+                >
+                  {[0, 1, 2].map((item) => (
+                    <Skeleton key={`public-chip-${item}`} variant="rounded" height={32} />
+                  ))}
+                </Box>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gap: 2,
+                    gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
+                  }}
+                >
+                  {[0, 1, 2, 3, 4, 5].map((item) => (
+                    <Stack
+                      key={`public-card-${item}`}
+                      spacing={1}
+                      sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}
+                    >
+                      <Skeleton variant="text" width="50%" height={28} />
+                      <Skeleton variant="text" width="90%" />
+                      <Skeleton variant="text" width="65%" />
+                      <Skeleton variant="rounded" height={34} />
+                    </Stack>
+                  ))}
+                </Box>
+              </>
+            ) : (
+              <Stack spacing={1.25}>
+                <Skeleton variant="rounded" height={64} />
+                <Skeleton variant="rounded" height={64} />
+                <Skeleton variant="rounded" height={64} />
+              </Stack>
+            )}
+          </Stack>
+        ) : null}
 
         {!loading && sortedDisplayedProgressions.length === 0 && (
           <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -694,7 +754,7 @@ export default function ProgressionsPageContent() {
           </Box>
         )}
 
-        {!loading && sortedDisplayedProgressions.length > 0 && (
+        {sortedDisplayedProgressions.length > 0 && (!loading || isPublicRefresh) && (
           <Box
             sx={{
               display: 'grid',

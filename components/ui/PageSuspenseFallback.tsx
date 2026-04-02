@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Card, CardContent, Stack, Typography } from '@mui/material';
+import { Box, Card, CardContent, Skeleton, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
 type PageSuspenseFallbackProps = {
@@ -8,6 +8,7 @@ type PageSuspenseFallbackProps = {
   messageKey?: string;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
   padded?: boolean;
+  variant?: 'default' | 'studio' | 'pricing' | 'account' | 'progressions' | 'sharedProgression';
 };
 
 export default function PageSuspenseFallback({
@@ -15,6 +16,7 @@ export default function PageSuspenseFallback({
   messageKey,
   maxWidth = 'lg',
   padded = true,
+  variant = 'default',
 }: PageSuspenseFallbackProps) {
   const { t } = useTranslation('common');
   const resolvedMessage = messageKey ? t(messageKey) : (message ?? t('settings.loadingDefault'));
@@ -23,6 +25,14 @@ export default function PageSuspenseFallback({
     md: 900,
     lg: 1200,
     xl: 1536,
+  } as const;
+  const sectionSkeletonByVariant = {
+    default: [56, 56, 56, 56],
+    studio: [64, 120, 64],
+    pricing: [88, 88, 88],
+    account: [72, 72, 120],
+    progressions: [88, 88, 88],
+    sharedProgression: [56, 180, 56],
   } as const;
 
   return (
@@ -41,7 +51,7 @@ export default function PageSuspenseFallback({
     >
       <Card variant="outlined">
         <CardContent>
-          <Stack spacing={2.5} sx={{ py: 4 }}>
+          <Stack spacing={2.5} sx={{ py: 4 }} aria-live="polite" aria-busy>
             <Typography color="text.secondary">{resolvedMessage}</Typography>
             <Box
               sx={{
@@ -65,19 +75,14 @@ export default function PageSuspenseFallback({
               sx={{
                 display: 'grid',
                 gap: 1,
-                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  md: variant === 'studio' || variant === 'sharedProgression' ? '1fr' : '1fr 1fr',
+                },
               }}
             >
-              {[0, 1, 2, 3].map((item) => (
-                <Box
-                  key={item}
-                  sx={{
-                    height: 56,
-                    borderRadius: 2,
-                    bgcolor: 'action.hover',
-                    opacity: 0.8,
-                  }}
-                />
+              {sectionSkeletonByVariant[variant].map((height, item) => (
+                <Skeleton key={item} variant="rounded" height={height} animation="wave" />
               ))}
             </Box>
           </Stack>

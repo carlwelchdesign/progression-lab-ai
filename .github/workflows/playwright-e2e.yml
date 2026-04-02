@@ -7,10 +7,37 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   e2e:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     name: E2E (${{ matrix.project }})
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: progression_lab
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d progression_lab"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' && secrets.NPM_TOKEN || github.token }}
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN != '' && secrets.NPM_TOKEN || github.token }}
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/progression_lab?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/progression_lab?schema=public
+      AUTH_SECRET: ci-e2e-auth-secret
+      APP_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
     strategy:
       fail-fast: false
       matrix:
@@ -22,6 +49,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Configure npm auth for GitHub Packages
+        shell: bash
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" > "$HOME/.npmrc"
+
+      - name: Debug token availability
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "Using repository NPM_TOKEN secret"
+          else
+            echo "NPM_TOKEN secret not available; using github.token fallback"
+          fi
+          npm whoami --registry=https://npm.pkg.github.com || true
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -30,6 +72,9 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+
+      - name: Prepare test database schema
+        run: yarn db:push
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium

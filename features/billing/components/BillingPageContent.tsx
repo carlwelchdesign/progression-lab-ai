@@ -28,7 +28,7 @@ import { useAuthModal } from '../../../components/providers/AuthModalProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
 import { createCsrfHeaders, ensureCsrfCookie } from '../../../lib/csrfClient';
 
-type BillingStatusResponse = {
+export type BillingStatusResponse = {
   plan: SubscriptionPlan;
   entitlements: {
     aiGenerationsPerMonth: number | null;
@@ -84,13 +84,23 @@ function formatDate(value: string | null, fallback: string): string {
   }).format(new Date(value));
 }
 
-export default function BillingPageContent() {
+type BillingPageContentProps = {
+  suppressUnauthenticatedNotice?: boolean;
+  initialBillingStatus?: BillingStatusResponse | null;
+};
+
+export default function BillingPageContent({
+  suppressUnauthenticatedNotice = false,
+  initialBillingStatus = null,
+}: BillingPageContentProps) {
   const { t } = useTranslation('common');
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuthModal } = useAuthModal();
   const { showError, showInfo, showSuccess } = useAppSnackbar();
-  const [billingStatus, setBillingStatus] = useState<BillingStatusResponse | null>(null);
-  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [billingStatus, setBillingStatus] = useState<BillingStatusResponse | null>(
+    initialBillingStatus,
+  );
+  const [isPageLoading, setIsPageLoading] = useState(initialBillingStatus === null);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [inviteError, setInviteError] = useState('');
@@ -137,14 +147,16 @@ export default function BillingPageContent() {
 
         showError((error as Error).message || t('billing.errors.loadStatus'));
       } finally {
-        setIsPageLoading(false);
+        if (!controller.signal.aborted) {
+          setIsPageLoading(false);
+        }
       }
     };
 
     void loadBillingStatusWithHandling();
 
     return () => controller.abort();
-  }, [isAuthenticated, isLoading, loadBillingStatus, showError, t]);
+  }, [isAuthenticated, isLoading, initialBillingStatus, loadBillingStatus, showError, t]);
 
   const handleRedeemInvite = async () => {
     const normalizedCode = inviteCode.trim();
@@ -241,6 +253,10 @@ export default function BillingPageContent() {
   }
 
   if (!isAuthenticated) {
+    if (suppressUnauthenticatedNotice) {
+      return null;
+    }
+
     return (
       <Container maxWidth="md" sx={{ py: { xs: 4, md: 8 } }}>
         <Card variant="outlined">

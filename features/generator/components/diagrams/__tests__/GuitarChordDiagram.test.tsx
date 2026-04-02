@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 
-import GuitarChordDiagram from './GuitarChordDiagram';
+import GuitarChordDiagram from '../GuitarChordDiagram';
 
 const mockConfigure = jest.fn();
 const mockChord = jest.fn();
@@ -119,5 +119,15 @@ describe('GuitarChordDiagram', () => {
     expect(mockChord).toHaveBeenLastCalledWith(
       expect.objectContaining({ title: 'D7', position: 5 }),
     );
+  });
+
+  it('does not redraw when rerendered with identical props', () => {
+    const { rerender } = render(
+      <GuitarChordDiagram title="Cmaj7" fingers={[[5, 3, '3']]} position={3} />,
+    );
+
+    rerender(<GuitarChordDiagram title="Cmaj7" fingers={[[5, 3, '3']]} position={3} />);
+
+    expect(mockDraw).toHaveBeenCalledTimes(1);
   });
 });

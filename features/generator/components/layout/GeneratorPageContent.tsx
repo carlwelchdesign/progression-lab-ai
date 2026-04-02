@@ -14,8 +14,6 @@ import {
   Box,
   Button,
   Container,
-  LinearProgress,
-  Skeleton,
   Stack,
   Typography,
 } from '@mui/material';
@@ -28,6 +26,7 @@ import GeneratorHeader from './GeneratorHeader';
 import InstrumentToggle from '../playback/InstrumentToggle';
 import PlaybackSettingsButton from '../playback/PlaybackSettingsButton';
 import RestoringState from './RestoringState';
+import GeneratorSectionSuspenseFallback from '../../../../components/ui/GeneratorSectionSuspenseFallback';
 import { useAppLocale } from '../../../../components/providers/LocaleProvider';
 import { useAppSnackbar } from '../../../../components/providers/AppSnackbarProvider';
 import { useAuth } from '../../../../components/providers/AuthProvider';
@@ -77,6 +76,7 @@ type ResultSectionConfig = {
   key: 'next' | 'progressions' | 'structure';
   shouldRender: boolean;
   fallbackLabel: string;
+  fallbackKind: 'next' | 'progressions' | 'structure';
   render: (isCollapsibleLayout: boolean) => React.ReactNode;
 };
 
@@ -757,7 +757,8 @@ export default function GeneratorPageContent({
     {
       key: 'next',
       shouldRender: !isLoadedFromSavedProgression,
-      fallbackLabel: t('status.loadingSuggestions'),
+      fallbackLabel: t('status.loadingNextChordCards'),
+      fallbackKind: 'next',
       render: (isCollapsibleLayout: boolean) => (
         <NextChordSuggestionsSection
           suggestions={visibleNextChordSuggestions}
@@ -782,7 +783,8 @@ export default function GeneratorPageContent({
     {
       key: 'progressions',
       shouldRender: true,
-      fallbackLabel: t('status.loadingProgressionIdeas'),
+      fallbackLabel: t('status.loadingProgressionCards'),
+      fallbackKind: 'progressions',
       render: () => (
         <ProgressionIdeasSection
           progressionIdeas={visibleProgressionIdeas}
@@ -813,7 +815,8 @@ export default function GeneratorPageContent({
     {
       key: 'structure',
       shouldRender: !isLoadedFromSavedProgression,
-      fallbackLabel: t('status.loadingStructureSuggestions'),
+      fallbackLabel: t('status.loadingArrangementSections'),
+      fallbackKind: 'structure',
       render: () => (
         <StructureSuggestionsSection
           structureSuggestions={visibleStructureSuggestions}
@@ -922,15 +925,7 @@ export default function GeneratorPageContent({
               px: { xs: 1, sm: 2 },
             }}
           >
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-              Generating suggestions...
-            </Typography>
-            <LinearProgress sx={{ mb: 2 }} />
-            <Stack spacing={1.25}>
-              <Skeleton variant="rounded" height={52} />
-              <Skeleton variant="rounded" height={52} />
-              <Skeleton variant="rounded" height={52} />
-            </Stack>
+            <GeneratorSectionSuspenseFallback labelKey="status.generatingSuggestions" kind="form" />
           </Box>
         )}
 
@@ -1054,9 +1049,10 @@ export default function GeneratorPageContent({
                                 <AccordionDetails>
                                   <Suspense
                                     fallback={
-                                      <Typography variant="body2" color="text.secondary">
-                                        {section.fallbackLabel}
-                                      </Typography>
+                                      <GeneratorSectionSuspenseFallback
+                                        label={section.fallbackLabel}
+                                        kind={section.fallbackKind}
+                                      />
                                     }
                                   >
                                     {section.render(true)}
@@ -1071,9 +1067,10 @@ export default function GeneratorPageContent({
                           <Suspense
                             key={section.key}
                             fallback={
-                              <Typography variant="body2" color="text.secondary">
-                                {section.fallbackLabel}
-                              </Typography>
+                              <GeneratorSectionSuspenseFallback
+                                label={section.fallbackLabel}
+                                kind={section.fallbackKind}
+                              />
                             }
                           >
                             {section.render(true)}
@@ -1092,9 +1089,10 @@ export default function GeneratorPageContent({
                           <Suspense
                             key={section.key}
                             fallback={
-                              <Typography variant="body2" color="text.secondary">
-                                {section.fallbackLabel}
-                              </Typography>
+                              <GeneratorSectionSuspenseFallback
+                                label={section.fallbackLabel}
+                                kind={section.fallbackKind}
+                              />
                             }
                           >
                             {section.render(false)}

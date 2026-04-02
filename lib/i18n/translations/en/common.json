@@ -14,10 +14,11 @@
     "switchToDarkMode": "Switch to dark mode"
   },
   "settings": {
-    "loadingDefault": "Loading...",
-    "loadingStudio": "Loading studio...",
-    "loadingPricing": "Loading pricing...",
-    "loadingProgressions": "Loading progressions...",
+    "loadingDefault": "Loading your workspace...",
+    "loadingStudio": "Loading studio controls and suggestion canvas...",
+    "loadingPricing": "Loading plans and feature comparisons...",
+    "loadingProgressions": "Loading saved progressions and voicing snapshots...",
+    "loadingAccount": "Loading account security and billing settings...",
     "loadingSecurity": "Loading security settings...",
     "loadingBilling": "Loading billing..."
   },
@@ -30,7 +31,7 @@
   },
   "sharedProgression": {
     "title": "Shared Progression",
-    "loading": "Loading shared progression...",
+    "loading": "Loading shared progression and playback controls...",
     "actions": {
       "play": "Play progression",
       "stop": "Stop progression",
@@ -45,7 +46,8 @@
     },
     "reason": {
       "myProgressions": "Create an account to access your personal saved progressions.",
-      "saveArrangement": "Sign in or create an account to save this arrangement."
+      "saveArrangement": "Sign in or create an account to save this arrangement.",
+      "account": "Sign in or create an account to manage billing and security settings."
     },
     "form": {
       "nameLabel": "Name",
@@ -56,6 +58,8 @@
       "emailRequired": "Email is required",
       "emailInvalid": "Please enter a valid email address",
       "passwordRequired": "Password is required",
+      "passwordOptionalForPasskey": "Leave blank to use your passkey first.",
+      "passwordFallbackRequired": "Password is required when using fallback sign-in.",
       "passwordMinLength": "Password must be at least 8 characters",
       "passwordMinLengthHint": "Minimum 8 characters"
     },
@@ -75,7 +79,8 @@
     "errors": {
       "authenticationFailed": "Authentication failed",
       "mfaOptionsMissing": "Security key authentication options are missing",
-      "mfaVerificationFailed": "Security key verification failed"
+      "mfaVerificationFailed": "Security key verification failed",
+      "passkeyCancelledUsePassword": "Passkey was canceled. Enter your password to continue."
     },
     "webauthn": {
       "title": "Add a Security Key",
@@ -258,6 +263,11 @@
       "searchTagsPlaceholder": "house, cinematic, jazz...",
       "searchKeyLabel": "Search key/Chord(s)",
       "searchKeyPlaceholder": "C, F#m, Bb..."
+    },
+    "loading": {
+      "mine": "Loading your saved progressions...",
+      "publicInitial": "Loading curated progressions and spotlight samples...",
+      "publicRefreshing": "Refreshing public progressions..."
     },
     "empty": {
       "mine": "You haven't saved any progressions yet.",

@@ -30,6 +30,7 @@ type LoginCardProps = {
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onUsePasswordFallback: () => void;
   onWebAuthnAuthentication: (response: AuthenticationResponseJSON) => void;
   onWebAuthnEnrollment: (response: RegistrationResponseJSON, label?: string | null) => void;
 };
@@ -44,6 +45,7 @@ export default function LoginCard({
   onEmailChange,
   onPasswordChange,
   onSubmit,
+  onUsePasswordFallback,
   onWebAuthnAuthentication,
   onWebAuthnEnrollment,
 }: LoginCardProps) {
@@ -119,6 +121,10 @@ export default function LoginCard({
               >
                 {isBusy ? 'Waiting for security key…' : 'Use security key'}
               </Button>
+
+              <Button variant="text" onClick={onUsePasswordFallback} disabled={isBusy}>
+                Use password instead
+              </Button>
             </Stack>
           </CardContent>
         </Card>
@@ -137,18 +143,14 @@ export default function LoginCard({
                   Register Security Key
                 </Typography>
                 <Typography color="text.secondary">
-                  No security key is registered for your admin account. Enroll one now to
-                  continue — it will be required on every future login.
+                  No security key is registered for your admin account. Enroll one now to continue —
+                  it will be required on every future login.
                 </Typography>
               </Box>
 
               {displayError ? <Alert severity="error">{displayError}</Alert> : null}
 
-              <Button
-                variant="contained"
-                onClick={() => void handleEnroll()}
-                disabled={isBusy}
-              >
+              <Button variant="contained" onClick={() => void handleEnroll()} disabled={isBusy}>
                 {isBusy ? 'Registering security key…' : 'Register security key'}
               </Button>
             </Stack>
@@ -186,7 +188,7 @@ export default function LoginCard({
               type="password"
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
-              required
+              helperText="Optional for passkey login. Required when using password fallback."
             />
 
             <Button type="submit" variant="contained" disabled={isBusy}>

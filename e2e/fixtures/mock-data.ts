@@ -91,6 +91,7 @@ export const authenticatedUser = {
     id: 'user-1',
     email: 'staff@example.com',
     name: 'Staff User',
+    role: 'USER',
     createdAt: '2026-03-20T00:00:00.000Z',
   },
 };

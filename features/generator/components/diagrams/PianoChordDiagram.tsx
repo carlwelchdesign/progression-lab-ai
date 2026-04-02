@@ -2,17 +2,20 @@
 
 import { Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { Instrument } from 'piano-chart';
 
-type Props = {
+type PianoChordDiagramProps = {
   leftHand: string[];
   rightHand: string[];
 };
 
-export default function PianoChordDiagram({ leftHand, rightHand }: Props) {
+function PianoChordDiagram({ leftHand, rightHand }: PianoChordDiagramProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const theme = useTheme();
+  const primaryColor = theme.palette.primary.main;
+  const notes = useMemo(() => [...leftHand, ...rightHand], [leftHand, rightHand]);
+  const notesSignature = useMemo(() => notes.join('|'), [notes]);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -24,19 +27,19 @@ export default function PianoChordDiagram({ leftHand, rightHand }: Props) {
       endOctave: 6,
       showNoteNames: 'always',
       keyPressStyle: 'vivid',
-      vividKeyPressColor: theme.palette.primary.main,
+      vividKeyPressColor: primaryColor,
     });
 
     piano.create();
 
-    [...leftHand, ...rightHand].forEach((note) => {
+    notes.forEach((note) => {
       piano.keyDown(note);
     });
 
     return () => {
       piano.destroy();
     };
-  }, [leftHand, rightHand, theme.palette.primary.main]);
+  }, [notes, notesSignature, primaryColor]);
 
   return (
     <Box
@@ -53,3 +56,22 @@ export default function PianoChordDiagram({ leftHand, rightHand }: Props) {
     />
   );
 }
+
+function arePropsEqual(previous: PianoChordDiagramProps, next: PianoChordDiagramProps): boolean {
+  if (previous.leftHand.length !== next.leftHand.length) {
+    return false;
+  }
+
+  if (previous.rightHand.length !== next.rightHand.length) {
+    return false;
+  }
+
+  const leftIsEqual = previous.leftHand.every((note, index) => note === next.leftHand[index]);
+  if (!leftIsEqual) {
+    return false;
+  }
+
+  return previous.rightHand.every((note, index) => note === next.rightHand[index]);
+}
+
+export default memo(PianoChordDiagram, arePropsEqual);

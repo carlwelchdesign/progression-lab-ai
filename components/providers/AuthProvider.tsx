@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import {
   createContext,
   useContext,
@@ -47,6 +48,7 @@ let authInitialized = false;
  * Provides auth state, refresh, and logout actions to the client app tree.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -183,6 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false);
     setUser(null);
     sessionStorage.removeItem(AUTH_CACHE_KEY);
+    router.push('/pricing');
   };
 
   return (

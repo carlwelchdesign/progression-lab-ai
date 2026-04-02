@@ -1,9 +1,42 @@
 import { expect, test as base, type Page, type Route } from '@playwright/test';
+import { readFileSync } from 'fs';
+import path from 'path';
 
+import { createSessionToken } from '../../lib/auth';
 import HomePage from '../page-objects/home-page';
 import ProgressionsPage from '../page-objects/progressions-page';
 import { authenticatedUser, generatorResponse, publicProgressions } from './mock-data';
 import type { ChordSuggestionResponse, Progression } from '../../lib/types';
+
+const APP_ORIGINS = ['http://127.0.0.1:3000', 'http://localhost:3000'];
+const AUTH_CACHE_KEY = 'auth_cache_v1';
+const CSRF_TOKEN = 'a'.repeat(64);
+
+function ensureAuthSecretLoaded() {
+  if (process.env.AUTH_SECRET) {
+    return;
+  }
+
+  const envFileNames = ['.env.local', '.env.development', '.env.test', '.env'];
+
+  for (const fileName of envFileNames) {
+    try {
+      const envContent = readFileSync(path.resolve(process.cwd(), fileName), 'utf8');
+      const match = envContent.match(/^\s*(?:export\s+)?AUTH_SECRET\s*=\s*(.+)\s*$/m);
+      if (!match) {
+        continue;
+      }
+
+      const value = match[1].trim().replace(/^['"]|['"]$/g, '');
+      if (value) {
+        process.env.AUTH_SECRET = value;
+        return;
+      }
+    } catch {
+      // Keep trying other env files.
+    }
+  }
+}
 
 interface PublishedMarketingContent {
   surface: string;
@@ -29,6 +62,34 @@ class ApiMocker {
   }
 
   async mockAuthenticatedUser() {
+    const user = authenticatedUser.user;
+    ensureAuthSecretLoaded();
+    const sessionToken = createSessionToken(user.id, user.email, user.role);
+
+    await this.page.context().addCookies(
+      APP_ORIGINS.flatMap((origin) => [
+        {
+          name: 'progressionlab_session',
+          value: sessionToken,
+          url: origin,
+          sameSite: 'Lax' as const,
+        },
+        {
+          name: 'csrf-token',
+          value: CSRF_TOKEN,
+          url: origin,
+          sameSite: 'Lax' as const,
+        },
+      ]),
+    );
+
+    await this.page.addInitScript(
+      ({ cacheKey, cachedUser }) => {
+        window.sessionStorage.setItem(cacheKey, JSON.stringify({ user: cachedUser }));
+      },
+      { cacheKey: AUTH_CACHE_KEY, cachedUser: user },
+    );
+
     await this.page.route('**/api/auth/me', async (route) => {
       await fulfillJson(route, authenticatedUser);
     });

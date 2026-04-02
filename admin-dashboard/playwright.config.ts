@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 3010;
 const baseURL = `http://127.0.0.1:${PORT}`;
+const useExternalServers = process.env.PLAYWRIGHT_EXTERNAL_SERVERS === '1';
 
 export default defineConfig({
   testDir: './e2e',
@@ -17,12 +18,24 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  webServer: {
-    command: 'yarn --cwd admin-dashboard dev',
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  ...(useExternalServers
+    ? {}
+    : {
+        webServer: [
+          {
+            command: 'yarn dev',
+            url: 'http://127.0.0.1:3000',
+            reuseExistingServer: !process.env.CI,
+            timeout: 300_000,
+          },
+          {
+            command: 'yarn --cwd admin-dashboard dev',
+            url: baseURL,
+            reuseExistingServer: !process.env.CI,
+            timeout: 300_000,
+          },
+        ],
+      }),
   projects: [
     {
       name: 'chromium',

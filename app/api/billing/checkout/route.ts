@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       discounts: promoValidation?.isValid
         ? [{ promotion_code: promoValidation.stripePromotionCodeId }]
         : undefined,
-      success_url: `${appUrl}/settings/billing?checkout=success`,
+      success_url: `${appUrl}/account?checkout=success`,
       cancel_url: `${appUrl}/pricing?checkout=cancelled`,
       metadata: checkoutMetadata,
       subscription_data: {

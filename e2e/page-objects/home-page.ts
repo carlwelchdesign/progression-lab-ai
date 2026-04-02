@@ -35,13 +35,13 @@ export default class HomePage {
   async expectResultsRendered() {
     await expect(
       this.page.getByRole('heading', { level: 2, name: 'Next chord suggestions' }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15000 });
     await expect(
       this.page.getByRole('heading', { level: 2, name: 'Progression ideas' }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15000 });
     await expect(
       this.page.getByRole('heading', { level: 2, name: 'Structure suggestions' }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15000 });
     await expect(this.page.getByRole('heading', { level: 3, name: 'Am7' })).toBeVisible();
     await expect(
       this.page.getByRole('heading', { level: 3, name: 'Lifted turnaround' }),

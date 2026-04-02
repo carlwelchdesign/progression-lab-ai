@@ -233,13 +233,8 @@ export default function AppWrapper({ children }: Props) {
                 {progressionsLabel}
               </Button>
               {isAuthenticated ? (
-                <Button component={Link} href="/settings/billing" color="inherit">
-                  {t('billing', { ns: 'nav' })}
-                </Button>
-              ) : null}
-              {isAuthenticated ? (
-                <Button component={Link} href="/settings/security" color="inherit">
-                  {t('security', { ns: 'nav' })}
+                <Button component={Link} href="/account" color="inherit">
+                  {t('account', { ns: 'nav' })}
                 </Button>
               ) : null}
               {isLoading ? (
@@ -306,21 +301,8 @@ export default function AppWrapper({ children }: Props) {
               <ListItemText primary={progressionsLabel} />
             </ListItemButton>
             {isAuthenticated ? (
-              <ListItemButton
-                component={Link}
-                href="/settings/billing"
-                onClick={() => setMobileOpen(false)}
-              >
-                <ListItemText primary={t('billing', { ns: 'nav' })} />
-              </ListItemButton>
-            ) : null}
-            {isAuthenticated ? (
-              <ListItemButton
-                component={Link}
-                href="/settings/security"
-                onClick={() => setMobileOpen(false)}
-              >
-                <ListItemText primary={t('security', { ns: 'nav' })} />
+              <ListItemButton component={Link} href="/account" onClick={() => setMobileOpen(false)}>
+                <ListItemText primary={t('account', { ns: 'nav' })} />
               </ListItemButton>
             ) : null}
             {isLoading ? (

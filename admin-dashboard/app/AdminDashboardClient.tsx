@@ -74,6 +74,7 @@ export default function AdminDashboardClient() {
     setUserPage,
     setDetailsOpen,
     handleLogin,
+    handleUsePasswordFallback,
     handleLogout,
     handleWebAuthnAuthentication,
     handleWebAuthnEnrollment,
@@ -104,6 +105,7 @@ export default function AdminDashboardClient() {
         onEmailChange={setEmail}
         onPasswordChange={setPassword}
         onSubmit={handleLogin}
+        onUsePasswordFallback={handleUsePasswordFallback}
         onWebAuthnAuthentication={(resp) => void handleWebAuthnAuthentication(resp)}
         onWebAuthnEnrollment={(resp, label) => void handleWebAuthnEnrollment(resp, label)}
       />

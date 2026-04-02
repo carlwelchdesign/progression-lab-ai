@@ -13,10 +13,18 @@ on:
       - 'admin-dashboard/**'
       - '.github/workflows/playwright-admin-e2e.yml'
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   admin-e2e:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     name: Admin E2E (${{ matrix.project }})
     runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' && secrets.NPM_TOKEN || github.token }}
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN != '' && secrets.NPM_TOKEN || github.token }}
     strategy:
       fail-fast: false
       matrix:
@@ -28,6 +36,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Configure npm auth for GitHub Packages
+        shell: bash
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" > "$HOME/.npmrc"
+
+      - name: Debug token availability
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "Using repository NPM_TOKEN secret"
+          else
+            echo "NPM_TOKEN secret not available; using github.token fallback"
+          fi
+          npm whoami --registry=https://npm.pkg.github.com || true
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -37,11 +60,59 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Install admin dashboard dependencies
+        run: yarn --cwd admin-dashboard install --frozen-lockfile
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Start web servers
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup yarn dev > /tmp/app-dev.log 2>&1 &
+          nohup yarn --cwd admin-dashboard dev > /tmp/admin-dev.log 2>&1 &
+
+          for i in {1..120}; do
+            if curl -sf http://127.0.0.1:3000/ >/dev/null; then
+              echo "Main app is up"
+              break
+            fi
+            if [ "$i" -eq 120 ]; then
+              echo "Main app failed to start"
+              tail -n 200 /tmp/app-dev.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+
+          for i in {1..120}; do
+            if curl -sf http://127.0.0.1:3010/ >/dev/null; then
+              echo "Admin app is up"
+              break
+            fi
+            if [ "$i" -eq 120 ]; then
+              echo "Admin app failed to start"
+              tail -n 200 /tmp/admin-dev.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+
       - name: Run admin Playwright tests
+        env:
+          PLAYWRIGHT_EXTERNAL_SERVERS: '1'
         run: npx playwright test -c admin-dashboard/playwright.config.ts --project=${{ matrix.project }}
+
+      - name: Upload server startup logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-server-logs-${{ matrix.project }}
+          path: |
+            /tmp/app-dev.log
+            /tmp/admin-dev.log
+          if-no-files-found: ignore
 
       - name: Upload admin Playwright report
         if: always()
