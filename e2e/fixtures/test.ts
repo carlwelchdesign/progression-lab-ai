@@ -8,7 +8,7 @@ import ProgressionsPage from '../page-objects/progressions-page';
 import { authenticatedUser, generatorResponse, publicProgressions } from './mock-data';
 import type { ChordSuggestionResponse, Progression } from '../../lib/types';
 
-const APP_ORIGIN = 'http://127.0.0.1:3000';
+const APP_ORIGINS = ['http://127.0.0.1:3000', 'http://localhost:3000'];
 const AUTH_CACHE_KEY = 'auth_cache_v1';
 const CSRF_TOKEN = 'a'.repeat(64);
 
@@ -17,16 +17,24 @@ function ensureAuthSecretLoaded() {
     return;
   }
 
-  try {
-    const envLocal = readFileSync(path.resolve(process.cwd(), '.env.local'), 'utf8');
-    const match = envLocal.match(/^AUTH_SECRET=(.*)$/m);
-    if (!match) {
-      return;
-    }
+  const envFileNames = ['.env.local', '.env.development', '.env.test', '.env'];
 
-    process.env.AUTH_SECRET = match[1].trim().replace(/^"|"$/g, '');
-  } catch {
-    // Keep default test secret fallback when .env.local is unavailable.
+  for (const fileName of envFileNames) {
+    try {
+      const envContent = readFileSync(path.resolve(process.cwd(), fileName), 'utf8');
+      const match = envContent.match(/^\s*(?:export\s+)?AUTH_SECRET\s*=\s*(.+)\s*$/m);
+      if (!match) {
+        continue;
+      }
+
+      const value = match[1].trim().replace(/^['"]|['"]$/g, '');
+      if (value) {
+        process.env.AUTH_SECRET = value;
+        return;
+      }
+    } catch {
+      // Keep trying other env files.
+    }
   }
 }
 
@@ -58,20 +66,22 @@ class ApiMocker {
     ensureAuthSecretLoaded();
     const sessionToken = createSessionToken(user.id, user.email, user.role);
 
-    await this.page.context().addCookies([
-      {
-        name: 'progressionlab_session',
-        value: sessionToken,
-        url: APP_ORIGIN,
-        sameSite: 'Lax',
-      },
-      {
-        name: 'csrf-token',
-        value: CSRF_TOKEN,
-        url: APP_ORIGIN,
-        sameSite: 'Lax',
-      },
-    ]);
+    await this.page.context().addCookies(
+      APP_ORIGINS.flatMap((origin) => [
+        {
+          name: 'progressionlab_session',
+          value: sessionToken,
+          url: origin,
+          sameSite: 'Lax' as const,
+        },
+        {
+          name: 'csrf-token',
+          value: CSRF_TOKEN,
+          url: origin,
+          sameSite: 'Lax' as const,
+        },
+      ]),
+    );
 
     await this.page.addInitScript(
       ({ cacheKey, cachedUser }) => {
