@@ -21,7 +21,7 @@ export default defineConfig({
     command: 'yarn dev',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 300_000,
   },
   projects: [
     {
