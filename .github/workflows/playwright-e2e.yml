@@ -34,6 +34,7 @@ jobs:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' && secrets.NPM_TOKEN || github.token }}
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN != '' && secrets.NPM_TOKEN || github.token }}
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/progression_lab?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/progression_lab?schema=public
       AUTH_SECRET: ci-e2e-auth-secret
       APP_URL: http://127.0.0.1:3000
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
