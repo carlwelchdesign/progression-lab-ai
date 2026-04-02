@@ -3,6 +3,10 @@ APP_NAME=music-chord-app
 .PHONY: install dev build build-app start lint lint-fix test test-e2e db-generate db-push db-seed db-studio db-migrate-deploy admin-dev admin-build admin-start admin-lint admin-db-generate wiki-publish docker-build docker-up docker-down docker-logs clean setup-env help vercel-link vercel-pull vercel-preview vercel-prod vercel-prod-with-migrate
 
 install:
+	@if [ -n "$$NPM_TOKEN" ]; then \
+		echo "//npm.pkg.github.com/:_authToken=$$NPM_TOKEN" > .npmrc; \
+		echo "//npm.pkg.github.com/:_authToken=$$NPM_TOKEN" > admin-dashboard/.npmrc; \
+	fi
 	yarn install
 
 dev:

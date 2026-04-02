@@ -1,3 +1,4 @@
+.npmrc
 .env
 .env.local
 .env.vercel
