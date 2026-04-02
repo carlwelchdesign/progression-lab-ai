@@ -54,6 +54,7 @@ export async function fetchSession(): Promise<AdminUser | null> {
 export async function login(credentials: {
   email: string;
   password: string;
+  preferPassword?: boolean;
 }): Promise<AdminLoginResult> {
   const response = await fetch('/api/auth/login', {
     method: 'POST',

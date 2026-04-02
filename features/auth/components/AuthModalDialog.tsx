@@ -87,6 +87,7 @@ export default function AuthModalDialog({
   const { showError, showSuccess } = useAppSnackbar();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [apiError, setApiError] = useState('');
+  const [preferPasswordFallback, setPreferPasswordFallback] = useState(false);
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   const [showPersonaModal, setShowPersonaModal] = useState(false);
   const [authCopy, setAuthCopy] = useState<AuthFlowCopy | null>(null);
@@ -127,6 +128,7 @@ export default function AuthModalDialog({
 
     setMode(initialMode);
     setApiError('');
+    setPreferPasswordFallback(false);
     reset();
   }, [initialMode, open, reset]);
 
@@ -142,6 +144,7 @@ export default function AuthModalDialog({
           name: data.name,
           email: data.email,
           password: data.password,
+          preferPassword: mode === 'login' ? preferPasswordFallback : undefined,
         }),
       });
 
@@ -158,7 +161,26 @@ export default function AuthModalDialog({
             throw new Error(t('auth.errors.mfaOptionsMissing'));
           }
 
-          const assertionResponse = await startAuthentication({ optionsJSON: body.options });
+          let assertionResponse;
+          try {
+            assertionResponse = await startAuthentication({ optionsJSON: body.options });
+          } catch (error) {
+            const message = (error as Error).message ?? '';
+            const wasCancelled =
+              message.includes('NotAllowedError') ||
+              message.toLowerCase().includes('cancel') ||
+              message.toLowerCase().includes('timed out');
+
+            if (wasCancelled) {
+              setPreferPasswordFallback(true);
+              const fallbackMessage = t('auth.errors.passkeyCancelledUsePassword');
+              setApiError(fallbackMessage);
+              return;
+            }
+
+            throw error;
+          }
+
           const verifyResponse = await fetch('/api/auth/webauthn/authenticate', {
             method: 'POST',
             credentials: 'include',
@@ -253,6 +275,7 @@ export default function AuthModalDialog({
                 if (value) {
                   setMode(value);
                   setApiError('');
+                  setPreferPasswordFallback(false);
                   reset();
                 }
               }}
@@ -311,7 +334,13 @@ export default function AuthModalDialog({
               name="password"
               control={control}
               rules={{
-                required: t('auth.form.passwordRequired'),
+                ...(mode === 'login'
+                  ? {
+                      required: preferPasswordFallback ? t('auth.form.passwordRequired') : false,
+                    }
+                  : {
+                      required: t('auth.form.passwordRequired'),
+                    }),
                 ...(mode === 'register' && {
                   minLength: {
                     value: 8,
@@ -328,7 +357,11 @@ export default function AuthModalDialog({
                   error={!!error}
                   helperText={
                     error?.message ||
-                    (mode === 'register' ? t('auth.form.passwordMinLengthHint') : undefined)
+                    (mode === 'register'
+                      ? t('auth.form.passwordMinLengthHint')
+                      : preferPasswordFallback
+                        ? t('auth.form.passwordFallbackRequired')
+                        : t('auth.form.passwordOptionalForPasskey'))
                   }
                 />
               )}

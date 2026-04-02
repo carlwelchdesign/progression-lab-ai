@@ -58,6 +58,8 @@
       "emailRequired": "Email is required",
       "emailInvalid": "Please enter a valid email address",
       "passwordRequired": "Password is required",
+      "passwordOptionalForPasskey": "Leave blank to use your passkey first.",
+      "passwordFallbackRequired": "Password is required when using fallback sign-in.",
       "passwordMinLength": "Password must be at least 8 characters",
       "passwordMinLengthHint": "Minimum 8 characters"
     },
@@ -77,7 +79,8 @@
     "errors": {
       "authenticationFailed": "Authentication failed",
       "mfaOptionsMissing": "Security key authentication options are missing",
-      "mfaVerificationFailed": "Security key verification failed"
+      "mfaVerificationFailed": "Security key verification failed",
+      "passkeyCancelledUsePassword": "Passkey was canceled. Enter your password to continue."
     },
     "webauthn": {
       "title": "Add a Security Key",

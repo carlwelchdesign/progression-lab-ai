@@ -14,6 +14,8 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
+import { startAuthentication } from '@simplewebauthn/browser';
+import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../components/providers/AuthProvider';
 import { useAppSnackbar } from '../../../components/providers/AppSnackbarProvider';
@@ -27,6 +29,12 @@ type AuthFormData = {
   password: string;
 };
 
+type LoginResponseBody = {
+  status?: 'AUTHENTICATED' | 'MFA_REQUIRED';
+  options?: PublicKeyCredentialRequestOptionsJSON;
+  message?: string;
+};
+
 export default function AuthPageContent() {
   const { t } = useTranslation('common');
   const searchParams = useSearchParams();
@@ -36,6 +44,7 @@ export default function AuthPageContent() {
   const { showError, showSuccess } = useAppSnackbar();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [apiError, setApiError] = useState('');
+  const [preferPasswordFallback, setPreferPasswordFallback] = useState(false);
   const {
     control,
     handleSubmit,
@@ -56,11 +65,13 @@ export default function AuthPageContent() {
     try {
       const response = await fetch(`/api/auth/${mode}`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: data.name,
           email: data.email,
           password: data.password,
+          preferPassword: mode === 'login' ? preferPasswordFallback : undefined,
         }),
       });
 
@@ -69,7 +80,48 @@ export default function AuthPageContent() {
         throw new Error(body.message ?? t('auth.errors.authenticationFailed'));
       }
 
-      // Refresh auth context with new user data
+      if (mode === 'login') {
+        const body = (await response.json()) as LoginResponseBody;
+
+        if (body.status === 'MFA_REQUIRED') {
+          if (!body.options) {
+            throw new Error(t('auth.errors.mfaOptionsMissing'));
+          }
+
+          let assertionResponse;
+          try {
+            assertionResponse = await startAuthentication({ optionsJSON: body.options });
+          } catch (error) {
+            const message = (error as Error).message ?? '';
+            const wasCancelled =
+              message.includes('NotAllowedError') ||
+              message.toLowerCase().includes('cancel') ||
+              message.toLowerCase().includes('timed out');
+
+            if (wasCancelled) {
+              setPreferPasswordFallback(true);
+              const fallbackMessage = t('auth.errors.passkeyCancelledUsePassword');
+              setApiError(fallbackMessage);
+              return;
+            }
+
+            throw error;
+          }
+
+          const verifyResponse = await fetch('/api/auth/webauthn/authenticate', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ response: assertionResponse }),
+          });
+
+          if (!verifyResponse.ok) {
+            const verifyBody = (await verifyResponse.json()) as { message?: string };
+            throw new Error(verifyBody.message ?? t('auth.errors.mfaVerificationFailed'));
+          }
+        }
+      }
+
       await refresh();
       showSuccess(
         mode === 'login'
@@ -107,6 +159,7 @@ export default function AuthPageContent() {
               if (value) {
                 setMode(value);
                 setApiError('');
+                setPreferPasswordFallback(false);
                 reset(); // Reset form when switching modes
               }
             }}
@@ -165,7 +218,13 @@ export default function AuthPageContent() {
             name="password"
             control={control}
             rules={{
-              required: t('auth.form.passwordRequired'),
+              ...(mode === 'login'
+                ? {
+                    required: preferPasswordFallback ? t('auth.form.passwordRequired') : false,
+                  }
+                : {
+                    required: t('auth.form.passwordRequired'),
+                  }),
               ...(mode === 'register' && {
                 minLength: {
                   value: 8,
@@ -182,7 +241,11 @@ export default function AuthPageContent() {
                 error={!!error}
                 helperText={
                   error?.message ||
-                  (mode === 'register' ? t('auth.form.passwordMinLengthHint') : undefined)
+                  (mode === 'register'
+                    ? t('auth.form.passwordMinLengthHint')
+                    : preferPasswordFallback
+                      ? t('auth.form.passwordFallbackRequired')
+                      : t('auth.form.passwordOptionalForPasskey'))
                 }
               />
             )}

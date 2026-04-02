@@ -16,6 +16,8 @@ import { createAuthenticationOptions, listActiveCredentials } from '../../../../
 import { WebAuthnFlowType } from '@prisma/client';
 import { prisma } from '../../../../lib/prisma';
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /**
  * Authenticates a user and returns user profile with session cookie.
  * Includes rate limiting (5 attempts per 15 minutes) to prevent brute force attacks.
@@ -28,24 +30,34 @@ export async function POST(request: NextRequest) {
       return rateLimitResponse;
     }
 
-    const credentials = normalizeAuthCredentials(await request.json());
-    const validationError = validateAuthCredentials(credentials);
+    const payload = (await request.json()) as {
+      email?: string;
+      password?: string;
+      name?: string;
+      preferPassword?: boolean;
+    };
+    const credentials = normalizeAuthCredentials(payload);
+    const preferPassword = payload.preferPassword === true;
 
-    if (validationError) {
-      return NextResponse.json({ message: validationError }, { status: 400 });
+    if (!credentials.email) {
+      return NextResponse.json({ message: 'Email is required' }, { status: 400 });
+    }
+
+    if (!EMAIL_PATTERN.test(credentials.email) || credentials.email.length > 254) {
+      return NextResponse.json({ message: 'Invalid email format' }, { status: 400 });
     }
 
     const { email, password } = credentials;
 
     const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
+    if (!user) {
       return NextResponse.json({ message: 'Invalid email or password' }, { status: 401 });
     }
 
     const activeCredentials = await listActiveCredentials(user.id);
 
-    if (activeCredentials.length > 0) {
+    if (activeCredentials.length > 0 && !preferPassword) {
       const response = NextResponse.json({
         status: 'MFA_REQUIRED',
         user: {
@@ -62,6 +74,11 @@ export async function POST(request: NextRequest) {
 
       setPendingAuthCookie(response, createPendingAuthToken(user.id, user.email, user.role));
       return response;
+    }
+
+    const validationError = validateAuthCredentials(credentials);
+    if (validationError || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
+      return NextResponse.json({ message: 'Invalid email or password' }, { status: 401 });
     }
 
     const response = NextResponse.json({

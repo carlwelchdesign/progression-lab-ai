@@ -77,6 +77,7 @@ export default function useAdminDashboard() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
+  const [preferPasswordFallback, setPreferPasswordFallback] = useState(false);
 
   const canDelete = user?.role === 'ADMIN';
   const deferredProgressionQuery = useDeferredValue(progressionFilters.query);
@@ -233,12 +234,13 @@ export default function useAdminDashboard() {
     setAuthError(null);
 
     try {
-      const result = await login({ email, password });
+      const result = await login({ email, password, preferPassword: preferPasswordFallback });
       setLoginStatus(result.status);
 
       if (result.status === 'AUTHENTICATED') {
         await loadSession();
         setPassword('');
+        setPreferPasswordFallback(false);
         setMfaOptions(null);
       } else {
         setMfaOptions(result.options ?? null);
@@ -261,6 +263,7 @@ export default function useAdminDashboard() {
       if (result.status === 'AUTHENTICATED') {
         await loadSession();
         setPassword('');
+        setPreferPasswordFallback(false);
         setLoginStatus(null);
         setMfaOptions(null);
       }
@@ -283,6 +286,7 @@ export default function useAdminDashboard() {
       if (result.status === 'AUTHENTICATED') {
         await loadSession();
         setPassword('');
+        setPreferPasswordFallback(false);
         setLoginStatus(null);
         setMfaOptions(null);
       }
@@ -311,7 +315,15 @@ export default function useAdminDashboard() {
     setDetails(null);
     setDetailsOpen(false);
     setLoginStatus(null);
+    setPreferPasswordFallback(false);
     setMfaOptions(null);
+  };
+
+  const handleUsePasswordFallback = () => {
+    setPreferPasswordFallback(true);
+    setLoginStatus(null);
+    setMfaOptions(null);
+    setAuthError('Passkey was canceled. Enter your password to continue sign-in.');
   };
 
   const handleOpenDetails = async (id: string) => {
@@ -446,6 +458,7 @@ export default function useAdminDashboard() {
     setUserPage,
     setDetailsOpen,
     handleLogin,
+    handleUsePasswordFallback,
     handleLogout,
     handleWebAuthnAuthentication,
     handleWebAuthnEnrollment,
