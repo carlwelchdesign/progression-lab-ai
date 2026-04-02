@@ -3,10 +3,48 @@ import { expect, type Page } from '@playwright/test';
 export default class SecuritySettingsPage {
   constructor(private readonly page: Page) {}
 
+  private async installWebAuthnMock() {
+    await this.page.evaluate(() => {
+      window.confirm = () => true;
+
+      const encoder = new TextEncoder();
+      const credential = {
+        id: 'mock-credential-id',
+        rawId: Uint8Array.from([1, 2, 3, 4]).buffer,
+        response: {
+          clientDataJSON: encoder.encode(
+            JSON.stringify({
+              type: 'webauthn.create',
+              challenge: 'mock-challenge',
+              origin: window.location.origin,
+              crossOrigin: false,
+            }),
+          ).buffer,
+          attestationObject: Uint8Array.from([5, 6, 7, 8]).buffer,
+          getTransports: () => ['internal'],
+        },
+        type: 'public-key',
+        authenticatorAttachment: 'cross-platform',
+        getClientExtensionResults: () => ({}),
+      };
+
+      Object.defineProperty(navigator, 'credentials', {
+        configurable: true,
+        value: {
+          ...navigator.credentials,
+          create: async () => credential,
+        },
+      });
+    });
+  }
+
   async goto() {
     await this.page.goto('/account');
+    await this.page.evaluate(() => {
+      window.confirm = () => true;
+    });
     await expect(
-      this.page.getByRole('heading', { name: /Security Key|Security Keys|Hardware Security Key/i }),
+      this.page.getByRole('heading', { name: /Security Keys|Security Key|Hardware Security Key/i }),
     ).toBeVisible({ timeout: 15000 });
   }
 
@@ -20,6 +58,8 @@ export default class SecuritySettingsPage {
   }
 
   async startSecurityKeyEnrollment() {
+    await this.installWebAuthnMock();
+
     const addButton = this.page.getByRole('button', { name: /add security key/i });
     await expect(addButton).toBeVisible({ timeout: 10000 });
     await addButton.click();
@@ -116,12 +156,6 @@ export default class SecuritySettingsPage {
       .getByRole('button', { name: /remove security key|remove key|delete|remove/i });
 
     await deleteButton.click();
-
-    // Confirm deletion if dialog appears
-    const confirmDelete = this.page.getByRole('button', { name: /Confirm|Delete|Remove/i });
-    if (await confirmDelete.isVisible().catch(() => false)) {
-      await confirmDelete.click();
-    }
 
     // Wait for removal in UI
     await expect(keyItem).not.toBeVisible({ timeout: 5000 });
