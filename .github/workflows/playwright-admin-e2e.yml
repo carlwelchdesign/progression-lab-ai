@@ -63,8 +63,53 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Start web servers
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup yarn dev > /tmp/app-dev.log 2>&1 &
+          nohup yarn --cwd admin-dashboard dev > /tmp/admin-dev.log 2>&1 &
+
+          for i in {1..120}; do
+            if curl -sf http://127.0.0.1:3000/ >/dev/null; then
+              echo "Main app is up"
+              break
+            fi
+            if [ "$i" -eq 120 ]; then
+              echo "Main app failed to start"
+              tail -n 200 /tmp/app-dev.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+
+          for i in {1..120}; do
+            if curl -sf http://127.0.0.1:3010/ >/dev/null; then
+              echo "Admin app is up"
+              break
+            fi
+            if [ "$i" -eq 120 ]; then
+              echo "Admin app failed to start"
+              tail -n 200 /tmp/admin-dev.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+
       - name: Run admin Playwright tests
+        env:
+          PLAYWRIGHT_EXTERNAL_SERVERS: '1'
         run: npx playwright test -c admin-dashboard/playwright.config.ts --project=${{ matrix.project }}
+
+      - name: Upload server startup logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-server-logs-${{ matrix.project }}
+          path: |
+            /tmp/app-dev.log
+            /tmp/admin-dev.log
+          if-no-files-found: ignore
 
       - name: Upload admin Playwright report
         if: always()
