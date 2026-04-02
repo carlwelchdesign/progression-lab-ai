@@ -1,4 +1,4 @@
-import { test } from './fixtures/test';
+import { expect, test } from './fixtures/test';
 import SecuritySettingsPage from './page-objects/security-settings-page';
 
 test.describe('Security Key / WebAuthn E2E', () => {
@@ -132,6 +132,7 @@ test.describe('Security Key / WebAuthn E2E', () => {
         body: JSON.stringify({
           credentials: [
             {
+              id: 'id-cred-001',
               credentialId: 'cred-001',
               credentialPublicKeyJson: '{"kty":"EC","crv":"P-256","x":"...","y":"..."}',
               counter: 0,
@@ -140,6 +141,7 @@ test.describe('Security Key / WebAuthn E2E', () => {
               label: 'My YubiKey',
             },
             {
+              id: 'id-cred-002',
               credentialId: 'cred-002',
               credentialPublicKeyJson: '{"kty":"RSA","n":"...","e":"..."}',
               counter: 0,
@@ -169,6 +171,7 @@ test.describe('Security Key / WebAuthn E2E', () => {
           body: JSON.stringify({
             credentials: [
               {
+                id: 'id-cred-remove-001',
                 credentialId: 'cred-remove-001',
                 credentialPublicKeyJson: '{"kty":"EC"}',
                 counter: 0,
@@ -180,7 +183,8 @@ test.describe('Security Key / WebAuthn E2E', () => {
           }),
         });
       } else if (route.request().method() === 'DELETE') {
-        const credentialId = new URL(route.request().url()).searchParams.get('credentialId');
+        const body = route.request().postDataJSON() as { credentialId?: string };
+        const credentialId = body.credentialId;
         expect(credentialId).toBe('cred-remove-001');
 
         await route.fulfill({
@@ -247,14 +251,25 @@ test.describe('Security Key / WebAuthn E2E', () => {
 
     await securitySettingsPage.goto();
 
-    // Attempt to remove should show error
+    // Trigger a deterministic delete request and assert API prevents removing last key.
     const deleteAttempt = page.waitForResponse(
       (response) =>
         response.url().includes('/api/auth/webauthn/credentials') &&
         response.request().method() === 'DELETE',
+      { timeout: 5000 },
     );
 
-    // Verify deletion is prevented or shows error UI
+    await page.evaluate(async () => {
+      await fetch('/api/auth/webauthn/credentials', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credentialId: 'only-key' }),
+      });
+    });
+
+    const deleteResponse = await deleteAttempt;
+    expect(deleteResponse.status()).toBe(400);
   });
 
   test('should support multiple Security Keys', async ({ page }) => {
@@ -265,6 +280,7 @@ test.describe('Security Key / WebAuthn E2E', () => {
         body: JSON.stringify({
           credentials: [
             {
+              id: 'id-cred-multi-001',
               credentialId: 'cred-multi-001',
               credentialPublicKeyJson: '{"kty":"EC"}',
               counter: 5,
@@ -273,6 +289,7 @@ test.describe('Security Key / WebAuthn E2E', () => {
               label: 'Primary YubiKey',
             },
             {
+              id: 'id-cred-multi-002',
               credentialId: 'cred-multi-002',
               credentialPublicKeyJson: '{"kty":"EC"}',
               counter: 3,
@@ -281,6 +298,7 @@ test.describe('Security Key / WebAuthn E2E', () => {
               label: 'Backup YubiKey',
             },
             {
+              id: 'id-cred-multi-003',
               credentialId: 'cred-multi-003',
               credentialPublicKeyJson: '{"kty":"EC"}',
               counter: 1,

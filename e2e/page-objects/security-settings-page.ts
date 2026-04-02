@@ -5,20 +5,23 @@ export default class SecuritySettingsPage {
 
   async goto() {
     await this.page.goto('/account');
-    await this.page.waitForLoadState('networkidle');
+    await expect(
+      this.page.getByRole('heading', { name: /Security Key|Security Keys|Hardware Security Key/i }),
+    ).toBeVisible({ timeout: 15000 });
   }
 
   async openSecurityKeySection() {
     // Look for the Security Key section and click to expand if needed
-    const section = this.page.getByRole('heading', { name: /Security Key|Hardware Security Key/i });
+    const section = this.page.getByRole('heading', {
+      name: /Security Key|Security Keys|Hardware Security Key/i,
+    });
     await expect(section).toBeVisible();
     return section;
   }
 
   async startSecurityKeyEnrollment() {
-    const addButton = this.page.getByRole('button', {
-      name: /Add|Enroll|Register.*Security Key|Security Key/i,
-    });
+    const addButton = this.page.getByRole('button', { name: /add security key/i });
+    await expect(addButton).toBeVisible({ timeout: 10000 });
     await addButton.click();
 
     // Wait for modal or enrollment flow to start
@@ -102,26 +105,20 @@ export default class SecuritySettingsPage {
   }
 
   async listSecurityKeys() {
-    const credentialsList = this.page
-      .locator('[data-testid*="security-key-list"], [role="list"]')
-      .filter({
-        has: this.page.locator('text=/YubiKey|Security Key/i'),
-      });
-    return credentialsList.locator('li, [role="listitem"]');
+    return this.page.locator('li[role="listitem"], li.MuiListItem-root');
   }
 
   async removeSecurityKey(name: string) {
     const keyItem = this.page.locator(`text=${name}`).first();
+    await expect(keyItem).toBeVisible({ timeout: 10000 });
     const deleteButton = keyItem
-      .locator('..')
-      .getByRole('button', { name: /Delete|Remove|Revoke/i });
+      .locator('xpath=ancestor::li[1]')
+      .getByRole('button', { name: /remove security key|remove key|delete|remove/i });
 
     await deleteButton.click();
 
     // Confirm deletion if dialog appears
-    const confirmDelete = this.page.getByRole('button', { name: /Confirm|Delete|Remove/i }).filter({
-      has: this.page.locator('text=/sure|confirm/i'),
-    });
+    const confirmDelete = this.page.getByRole('button', { name: /Confirm|Delete|Remove/i });
     if (await confirmDelete.isVisible().catch(() => false)) {
       await confirmDelete.click();
     }
