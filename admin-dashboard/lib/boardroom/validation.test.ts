@@ -6,7 +6,12 @@ import {
   parseDecisionResponse,
   parseIndependentResponse,
 } from './validation';
-import { validateBusinessModelDecision, validateDecisionAgainstFeatureCatalog } from './guardrails';
+import {
+  validateBusinessModelDecision,
+  validateDecisionAgainstFeatureCatalog,
+  validateDecisionAgainstNonGoals,
+} from './guardrails';
+import { getBoardroomProductCharter } from './productCharter';
 import type { BoardroomFeatureCatalog } from './types';
 
 const FEATURE_CATALOG_FIXTURE: BoardroomFeatureCatalog = {
@@ -77,7 +82,11 @@ test('validateBusinessModelDecision accepts music-domain decisions', () => {
     reasoning: 'Targets musicians that already compose weekly and need workflow depth.',
     keyTradeoffs: ['Higher conversion quality vs slower top-of-funnel growth'],
     risks: ['Need onboarding for first-time producers'],
-    actionPlan: ['Ship progression templates', 'Improve MIDI export flow', 'Measure paid conversion'],
+    actionPlan: [
+      'Ship progression templates',
+      'Improve MIDI export flow',
+      'Measure paid conversion',
+    ],
     dissentingOpinions: ['Keep free tier broader for hobbyists'],
   });
 
@@ -135,4 +144,66 @@ test('validateDecisionAgainstFeatureCatalog allows claims when feature is actual
   });
 
   assert.equal(result.decision.includes('public sharing'), true);
+});
+
+test('validateDecisionAgainstNonGoals rejects DAW recommendations', () => {
+  const charter = getBoardroomProductCharter();
+
+  assert.throws(
+    () =>
+      validateDecisionAgainstNonGoals({
+        decision: {
+          decision: 'Build a full Digital Audio Workstation with real-time synthesis and mixing',
+          reasoning: 'Users want a complete production suite in one tool.',
+          keyTradeoffs: ['Feature scope vs shipping speed'],
+          risks: ['Complex audio engineering talent required'],
+          actionPlan: ['Hire audio engineers', 'Build DSP subsystem', 'Integrate VST hosts'],
+          dissentingOpinions: [],
+        },
+        productCharter: charter,
+      }),
+    {
+      message: /explicitly non-goals/,
+    },
+  );
+});
+
+test('validateDecisionAgainstNonGoals rejects melody generation recommendations', () => {
+  const charter = getBoardroomProductCharter();
+
+  assert.throws(
+    () =>
+      validateDecisionAgainstNonGoals({
+        decision: {
+          decision: 'Add AI melody line generation to complement progressions',
+          reasoning: 'Melodies are the next logical feature for songwriting.',
+          keyTradeoffs: ['Feature scope expansion vs focus'],
+          risks: ['Quality consistency challenges'],
+          actionPlan: ['Train model on melody datasets', 'Integrate with progression generator'],
+          dissentingOpinions: [],
+        },
+        productCharter: charter,
+      }),
+    {
+      message: /explicitly non-goals/,
+    },
+  );
+});
+
+test('validateDecisionAgainstNonGoals allows music-focused recommendations', () => {
+  const charter = getBoardroomProductCharter();
+
+  const result = validateDecisionAgainstNonGoals({
+    decision: {
+      decision: 'Launch collaboration features for public sharing feedback',
+      reasoning: 'Async sharing is within scope; users can share progressions and get feedback.',
+      keyTradeoffs: ['Async vs real-time collaboration'],
+      risks: ['Requires moderation system'],
+      actionPlan: ['Add comment system to shared progressions', 'Build notification flow'],
+      dissentingOpinions: [],
+    },
+    productCharter: charter,
+  });
+
+  assert.equal(result.decision.includes('sharing'), true);
 });

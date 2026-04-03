@@ -70,7 +70,11 @@ class OffDomainChairmanProvider extends DeterministicProvider {
         reasoning: 'This market has strong retention and frequent repeat purchases.',
         keyTradeoffs: ['Fast growth vs domain mismatch risk'],
         risks: ['Team lacks nutrition expertise'],
-        actionPlan: ['Hire nutrition advisors', 'Create meal libraries', 'Run influencer campaigns'],
+        actionPlan: [
+          'Hire nutrition advisors',
+          'Create meal libraries',
+          'Run influencer campaigns',
+        ],
         dissentingOpinions: ['This is outside current product direction'],
       };
     }
@@ -97,7 +101,9 @@ describe('BoardroomOrchestrator', () => {
       },
     });
 
-    expect(result.decision).toBe('Proceed with a staged music creator experiment before full rollout');
+    expect(result.decision).toBe(
+      'Proceed with a staged music creator experiment before full rollout',
+    );
     expect(result.actionPlan.length).toBeGreaterThan(0);
     expect(result.debate?.independentSummaries.length).toBe(2);
     expect(result.debate?.critiqueSummaries.length).toBe(2);
@@ -182,6 +188,50 @@ describe('BoardroomOrchestrator', () => {
     ).rejects.toMatchObject<Partial<BoardroomError>>({
       code: 'MODEL_OUTPUT_INVALID',
       status: 502,
+    });
+  });
+
+  it('includes product charter context in all prompt phases', async () => {
+    const provider = new DeterministicProvider();
+    const orchestrator = new BoardroomOrchestrator({
+      provider,
+      maxAgents: 1,
+      maxRetries: 0,
+      timeoutMsPerCall: 5000,
+    });
+
+    await orchestrator.run({
+      question: 'Should we add melody generation to the product?',
+    });
+
+    // Check that all prompts include product charter information
+    const allPrompts = provider.requests.map((r) => r.prompt);
+
+    // Independent phase should have it
+    expect(
+      allPrompts.some(
+        (p) => p.includes('phase 2 (critique)') === false && p.includes('Product Charter Summary:'),
+      ),
+    ).toBe(true);
+
+    // Critique phase should have it
+    expect(
+      allPrompts.some(
+        (p) => p.includes('phase 2 (critique)') && p.includes('Product Charter Summary:'),
+      ),
+    ).toBe(true);
+
+    // Chairman phase should have it
+    expect(
+      allPrompts.some(
+        (p) => p.includes('You are the Chairman') && p.includes('Product Charter Summary:'),
+      ),
+    ).toBe(true);
+
+    // All should mention the primary jobs and non-goals
+    allPrompts.forEach((p) => {
+      expect(p).toContain('Primary Jobs to Be Done');
+      expect(p).toContain('Strategic Non-Goals');
     });
   });
 });

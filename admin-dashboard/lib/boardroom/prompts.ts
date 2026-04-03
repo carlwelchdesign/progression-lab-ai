@@ -3,6 +3,7 @@ import {
   BoardroomContext,
   BoardroomFeatureCatalog,
   BoardroomIndependentResponse,
+  BoardroomProductCharter,
   BoardroomRevisionResponse,
   BoardroomRunRequest,
   BoardroomSpecialistRole,
@@ -149,10 +150,42 @@ function formatCurrentProductSurface(catalog: BoardroomFeatureCatalog): string {
   ].join('\n');
 }
 
+function formatProductCharterSummary(charter: BoardroomProductCharter): string {
+  const jobsStr = charter.jobsToBeDone
+    .filter((j) => j.priority === 'primary')
+    .map((j) => `- ${j.job}`)
+    .join('\n');
+
+  const personasStr = charter.targetPersonas
+    .filter((p) => p.priority === 'primary')
+    .map((p) => `- ${p.persona}: "${p.painPoint}"`)
+    .join('\n');
+
+  const nonGoalsStr = charter.nonGoals.map((ng) => `- ${ng.category}`).join('\n');
+
+  return [
+    `Product Charter Summary: ${charter.productName}`,
+    `Vision: ${charter.productVision}`,
+    `Core Purpose: ${charter.corePurpose}`,
+    '',
+    'Primary Jobs to Be Done (user outcomes we optimize for):',
+    jobsStr,
+    '',
+    'Primary Target Personas:',
+    personasStr,
+    '',
+    'Strategic Non-Goals (what we explicitly do NOT do):',
+    nonGoalsStr,
+    '',
+    'Strategic Guideline: All recommendations must serve a primary job-to-be-done for a primary persona. Recommendations requiring non-goal capabilities (full DAW features, melody generation, real-time collaboration) are out of scope and risky.',
+  ].join('\n');
+}
+
 export function buildIndependentPrompt(params: {
   request: BoardroomRunRequest;
   agent: BoardroomAgentDefinition;
   featureCatalog: BoardroomFeatureCatalog;
+  productCharter: BoardroomProductCharter;
 }): string {
   const context = formatContext(params.request.context);
 
@@ -163,6 +196,7 @@ export function buildIndependentPrompt(params: {
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
     buildBusinessModelGuardrailInstruction(),
+    formatProductCharterSummary(params.productCharter),
     formatCurrentProductSurface(params.featureCatalog),
     strictJsonInstructionForIndependent(),
   ].join('\n\n');
@@ -172,6 +206,7 @@ export function buildCritiquePrompt(params: {
   request: BoardroomRunRequest;
   agent: BoardroomAgentDefinition;
   featureCatalog: BoardroomFeatureCatalog;
+  productCharter: BoardroomProductCharter;
   otherIndependentSummaries: Array<{
     role: BoardroomSpecialistRole;
     response: BoardroomIndependentResponse;
@@ -196,6 +231,7 @@ export function buildCritiquePrompt(params: {
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
     buildBusinessModelGuardrailInstruction(),
+    formatProductCharterSummary(params.productCharter),
     formatCurrentProductSurface(params.featureCatalog),
     'Peer independent responses (summarized):',
     others || 'No peer responses available.',
@@ -207,6 +243,7 @@ export function buildRevisionPrompt(params: {
   request: BoardroomRunRequest;
   agent: BoardroomAgentDefinition;
   featureCatalog: BoardroomFeatureCatalog;
+  productCharter: BoardroomProductCharter;
   priorIndependent: BoardroomIndependentResponse;
   critiqueSummary: {
     missingPoints: string[];
@@ -222,6 +259,7 @@ export function buildRevisionPrompt(params: {
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
     buildBusinessModelGuardrailInstruction(),
+    formatProductCharterSummary(params.productCharter),
     formatCurrentProductSurface(params.featureCatalog),
     'Your phase 1 response:',
     [
@@ -243,6 +281,7 @@ export function buildRevisionPrompt(params: {
 export function buildChairmanPrompt(params: {
   request: BoardroomRunRequest;
   featureCatalog: BoardroomFeatureCatalog;
+  productCharter: BoardroomProductCharter;
   revisedPositions: Array<{
     role: BoardroomSpecialistRole;
     revision: BoardroomRevisionResponse;
@@ -266,6 +305,7 @@ export function buildChairmanPrompt(params: {
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
     buildBusinessModelGuardrailInstruction(),
+    formatProductCharterSummary(params.productCharter),
     formatCurrentProductSurface(params.featureCatalog),
     'Revised specialist positions:',
     revisions || 'No revised specialist positions available.',

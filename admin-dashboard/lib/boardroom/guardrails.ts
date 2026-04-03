@@ -1,5 +1,5 @@
 import { createModelOutputInvalidError } from './errors';
-import { BoardroomDecision, BoardroomFeatureCatalog } from './types';
+import { BoardroomDecision, BoardroomFeatureCatalog, BoardroomProductCharter } from './types';
 
 const ALLOWED_DOMAIN_PATTERNS: RegExp[] = [
   /\bmusic\b/i,
@@ -136,6 +136,44 @@ export function validateDecisionAgainstFeatureCatalog(params: {
       'Decision claims all-user availability for capabilities that are not available to all plans',
       {
         violations,
+      },
+    );
+  }
+
+  return params.decision;
+}
+
+/**
+ * Validate decision against product charter non-goals.
+ * Flags if decision recommends building capabilities that are explicitly out of scope.
+ */
+export function validateDecisionAgainstNonGoals(params: {
+  decision: BoardroomDecision;
+  productCharter: BoardroomProductCharter;
+}): BoardroomDecision {
+  const allText = collectDecisionText(params.decision);
+
+  // Create pattern rules from non-goals
+  const nonGoalViolations = params.productCharter.nonGoals
+    .flatMap((nonGoal) => {
+      const nonGoalTerms = [nonGoal.category, ...nonGoal.examples].map((term) =>
+        term.toLowerCase(),
+      );
+      return nonGoalTerms.map((term) => ({
+        term,
+        category: nonGoal.category,
+        pattern: new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'),
+      }));
+    })
+    .filter((rule) => rule.pattern.test(allText));
+
+  if (nonGoalViolations.length > 0) {
+    const categories = [...new Set(nonGoalViolations.map((v) => v.category))];
+    throw createModelOutputInvalidError(
+      'Decision recommends out-of-scope capabilities that are explicitly non-goals',
+      {
+        violations: categories,
+        reason: 'Product charter explicitly non-goals these categories',
       },
     );
   }

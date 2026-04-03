@@ -4,6 +4,7 @@ export * from './validation';
 export * from './agents';
 export * from './prompts';
 export * from './featureCatalog';
+export * from './productCharter';
 export * from './guardrails';
 export * from './provider';
 export * from './summarize';

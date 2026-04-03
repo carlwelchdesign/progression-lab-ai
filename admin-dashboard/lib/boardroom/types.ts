@@ -99,6 +99,31 @@ export type BoardroomDebateMetadata = {
   revisionSummaries: BoardroomPhaseSummary[];
 };
 
+export interface BoardroomProductCharter {
+  productName: string;
+  productVision: string;
+  corePurpose: string;
+  jobsToBeDone: Array<{
+    job: string;
+    priority: 'primary' | 'secondary' | 'tertiary';
+    context: string;
+  }>;
+  targetPersonas: Array<{
+    persona: string;
+    priority: 'primary' | 'secondary';
+    painPoint: string;
+    expectedUsagePattern: string;
+  }>;
+  primaryUseCases: string[];
+  nonGoals: Array<{
+    category: string;
+    explanation: string;
+    examples: string[];
+  }>;
+  positioningInsights: string[];
+  strategicConstraints: string[];
+}
+
 export type BoardroomRunResponse = BoardroomDecision & {
   debate?: BoardroomDebateMetadata;
 };

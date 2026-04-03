@@ -1,7 +1,12 @@
 import { getDefaultBoardroomAgents } from './agents';
 import { BoardroomError } from './errors';
 import { getBoardroomFeatureCatalog } from './featureCatalog';
-import { validateBusinessModelDecision, validateDecisionAgainstFeatureCatalog } from './guardrails';
+import { getBoardroomProductCharter } from './productCharter';
+import {
+  validateBusinessModelDecision,
+  validateDecisionAgainstFeatureCatalog,
+  validateDecisionAgainstNonGoals,
+} from './guardrails';
 import {
   buildChairmanPrompt,
   buildCritiquePrompt,
@@ -61,6 +66,7 @@ export class BoardroomOrchestrator {
   async runWithRequest(request: BoardroomRunRequest): Promise<BoardroomRunResponse> {
     const specialists = getDefaultBoardroomAgents(this.maxAgents);
     const featureCatalog = await getBoardroomFeatureCatalog();
+    const productCharter = getBoardroomProductCharter();
 
     const independentByRole: IndependentByRole = {};
     const critiqueByRole: CritiqueByRole = {};
@@ -68,7 +74,7 @@ export class BoardroomOrchestrator {
 
     await Promise.all(
       specialists.map(async (agent) => {
-        const prompt = buildIndependentPrompt({ request, agent, featureCatalog });
+        const prompt = buildIndependentPrompt({ request, agent, featureCatalog, productCharter });
         const raw = await this.callProviderWithRetries({
           prompt,
           modelClass: agent.modelClass,
@@ -96,6 +102,7 @@ export class BoardroomOrchestrator {
           request,
           agent,
           featureCatalog,
+          productCharter,
           otherIndependentSummaries,
         });
 
@@ -123,6 +130,7 @@ export class BoardroomOrchestrator {
           request,
           agent,
           featureCatalog,
+          productCharter,
           priorIndependent,
           critiqueSummary,
         });
@@ -148,6 +156,7 @@ export class BoardroomOrchestrator {
     const chairmanPrompt = buildChairmanPrompt({
       request,
       featureCatalog,
+      productCharter,
       revisedPositions,
     });
 
@@ -156,9 +165,12 @@ export class BoardroomOrchestrator {
       modelClass: 'LARGE',
     });
 
-    const decision = validateDecisionAgainstFeatureCatalog({
-      decision: validateBusinessModelDecision(parseDecisionResponse(chairmanRaw)),
-      featureCatalog,
+    const decision = validateDecisionAgainstNonGoals({
+      decision: validateDecisionAgainstFeatureCatalog({
+        decision: validateBusinessModelDecision(parseDecisionResponse(chairmanRaw)),
+        featureCatalog,
+      }),
+      productCharter,
     });
 
     const independentSummaries = summarizeIndependentResponses(
