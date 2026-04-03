@@ -15,7 +15,7 @@ function truncate(value: string, maxChars = MAX_SUMMARY_CHARS): string {
     return trimmed;
   }
 
-  return `${trimmed.slice(0, Math.max(0, maxChars - 1))}…`;
+  return `${trimmed.slice(0, Math.max(0, maxChars - 3))}...`;
 }
 
 function compactList(list: string[]): string[] {

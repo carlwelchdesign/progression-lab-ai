@@ -13,6 +13,7 @@ const MAX_QUESTION_CHARS = 2000;
 const MAX_NOTE_CHARS = 1200;
 const MAX_SHORT_TEXT_CHARS = 700;
 const MAX_LIST_ITEMS = 7;
+const MAX_LIST_ITEM_CHARS = 220;
 const PRODUCT_STAGES = new Set(['IDEA', 'MVP', 'EARLY_TRACTION', 'GROWTH', 'SCALE']);
 const RISK_TOLERANCES = new Set(['LOW', 'MEDIUM', 'HIGH']);
 
@@ -29,11 +30,14 @@ function sanitizeStringList(value: unknown, maxItems = MAX_LIST_ITEMS): string[]
     return [];
   }
 
-  return value
-    .filter((item): item is string => typeof item === 'string')
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, maxItems);
+  const deduped = new Set(
+    value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim().slice(0, MAX_LIST_ITEM_CHARS))
+      .filter(Boolean),
+  );
+
+  return Array.from(deduped).slice(0, maxItems);
 }
 
 function parseContext(input: unknown): BoardroomContext | undefined {
