@@ -154,6 +154,7 @@ The migration map for moved README sections is tracked in [docs/README_TO_WIKI_M
 make dev
 make build
 make build-app
+make vercel-build
 make start
 make lint
 make lint-fix
@@ -169,6 +170,8 @@ make wiki-publish
 
 Prefer `make` as the default command surface for local workflows.
 
+For Vercel, use `make vercel-build` as the build command and run `make db-migrate-deploy-safe` separately from a machine or CI job that has direct Postgres access.
+
 ## Contributing
 
 1. Create a feature branch.
@@ -179,6 +182,12 @@ Prefer `make` as the default command surface for local workflows.
 make lint
 make test
 make build
+```
+
+If you need a deploy-safe app build without touching database migrations, run:
+
+```bash
+make vercel-build
 ```
 
 4. Open a pull request with a clear summary and validation notes.

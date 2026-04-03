@@ -1,6 +1,6 @@
 APP_NAME=music-chord-app
 
-.PHONY: install dev build build-app start lint lint-fix test test-e2e db-generate db-push db-seed db-studio db-migrate-deploy admin-dev admin-build admin-start admin-lint admin-db-generate wiki-publish docker-build docker-up docker-down docker-logs clean setup-env help vercel-link vercel-pull vercel-preview vercel-prod vercel-prod-with-migrate
+.PHONY: install dev build build-app vercel-build start lint lint-fix test test-e2e db-generate db-push db-seed db-studio db-migrate-deploy db-migrate-deploy-safe admin-dev admin-build admin-start admin-lint admin-db-generate wiki-publish docker-build docker-up docker-down docker-logs clean setup-env help vercel-link vercel-pull vercel-preview vercel-prod vercel-prod-with-migrate
 
 install:
 	yarn install
@@ -16,7 +16,12 @@ build:
 
 # App build only (no DB migration), useful for local verification.
 build-app:
+	npx prisma generate
 	yarn build
+
+# Vercel-safe app build: generates Prisma client, then builds without touching migrations.
+vercel-build:
+	$(MAKE) build-app
 
 start:
 	yarn start
@@ -47,6 +52,9 @@ db-studio:
 
 db-migrate-deploy:
 	npx prisma migrate deploy
+
+db-migrate-deploy-safe:
+	./scripts/prisma-migrate-deploy-safe.sh
 
 admin-dev:
 	yarn admin:dev
@@ -97,14 +105,15 @@ vercel-prod:
 	npx vercel --prod --yes
 
 vercel-prod-with-migrate:
-	npx prisma migrate deploy && npx vercel --prod --yes
+	./scripts/prisma-migrate-deploy-safe.sh && npx vercel --prod --yes
 
 help:
 	@echo "Available commands:"
 	@echo "  make install                Install dependencies"
 	@echo "  make dev                    Run development server"
 	@echo "  make build                  Production build sequence (Prisma generate + migrate deploy + app build)"
-	@echo "  make build-app              Build app only (no DB migration)"
+	@echo "  make build-app              Build app only (Prisma generate + app build, no DB migration)"
+	@echo "  make vercel-build           Vercel-safe build (Prisma generate + app build, no DB migration)"
 	@echo "  make start                  Run production server"
 	@echo "  make lint                   Run lint checks"
 	@echo "  make lint-fix               Run lint with fixes"
@@ -114,6 +123,7 @@ help:
 	@echo "  make db-push                Push Prisma schema to DB"
 	@echo "  make db-seed                Seed local database"
 	@echo "  make db-studio              Open Prisma Studio"
+	@echo "  make db-migrate-deploy-safe Run migrate deploy with DIRECT_URL safety checks"
 	@echo "  make admin-dev              Run admin dashboard dev server"
 	@echo "  make admin-build            Build admin dashboard"
 	@echo "  make admin-start            Start admin dashboard production server"
@@ -125,4 +135,4 @@ help:
 	@echo "  make vercel-pull            Pull Vercel env vars into .env.local"
 	@echo "  make vercel-preview         Deploy a preview build to Vercel"
 	@echo "  make vercel-prod            Deploy to Vercel production"
-	@echo "  make vercel-prod-with-migrate Run Prisma migrate deploy, then Vercel prod deploy"
+	@echo "  make vercel-prod-with-migrate Run safe Prisma migrate deploy, then Vercel prod deploy"

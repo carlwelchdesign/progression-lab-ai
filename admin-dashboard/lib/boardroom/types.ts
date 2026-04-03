@@ -30,6 +30,7 @@ export type BoardroomFeatureCatalog = {
     canExportMidi: BoardroomFeatureAvailability;
     canExportPdf: BoardroomFeatureAvailability;
     canSharePublicly: BoardroomFeatureAvailability;
+    canUseVocalTrackRecording: BoardroomFeatureAvailability;
     canUseAdvancedVoicingControls: BoardroomFeatureAvailability;
   };
 };

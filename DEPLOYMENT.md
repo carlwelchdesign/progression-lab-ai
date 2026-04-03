@@ -55,7 +55,7 @@
 1. **Vercel Trigger** (automatic on merge to main)
    - Detects main branch update
    - Starts build for both main and admin apps
-   - Runs database migrations
+   - Builds the app without running database migrations inside the Vercel build step
 
 2. **Build Phase**
    - Compiles Next.js applications
@@ -63,7 +63,7 @@
    - Bundles assets
 
 3. **Migration Phase**
-   - Runs `make db-migrate-deploy`
+   - Runs `make db-migrate-deploy-safe` from CI or another environment with direct Postgres access
    - Executes `20260330193000_add_prompt_versioning` migration
    - Seeds initial PromptVersion record
 

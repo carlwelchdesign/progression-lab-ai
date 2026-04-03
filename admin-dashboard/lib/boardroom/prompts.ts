@@ -143,6 +143,10 @@ function formatCurrentProductSurface(catalog: BoardroomFeatureCatalog): string {
       ...catalog.capabilities.canSharePublicly,
     }),
     formatAvailabilityLine({
+      label: 'Vocal recording',
+      ...catalog.capabilities.canUseVocalTrackRecording,
+    }),
+    formatAvailabilityLine({
       label: 'Advanced voicing controls',
       ...catalog.capabilities.canUseAdvancedVoicingControls,
     }),

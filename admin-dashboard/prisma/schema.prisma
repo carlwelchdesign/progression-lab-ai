@@ -258,12 +258,14 @@ model SubscriptionTierConfig {
   maxSavedProgressions   Int?
   maxSavedArrangements   Int?
   maxPublicShares        Int?
-  canExportMidi          Boolean          @default(false)
-  canExportPdf           Boolean          @default(false)
-  canSharePublicly       Boolean          @default(true)
+  canExportMidi               Boolean @default(false)
+  canExportPdf                Boolean @default(false)
+  canSharePublicly            Boolean @default(true)
+  canUseVocalTrackRecording   Boolean @default(true)
+  maxVocalTakesPerArrangement Int?
   canUseAdvancedVoicingControls Boolean?
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
 }
 
 model SubscriptionPlanVersion {

@@ -90,6 +90,8 @@ export default function TierConfigTable() {
         canExportMidi: row.canExportMidi,
         canExportPdf: row.canExportPdf,
         canSharePublicly: row.canSharePublicly,
+        canUseVocalTrackRecording: row.canUseVocalTrackRecording,
+        maxVocalTakesPerArrangement: row.maxVocalTakesPerArrangement,
         canUseAdvancedVoicingControls: row.canUseAdvancedVoicingControls,
       });
 
@@ -149,6 +151,8 @@ export default function TierConfigTable() {
               <TableCell align="center">Export MIDI</TableCell>
               <TableCell align="center">Export PDF</TableCell>
               <TableCell align="center">Public Share</TableCell>
+              <TableCell align="center">Vocal Recording</TableCell>
+              <TableCell align="right">Vocal Takes Cap</TableCell>
               <TableCell align="center">Advanced Voicing</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
@@ -265,6 +269,35 @@ export default function TierConfigTable() {
                     checked={row.canSharePublicly}
                     onChange={(e) => updateField(row.plan, 'canSharePublicly', e.target.checked)}
                     disabled={row.isSaving}
+                  />
+                </TableCell>
+
+                {/* Vocal Recording */}
+                <TableCell align="center">
+                  <Checkbox
+                    checked={row.canUseVocalTrackRecording}
+                    onChange={(e) =>
+                      updateField(row.plan, 'canUseVocalTrackRecording', e.target.checked)
+                    }
+                    disabled={row.isSaving}
+                  />
+                </TableCell>
+
+                {/* Vocal Takes Cap */}
+                <TableCell align="right">
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={row.maxVocalTakesPerArrangement ?? ''}
+                    onChange={(e) =>
+                      updateField(
+                        row.plan,
+                        'maxVocalTakesPerArrangement',
+                        e.target.value ? Number.parseInt(e.target.value, 10) : null,
+                      )
+                    }
+                    disabled={row.isSaving}
+                    sx={{ width: '90px' }}
                   />
                 </TableCell>
 

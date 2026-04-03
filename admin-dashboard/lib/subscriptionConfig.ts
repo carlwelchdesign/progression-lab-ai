@@ -11,6 +11,8 @@ export type SubscriptionTierConfig = {
   canExportMidi: boolean;
   canExportPdf: boolean;
   canSharePublicly: boolean;
+  canUseVocalTrackRecording: boolean;
+  maxVocalTakesPerArrangement: number | null;
   canUseAdvancedVoicingControls: boolean;
 };
 
@@ -26,6 +28,8 @@ const FALLBACK_TIER_CONFIGS: Record<SubscriptionPlan, SubscriptionTierConfig> = 
     canExportMidi: false,
     canExportPdf: false,
     canSharePublicly: true,
+    canUseVocalTrackRecording: true,
+    maxVocalTakesPerArrangement: 1,
     canUseAdvancedVoicingControls: false,
   },
   [SubscriptionPlan.COMPOSER]: {
@@ -38,6 +42,8 @@ const FALLBACK_TIER_CONFIGS: Record<SubscriptionPlan, SubscriptionTierConfig> = 
     canExportMidi: true,
     canExportPdf: true,
     canSharePublicly: true,
+    canUseVocalTrackRecording: true,
+    maxVocalTakesPerArrangement: 4,
     canUseAdvancedVoicingControls: true,
   },
   [SubscriptionPlan.STUDIO]: {
@@ -50,6 +56,8 @@ const FALLBACK_TIER_CONFIGS: Record<SubscriptionPlan, SubscriptionTierConfig> = 
     canExportMidi: true,
     canExportPdf: true,
     canSharePublicly: true,
+    canUseVocalTrackRecording: true,
+    maxVocalTakesPerArrangement: null,
     canUseAdvancedVoicingControls: true,
   },
   [SubscriptionPlan.COMP]: {
@@ -62,6 +70,8 @@ const FALLBACK_TIER_CONFIGS: Record<SubscriptionPlan, SubscriptionTierConfig> = 
     canExportMidi: true,
     canExportPdf: true,
     canSharePublicly: true,
+    canUseVocalTrackRecording: true,
+    maxVocalTakesPerArrangement: null,
     canUseAdvancedVoicingControls: true,
   },
   [SubscriptionPlan.INVITE]: {
@@ -74,6 +84,8 @@ const FALLBACK_TIER_CONFIGS: Record<SubscriptionPlan, SubscriptionTierConfig> = 
     canExportMidi: true,
     canExportPdf: true,
     canSharePublicly: false,
+    canUseVocalTrackRecording: true,
+    maxVocalTakesPerArrangement: 4,
     canUseAdvancedVoicingControls: true,
   },
 };
@@ -109,6 +121,12 @@ export async function getAllTierConfigs(): Promise<
             canExportMidi: dbConfig.canExportMidi,
             canExportPdf: dbConfig.canExportPdf,
             canSharePublicly: dbConfig.canSharePublicly,
+            canUseVocalTrackRecording:
+              dbConfig.canUseVocalTrackRecording ??
+              FALLBACK_TIER_CONFIGS[plan as SubscriptionPlan].canUseVocalTrackRecording,
+            maxVocalTakesPerArrangement:
+              dbConfig.maxVocalTakesPerArrangement ??
+              FALLBACK_TIER_CONFIGS[plan as SubscriptionPlan].maxVocalTakesPerArrangement,
             canUseAdvancedVoicingControls:
               dbConfig.canUseAdvancedVoicingControls ??
               FALLBACK_TIER_CONFIGS[plan as SubscriptionPlan].canUseAdvancedVoicingControls,
@@ -155,6 +173,11 @@ export async function updateTierConfig(
       canExportMidi: updates.canExportMidi ?? FALLBACK_TIER_CONFIGS[plan].canExportMidi,
       canExportPdf: updates.canExportPdf ?? FALLBACK_TIER_CONFIGS[plan].canExportPdf,
       canSharePublicly: updates.canSharePublicly ?? FALLBACK_TIER_CONFIGS[plan].canSharePublicly,
+      canUseVocalTrackRecording:
+        updates.canUseVocalTrackRecording ?? FALLBACK_TIER_CONFIGS[plan].canUseVocalTrackRecording,
+      maxVocalTakesPerArrangement:
+        updates.maxVocalTakesPerArrangement ??
+        FALLBACK_TIER_CONFIGS[plan].maxVocalTakesPerArrangement,
       canUseAdvancedVoicingControls:
         updates.canUseAdvancedVoicingControls ??
         FALLBACK_TIER_CONFIGS[plan].canUseAdvancedVoicingControls,
@@ -174,6 +197,11 @@ export async function updateTierConfig(
     canExportMidi: updated.canExportMidi,
     canExportPdf: updated.canExportPdf,
     canSharePublicly: updated.canSharePublicly,
+    canUseVocalTrackRecording:
+      updated.canUseVocalTrackRecording ?? FALLBACK_TIER_CONFIGS[plan].canUseVocalTrackRecording,
+    maxVocalTakesPerArrangement:
+      updated.maxVocalTakesPerArrangement ??
+      FALLBACK_TIER_CONFIGS[plan].maxVocalTakesPerArrangement,
     canUseAdvancedVoicingControls:
       updated.canUseAdvancedVoicingControls ??
       FALLBACK_TIER_CONFIGS[plan].canUseAdvancedVoicingControls,

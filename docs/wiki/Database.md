@@ -44,6 +44,15 @@ Recommended sequence:
 make build
 ```
 
+For Vercel-hosted app deploys, split the workflow:
+
+```bash
+make vercel-build
+make db-migrate-deploy-safe
+```
+
+Run `make db-migrate-deploy-safe` from an environment with direct Postgres access and a valid `DIRECT_URL`.
+
 For build verification without running DB migrations, use:
 
 ```bash
