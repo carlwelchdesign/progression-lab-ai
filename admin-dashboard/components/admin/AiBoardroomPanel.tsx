@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-import GroupedAutocompleteField from '../../../components/ui/GroupedAutocompleteField';
+import GroupedAutocompleteField from '../ui/GroupedAutocompleteField';
 import {
   createBoardroomBoard,
   deleteBoardroomBoard,

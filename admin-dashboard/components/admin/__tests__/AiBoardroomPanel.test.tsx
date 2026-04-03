@@ -12,7 +12,7 @@ import {
   updateBoardroomBoard,
 } from '../adminApi';
 
-jest.mock('../../../../components/ui/GroupedAutocompleteField', () => ({
+jest.mock('../../ui/GroupedAutocompleteField', () => ({
   __esModule: true,
   default: ({
     label,
