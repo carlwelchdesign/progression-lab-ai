@@ -1,5 +1,7 @@
 import { getDefaultBoardroomAgents } from './agents';
 import { BoardroomError } from './errors';
+import { getBoardroomFeatureCatalog } from './featureCatalog';
+import { validateBusinessModelDecision, validateDecisionAgainstFeatureCatalog } from './guardrails';
 import {
   buildChairmanPrompt,
   buildCritiquePrompt,
@@ -23,7 +25,6 @@ import {
   parseIndependentResponse,
   parseRevisionResponse,
 } from './validation';
-import { validateBusinessModelDecision } from './guardrails';
 
 type BoardroomOrchestratorOptions = {
   provider?: BoardroomProvider;
@@ -59,6 +60,7 @@ export class BoardroomOrchestrator {
 
   async runWithRequest(request: BoardroomRunRequest): Promise<BoardroomRunResponse> {
     const specialists = getDefaultBoardroomAgents(this.maxAgents);
+    const featureCatalog = await getBoardroomFeatureCatalog();
 
     const independentByRole: IndependentByRole = {};
     const critiqueByRole: CritiqueByRole = {};
@@ -66,7 +68,7 @@ export class BoardroomOrchestrator {
 
     await Promise.all(
       specialists.map(async (agent) => {
-        const prompt = buildIndependentPrompt({ request, agent });
+        const prompt = buildIndependentPrompt({ request, agent, featureCatalog });
         const raw = await this.callProviderWithRetries({
           prompt,
           modelClass: agent.modelClass,
@@ -93,6 +95,7 @@ export class BoardroomOrchestrator {
         const prompt = buildCritiquePrompt({
           request,
           agent,
+          featureCatalog,
           otherIndependentSummaries,
         });
 
@@ -119,6 +122,7 @@ export class BoardroomOrchestrator {
         const prompt = buildRevisionPrompt({
           request,
           agent,
+          featureCatalog,
           priorIndependent,
           critiqueSummary,
         });
@@ -143,6 +147,7 @@ export class BoardroomOrchestrator {
 
     const chairmanPrompt = buildChairmanPrompt({
       request,
+      featureCatalog,
       revisedPositions,
     });
 
@@ -151,7 +156,10 @@ export class BoardroomOrchestrator {
       modelClass: 'LARGE',
     });
 
-    const decision = validateBusinessModelDecision(parseDecisionResponse(chairmanRaw));
+    const decision = validateDecisionAgainstFeatureCatalog({
+      decision: validateBusinessModelDecision(parseDecisionResponse(chairmanRaw)),
+      featureCatalog,
+    });
 
     const independentSummaries = summarizeIndependentResponses(
       specialists

@@ -1,6 +1,7 @@
 import {
   BoardroomAgentDefinition,
   BoardroomContext,
+  BoardroomFeatureCatalog,
   BoardroomIndependentResponse,
   BoardroomRevisionResponse,
   BoardroomRunRequest,
@@ -111,9 +112,47 @@ function strictJsonInstructionForSynthesis(): string {
   ].join('\n');
 }
 
+function formatAvailabilityLine(params: {
+  label: string;
+  isAvailableToAll: boolean;
+  availablePlans: string[];
+  unavailablePlans: string[];
+}): string {
+  return [
+    `${params.label}: ${params.isAvailableToAll ? 'all plans' : 'partial availability'}`,
+    `  available plans: ${params.availablePlans.join(', ') || 'none'}`,
+    `  unavailable plans: ${params.unavailablePlans.join(', ') || 'none'}`,
+  ].join('\n');
+}
+
+function formatCurrentProductSurface(catalog: BoardroomFeatureCatalog): string {
+  return [
+    'Current Product Surface (live plan-aware snapshot):',
+    `Plans considered: ${catalog.plansConsidered.join(', ')}`,
+    formatAvailabilityLine({
+      label: 'MIDI export',
+      ...catalog.capabilities.canExportMidi,
+    }),
+    formatAvailabilityLine({
+      label: 'PDF export',
+      ...catalog.capabilities.canExportPdf,
+    }),
+    formatAvailabilityLine({
+      label: 'Public sharing',
+      ...catalog.capabilities.canSharePublicly,
+    }),
+    formatAvailabilityLine({
+      label: 'Advanced voicing controls',
+      ...catalog.capabilities.canUseAdvancedVoicingControls,
+    }),
+    'Constraint: never recommend paid-only capabilities as if they are already available to all users.',
+  ].join('\n');
+}
+
 export function buildIndependentPrompt(params: {
   request: BoardroomRunRequest;
   agent: BoardroomAgentDefinition;
+  featureCatalog: BoardroomFeatureCatalog;
 }): string {
   const context = formatContext(params.request.context);
 
@@ -124,6 +163,7 @@ export function buildIndependentPrompt(params: {
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
     buildBusinessModelGuardrailInstruction(),
+    formatCurrentProductSurface(params.featureCatalog),
     strictJsonInstructionForIndependent(),
   ].join('\n\n');
 }
@@ -131,6 +171,7 @@ export function buildIndependentPrompt(params: {
 export function buildCritiquePrompt(params: {
   request: BoardroomRunRequest;
   agent: BoardroomAgentDefinition;
+  featureCatalog: BoardroomFeatureCatalog;
   otherIndependentSummaries: Array<{
     role: BoardroomSpecialistRole;
     response: BoardroomIndependentResponse;
@@ -155,6 +196,7 @@ export function buildCritiquePrompt(params: {
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
     buildBusinessModelGuardrailInstruction(),
+    formatCurrentProductSurface(params.featureCatalog),
     'Peer independent responses (summarized):',
     others || 'No peer responses available.',
     strictJsonInstructionForCritique(),
@@ -164,6 +206,7 @@ export function buildCritiquePrompt(params: {
 export function buildRevisionPrompt(params: {
   request: BoardroomRunRequest;
   agent: BoardroomAgentDefinition;
+  featureCatalog: BoardroomFeatureCatalog;
   priorIndependent: BoardroomIndependentResponse;
   critiqueSummary: {
     missingPoints: string[];
@@ -179,6 +222,7 @@ export function buildRevisionPrompt(params: {
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
     buildBusinessModelGuardrailInstruction(),
+    formatCurrentProductSurface(params.featureCatalog),
     'Your phase 1 response:',
     [
       `Recommendation: ${params.priorIndependent.recommendation}`,
@@ -198,6 +242,7 @@ export function buildRevisionPrompt(params: {
 
 export function buildChairmanPrompt(params: {
   request: BoardroomRunRequest;
+  featureCatalog: BoardroomFeatureCatalog;
   revisedPositions: Array<{
     role: BoardroomSpecialistRole;
     revision: BoardroomRevisionResponse;
@@ -221,6 +266,7 @@ export function buildChairmanPrompt(params: {
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
     buildBusinessModelGuardrailInstruction(),
+    formatCurrentProductSurface(params.featureCatalog),
     'Revised specialist positions:',
     revisions || 'No revised specialist positions available.',
     strictJsonInstructionForSynthesis(),

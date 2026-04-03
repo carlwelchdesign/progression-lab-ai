@@ -3,6 +3,7 @@ export * from './errors';
 export * from './validation';
 export * from './agents';
 export * from './prompts';
+export * from './featureCatalog';
 export * from './guardrails';
 export * from './provider';
 export * from './summarize';

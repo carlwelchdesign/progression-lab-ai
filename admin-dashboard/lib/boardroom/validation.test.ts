@@ -6,7 +6,35 @@ import {
   parseDecisionResponse,
   parseIndependentResponse,
 } from './validation';
-import { validateBusinessModelDecision } from './guardrails';
+import { validateBusinessModelDecision, validateDecisionAgainstFeatureCatalog } from './guardrails';
+import type { BoardroomFeatureCatalog } from './types';
+
+const FEATURE_CATALOG_FIXTURE: BoardroomFeatureCatalog = {
+  generatedAtIso: '2026-04-03T00:00:00.000Z',
+  plansConsidered: ['SESSION', 'COMPOSER', 'STUDIO'],
+  capabilities: {
+    canExportMidi: {
+      isAvailableToAll: false,
+      availablePlans: ['COMPOSER', 'STUDIO'],
+      unavailablePlans: ['SESSION'],
+    },
+    canExportPdf: {
+      isAvailableToAll: false,
+      availablePlans: ['COMPOSER', 'STUDIO'],
+      unavailablePlans: ['SESSION'],
+    },
+    canSharePublicly: {
+      isAvailableToAll: true,
+      availablePlans: ['SESSION', 'COMPOSER', 'STUDIO'],
+      unavailablePlans: [],
+    },
+    canUseAdvancedVoicingControls: {
+      isAvailableToAll: false,
+      availablePlans: ['COMPOSER', 'STUDIO'],
+      unavailablePlans: ['SESSION'],
+    },
+  },
+};
 
 test('parseBoardroomRunRequest trims and accepts minimal payload', () => {
   const result = parseBoardroomRunRequest({
@@ -71,4 +99,40 @@ test('validateBusinessModelDecision rejects off-domain pivots', () => {
       message: /outside music business-model guardrails/,
     },
   );
+});
+
+test('validateDecisionAgainstFeatureCatalog rejects all-user claims for paid-only features', () => {
+  assert.throws(
+    () =>
+      validateDecisionAgainstFeatureCatalog({
+        decision: {
+          decision: 'Roll out MIDI export to all users immediately',
+          reasoning: 'This should be available to all plans for growth.',
+          keyTradeoffs: ['Higher conversion potential vs higher compute costs'],
+          risks: ['May cannibalize upgrades'],
+          actionPlan: ['Enable export midi flow for every user'],
+          dissentingOpinions: [],
+        },
+        featureCatalog: FEATURE_CATALOG_FIXTURE,
+      }),
+    {
+      message: /not available to all plans/,
+    },
+  );
+});
+
+test('validateDecisionAgainstFeatureCatalog allows claims when feature is actually all-plan', () => {
+  const result = validateDecisionAgainstFeatureCatalog({
+    decision: {
+      decision: 'Expand public sharing to all users with better onboarding',
+      reasoning: 'Public sharing is already available to all users and can drive discovery.',
+      keyTradeoffs: ['More reach vs moderation overhead'],
+      risks: ['Quality control burden'],
+      actionPlan: ['Improve share UX', 'Add moderation workflow', 'Track sharing activation'],
+      dissentingOpinions: [],
+    },
+    featureCatalog: FEATURE_CATALOG_FIXTURE,
+  });
+
+  assert.equal(result.decision.includes('public sharing'), true);
 });

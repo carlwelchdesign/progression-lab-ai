@@ -138,6 +138,8 @@ describe('BoardroomOrchestrator', () => {
 
     expect(cmoCritiquePrompt).toContain('Recommendation: CTO recommendation');
     expect(cmoCritiquePrompt).not.toContain('Recommendation: CMO recommendation');
+    expect(ctoCritiquePrompt).toContain('Current Product Surface (live plan-aware snapshot):');
+    expect(cmoCritiquePrompt).toContain('Current Product Surface (live plan-aware snapshot):');
   });
 
   it('throws retries exhausted when provider keeps failing', async () => {
