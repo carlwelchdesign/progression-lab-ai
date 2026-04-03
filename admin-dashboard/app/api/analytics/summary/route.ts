@@ -367,10 +367,6 @@ export async function GET(request: NextRequest) {
         }) as Promise<FunnelEventRow[]>,
       ]);
 
-    const eventCountByType = new Map(
-      eventsByTypeRows.map((row) => [row.eventType, row._count._all]),
-    );
-
     const filteredFunnelEvents = funnelEvents.filter((event) => {
       const locale = readStringProperty(event.properties, ['locale', 'language', 'userLocale']);
       const persona = readStringProperty(event.properties, ['persona', 'userPersona']);

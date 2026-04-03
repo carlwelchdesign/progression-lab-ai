@@ -239,4 +239,30 @@ describe('AdminDashboardClient', () => {
 
     expect(setDetailsOpen).toHaveBeenCalledWith(false);
   });
+
+  it('opens mobile navigation menu and switches sections', async () => {
+    const user = userEvent.setup();
+
+    mockedUseAdminDashboard.mockReturnValue(
+      createHookState({
+        user: {
+          id: 'user-1',
+          email: 'demo@progressionlab.ai',
+          role: 'ADMIN',
+        },
+        rows,
+        total: 1,
+        tableLabel: '1-1 of 1',
+      }),
+    );
+
+    render(<AdminDashboardClient />);
+
+    await user.click(screen.getByRole('button', { name: 'Open admin navigation menu' }));
+    expect(screen.getByRole('heading', { name: 'Admin Sections' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Progressions' }));
+
+    expect(screen.getByLabelText('Search title, owner, or genre')).toBeInTheDocument();
+  });
 });

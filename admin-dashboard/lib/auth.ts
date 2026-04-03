@@ -97,12 +97,7 @@ function parseSignedToken<T extends { exp: number }>(token: string | undefined):
   }
 }
 
-function setCookie(
-  response: NextResponse,
-  name: string,
-  value: string,
-  maxAge: number,
-): void {
+function setCookie(response: NextResponse, name: string, value: string, maxAge: number): void {
   response.cookies.set(name, value, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

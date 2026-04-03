@@ -96,7 +96,7 @@ export default function PromptBuilderPanel({ role }: PromptBuilderPanelProps) {
     void loadState();
   }, [loadState]);
 
-  const versions = state?.versions ?? [];
+  const versions = useMemo(() => state?.versions ?? [], [state?.versions]);
 
   const selectedDiffPreview = useMemo(() => {
     const latestVersion = versions[0];
