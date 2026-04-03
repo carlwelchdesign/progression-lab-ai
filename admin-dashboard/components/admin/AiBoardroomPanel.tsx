@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Accordion,
@@ -21,9 +21,10 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-import { runBoardroom } from './adminApi';
+import { fetchBoardroomRun, fetchBoardroomRuns, runBoardroom } from './adminApi';
 import type {
   BoardroomContextInput,
+  BoardroomRunHistoryItem,
   BoardroomProductStage,
   BoardroomRiskTolerance,
   BoardroomRunResult,
@@ -45,6 +46,14 @@ function toListFromMultiline(value: string): string[] {
     .filter(Boolean);
 }
 
+function toMultiline(value?: string[]): string {
+  return Array.isArray(value) ? value.join('\n') : '';
+}
+
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString();
+}
+
 export default function AiBoardroomPanel() {
   const [question, setQuestion] = useState('');
   const [productStage, setProductStage] = useState<BoardroomProductStage | ''>('');
@@ -58,6 +67,16 @@ export default function AiBoardroomPanel() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BoardroomRunResult | null>(null);
+  const [activeRunMeta, setActiveRunMeta] = useState<{
+    id: string;
+    createdAt: string;
+    durationMs: number;
+  } | null>(null);
+
+  const [savedRuns, setSavedRuns] = useState<BoardroomRunHistoryItem[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [loadingRunId, setLoadingRunId] = useState<string | null>(null);
 
   const canRun = question.trim().length > 0 && !isRunning;
 
@@ -69,6 +88,55 @@ export default function AiBoardroomPanel() {
     ],
     [],
   );
+
+  const loadHistory = useCallback(async () => {
+    setIsHistoryLoading(true);
+    setHistoryError(null);
+
+    try {
+      const page = await fetchBoardroomRuns({ page: 1, pageSize: 10 });
+      setSavedRuns(page.items);
+    } catch (historyLoadError) {
+      setHistoryError((historyLoadError as Error).message);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadHistory();
+  }, [loadHistory]);
+
+  function applyContextInputs(context: BoardroomContextInput | null | undefined) {
+    setProductStage(context?.productStage ?? '');
+    setGoalsInput(toMultiline(context?.goals));
+    setConstraintsInput(toMultiline(context?.constraints));
+    setBudget(context?.budget ?? '');
+    setTimeframe(context?.timeframe ?? '');
+    setRiskTolerance(context?.riskTolerance ?? '');
+    setExtraNotes(context?.extraNotes ?? '');
+  }
+
+  async function handleLoadRun(runId: string) {
+    setLoadingRunId(runId);
+    setError(null);
+
+    try {
+      const run = await fetchBoardroomRun(runId);
+      setQuestion(run.question);
+      applyContextInputs(run.context);
+      setResult(run.result);
+      setActiveRunMeta({
+        id: run.id,
+        createdAt: run.createdAt,
+        durationMs: run.durationMs,
+      });
+    } catch (loadRunError) {
+      setError((loadRunError as Error).message);
+    } finally {
+      setLoadingRunId(null);
+    }
+  }
 
   async function handleRun() {
     if (!canRun) {
@@ -110,6 +178,8 @@ export default function AiBoardroomPanel() {
         context: Object.keys(context).length > 0 ? context : undefined,
       });
       setResult(next);
+      setActiveRunMeta(null);
+      await loadHistory();
     } catch (runError) {
       setError((runError as Error).message);
     } finally {
@@ -260,6 +330,56 @@ export default function AiBoardroomPanel() {
 
       {error ? <Alert severity="error">{error}</Alert> : null}
 
+      <Card variant="outlined">
+        <CardContent>
+          <Stack spacing={2}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="subtitle1">Saved Boardroom Runs</Typography>
+              <Button size="small" onClick={() => void loadHistory()} disabled={isHistoryLoading}>
+                Refresh
+              </Button>
+            </Stack>
+
+            {isHistoryLoading ? <LinearProgress /> : null}
+            {historyError ? <Alert severity="error">{historyError}</Alert> : null}
+
+            {savedRuns.length === 0 && !isHistoryLoading ? (
+              <Typography variant="body2" color="text.secondary">
+                No saved runs yet. Run AI Boardroom to create the first saved result.
+              </Typography>
+            ) : null}
+
+            <Stack spacing={1}>
+              {savedRuns.map((run) => (
+                <Card key={run.id} variant="outlined">
+                  <CardContent>
+                    <Stack spacing={1}>
+                      <Typography variant="subtitle2">{run.question}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Saved {formatDateTime(run.createdAt)} • {run.durationMs}ms
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {run.decision}
+                      </Typography>
+                      <Box>
+                        <Button
+                          size="small"
+                          variant="text"
+                          disabled={loadingRunId === run.id}
+                          onClick={() => void handleLoadRun(run.id)}
+                        >
+                          {loadingRunId === run.id ? 'Loading...' : 'Load Result'}
+                        </Button>
+                      </Box>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              ))}
+            </Stack>
+          </Stack>
+        </CardContent>
+      </Card>
+
       {result && (
         <Stack spacing={2}>
           <Card>
@@ -268,6 +388,12 @@ export default function AiBoardroomPanel() {
                 <Typography variant="overline" color="text.secondary">
                   Final Decision
                 </Typography>
+                {activeRunMeta ? (
+                  <Typography variant="caption" color="text.secondary">
+                    Loaded saved run from {formatDateTime(activeRunMeta.createdAt)} •{' '}
+                    {activeRunMeta.durationMs}ms
+                  </Typography>
+                ) : null}
                 <Typography variant="h6">{result.decision}</Typography>
                 <Typography variant="body2" color="text.secondary">
                   {result.reasoning}

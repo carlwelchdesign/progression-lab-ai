@@ -431,3 +431,28 @@ export type BoardroomRunResult = {
     revisionSummaries: BoardroomPhaseSummary[];
   };
 };
+
+export type BoardroomRunHistoryItem = {
+  id: string;
+  question: string;
+  decision: string;
+  durationMs: number;
+  createdAt: string;
+};
+
+export type BoardroomRunHistoryPage = {
+  total: number;
+  page: number;
+  pageSize: number;
+  items: BoardroomRunHistoryItem[];
+};
+
+export type BoardroomRunHistoryDetail = {
+  id: string;
+  question: string;
+  context: BoardroomContextInput | null;
+  durationMs: number;
+  modelClasses: string[];
+  createdAt: string;
+  result: BoardroomRunResult;
+};

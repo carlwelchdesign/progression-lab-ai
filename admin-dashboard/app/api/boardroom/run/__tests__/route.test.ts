@@ -8,6 +8,7 @@ const mockCheckCsrfToken = jest.fn();
 const mockGetAdminUserFromRequest = jest.fn();
 const mockRunWithRequest = jest.fn();
 const mockRecordBoardroomRunAuditLog = jest.fn();
+const mockBoardroomRunCreate = jest.fn();
 
 jest.mock('../../../../../lib/csrf', () => ({
   checkCsrfToken: (request: NextRequest) => mockCheckCsrfToken(request),
@@ -26,6 +27,14 @@ jest.mock('../../../../../lib/boardroom/orchestrator', () => ({
 jest.mock('../../../../../lib/adminAuditLog', () => ({
   AUDIT_ACTION_BOARDROOM_RUN_EXECUTED: 'EXECUTE_BOARDROOM_RUN',
   recordBoardroomRunAuditLog: (args: unknown) => mockRecordBoardroomRunAuditLog(args),
+}));
+
+jest.mock('../../../../../lib/prisma', () => ({
+  prisma: {
+    boardroomRun: {
+      create: (...args: unknown[]) => mockBoardroomRunCreate(...args),
+    },
+  },
 }));
 
 import { POST } from '../route';
@@ -52,6 +61,7 @@ describe('POST /api/boardroom/run', () => {
         revisionSummaries: [],
       },
     });
+    mockBoardroomRunCreate.mockResolvedValue({ id: 'run-1' });
     mockRecordBoardroomRunAuditLog.mockResolvedValue(undefined);
   });
 
@@ -131,6 +141,15 @@ describe('POST /api/boardroom/run', () => {
         context: expect.objectContaining({
           productStage: 'GROWTH',
           goals: ['Increase MRR by 20%'],
+        }),
+      }),
+    );
+    expect(mockBoardroomRunCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          adminUserId: 'admin-1',
+          question: 'Should we double paid acquisition budget this quarter?',
+          decision: 'Run a staged growth experiment',
         }),
       }),
     );

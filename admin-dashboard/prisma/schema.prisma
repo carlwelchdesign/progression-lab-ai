@@ -100,12 +100,36 @@ model User {
   usageEvents  UsageEvent[]
   analyticsEvents AnalyticsEvent[]
   adminAuditLogs AdminAuditLog[]
+  boardroomRuns BoardroomRun[]
   promptVersions PromptVersion[]
   marketingContentVersions MarketingContentVersion[]
   webauthnCredentials WebAuthnCredential[]
   webauthnChallenges WebAuthnChallenge[]
   createdPromoCodes PromoCode[] @relation("PromoCodeCreatedBy")
   promoCodeRedemptions PromoCodeRedemption[]
+}
+
+model BoardroomRun {
+  id                 String   @id @default(cuid())
+  adminUserId        String
+  question           String
+  context            Json?
+  decision           String
+  reasoning          String
+  keyTradeoffs       Json
+  risks              Json
+  actionPlan         Json
+  dissentingOpinions Json
+  debate             Json?
+  durationMs         Int
+  modelClasses       String[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  adminUser User @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId, createdAt])
+  @@index([createdAt])
 }
 
 model WebAuthnCredential {

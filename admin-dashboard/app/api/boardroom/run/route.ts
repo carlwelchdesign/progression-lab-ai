@@ -9,6 +9,7 @@ import { BoardroomOrchestrator } from '../../../../lib/boardroom/orchestrator';
 import { toBoardroomError } from '../../../../lib/boardroom/errors';
 import { parseBoardroomRunRequest } from '../../../../lib/boardroom/validation';
 import { checkCsrfToken } from '../../../../lib/csrf';
+import { prisma } from '../../../../lib/prisma';
 
 type RunBoardroomRequest = {
   question?: unknown;
@@ -38,6 +39,24 @@ export async function POST(request: NextRequest) {
 
     const orchestrator = new BoardroomOrchestrator();
     const result = await orchestrator.runWithRequest(parsed);
+    const durationMs = Date.now() - startedAt;
+
+    await prisma.boardroomRun.create({
+      data: {
+        adminUserId: adminUser.id,
+        question: parsed.question,
+        context: parsed.context,
+        decision: result.decision,
+        reasoning: result.reasoning,
+        keyTradeoffs: result.keyTradeoffs,
+        risks: result.risks,
+        actionPlan: result.actionPlan,
+        dissentingOpinions: result.dissentingOpinions,
+        debate: result.debate,
+        durationMs,
+        modelClasses: ['SMALL', 'LARGE'],
+      },
+    });
 
     try {
       await recordBoardroomRunAuditLog({
@@ -48,7 +67,7 @@ export async function POST(request: NextRequest) {
           questionLength: parsed.question.length,
           usedContext: Boolean(parsed.context),
           agentCount: result.debate?.independentSummaries.length ?? 0,
-          durationMs: Date.now() - startedAt,
+          durationMs,
           modelClasses: ['SMALL', 'LARGE'],
         },
       });
