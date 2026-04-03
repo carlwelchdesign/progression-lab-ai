@@ -127,19 +127,22 @@ export function validateDecisionAgainstFeatureCatalog(params: {
   featureCatalog: BoardroomFeatureCatalog;
 }): BoardroomDecision {
   const allText = collectDecisionText(params.decision);
-  const hasGlobalClaim = GLOBAL_AVAILABILITY_PATTERNS.some((pattern) => pattern.test(allText));
 
-  if (!hasGlobalClaim) {
-    return params.decision;
-  }
+  // Split into sentences to avoid false positives from cross-sentence co-occurrence.
+  // A violation only fires when a global-availability claim and a restricted-feature
+  // reference appear within the same sentence.
+  const sentences = allText.split(/[.!?]+/).filter(Boolean);
 
   const violations = FEATURE_REFERENCE_RULES.filter((rule) => {
-    const mentionsFeature = rule.patterns.some((pattern) => pattern.test(allText));
-    if (!mentionsFeature) {
+    if (params.featureCatalog.capabilities[rule.feature].isAvailableToAll) {
       return false;
     }
 
-    return !params.featureCatalog.capabilities[rule.feature].isAvailableToAll;
+    return sentences.some(
+      (sentence) =>
+        rule.patterns.some((pattern) => pattern.test(sentence)) &&
+        GLOBAL_AVAILABILITY_PATTERNS.some((globalPattern) => globalPattern.test(sentence)),
+    );
   }).map((rule) => rule.label);
 
   if (violations.length > 0) {

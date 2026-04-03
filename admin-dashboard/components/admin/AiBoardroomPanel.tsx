@@ -1068,11 +1068,31 @@ export default function AiBoardroomPanel() {
             <CardContent>
               <Stack spacing={1.5}>
                 <Typography variant="subtitle1">Action Plan</Typography>
-                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  {result.actionPlan.map((step) => (
-                    <Chip key={step} color="primary" label={step} />
-                  ))}
-                </Stack>
+                {result.actionPlan.length > 0 ? (
+                  <Box
+                    component="ol"
+                    sx={{
+                      margin: 0,
+                      paddingLeft: 3,
+                    }}
+                  >
+                    {result.actionPlan.map((step) => (
+                      <Typography
+                        key={step}
+                        component="li"
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 1, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                      >
+                        {step}
+                      </Typography>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No action plan was provided.
+                  </Typography>
+                )}
               </Stack>
             </CardContent>
           </Card>
@@ -1135,45 +1155,57 @@ export default function AiBoardroomPanel() {
                   <>
                     <Stack spacing={1}>
                       <Typography variant="subtitle2">Independent</Typography>
-                      {result.debate.independentSummaries.map((item) => (
-                        <Typography
-                          key={`ind-${item.memberLabel}`}
-                          variant="body2"
-                          color="text.secondary"
-                        >
-                          <strong>{item.memberLabel}</strong>: {item.summary}
-                        </Typography>
-                      ))}
+                      <Box component="ul" sx={{ margin: 0, paddingLeft: 3 }}>
+                        {result.debate.independentSummaries.map((item) => (
+                          <Typography
+                            key={`ind-${item.memberLabel}`}
+                            component="li"
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mb: 1, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                          >
+                            <strong>{item.memberLabel}</strong>: {item.summary}
+                          </Typography>
+                        ))}
+                      </Box>
                     </Stack>
 
                     <Divider />
 
                     <Stack spacing={1}>
                       <Typography variant="subtitle2">Critique</Typography>
-                      {result.debate.critiqueSummaries.map((item) => (
-                        <Typography
-                          key={`crt-${item.memberLabel}`}
-                          variant="body2"
-                          color="text.secondary"
-                        >
-                          <strong>{item.memberLabel}</strong>: {item.summary}
-                        </Typography>
-                      ))}
+                      <Box component="ul" sx={{ margin: 0, paddingLeft: 3 }}>
+                        {result.debate.critiqueSummaries.map((item) => (
+                          <Typography
+                            key={`crt-${item.memberLabel}`}
+                            component="li"
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mb: 1, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                          >
+                            <strong>{item.memberLabel}</strong>: {item.summary}
+                          </Typography>
+                        ))}
+                      </Box>
                     </Stack>
 
                     <Divider />
 
                     <Stack spacing={1}>
                       <Typography variant="subtitle2">Revision</Typography>
-                      {result.debate.revisionSummaries.map((item) => (
-                        <Typography
-                          key={`rev-${item.memberLabel}`}
-                          variant="body2"
-                          color="text.secondary"
-                        >
-                          <strong>{item.memberLabel}</strong>: {item.summary}
-                        </Typography>
-                      ))}
+                      <Box component="ul" sx={{ margin: 0, paddingLeft: 3 }}>
+                        {result.debate.revisionSummaries.map((item) => (
+                          <Typography
+                            key={`rev-${item.memberLabel}`}
+                            component="li"
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mb: 1, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                          >
+                            <strong>{item.memberLabel}</strong>: {item.summary}
+                          </Typography>
+                        ))}
+                      </Box>
                     </Stack>
                   </>
                 ) : (

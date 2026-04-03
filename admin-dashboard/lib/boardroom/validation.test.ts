@@ -151,6 +151,24 @@ test('validateDecisionAgainstFeatureCatalog allows claims when feature is actual
   assert.equal(result.decision.includes('public sharing'), true);
 });
 
+test('validateDecisionAgainstFeatureCatalog does not trigger on cross-sentence co-occurrence', () => {
+  // Regression: mentioning a restricted feature in one sentence and a global-availability
+  // phrase in a completely separate sentence should not raise a violation.
+  const result = validateDecisionAgainstFeatureCatalog({
+    decision: {
+      decision: 'Adjust pricing to better retain all users on the free tier.',
+      reasoning: 'PDF export is a compelling upgrade incentive that should remain on paid plans.',
+      keyTradeoffs: ['Retention vs revenue tradeoff'],
+      risks: ['Free-tier churn if upgrade value is unclear'],
+      actionPlan: ['Improve onboarding', 'Highlight export value on upgrade prompt'],
+      dissentingOpinions: [],
+    },
+    featureCatalog: FEATURE_CATALOG_FIXTURE,
+  });
+
+  assert.ok(result);
+});
+
 test('validateDecisionAgainstNonGoals rejects DAW recommendations', () => {
   const charter = getBoardroomProductCharter();
 
