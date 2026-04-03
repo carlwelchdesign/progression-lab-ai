@@ -68,6 +68,39 @@ function formatDateTime(value: string): string {
   return new Date(value).toLocaleString();
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderPrintParagraphs(value: string): string {
+  const paragraphs = value
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+  if (paragraphs.length === 0) {
+    return '<p class="empty-state">Not provided.</p>';
+  }
+
+  return paragraphs
+    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br />')}</p>`)
+    .join('');
+}
+
+function renderPrintList(items: string[], ordered = false): string {
+  if (items.length === 0) {
+    return '<p class="empty-state">None provided.</p>';
+  }
+
+  const tagName = ordered ? 'ol' : 'ul';
+  return `<${tagName}>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</${tagName}>`;
+}
+
 function cloneBoard(board: BoardroomBoard): BoardroomBoard {
   return {
     ...board,
@@ -397,6 +430,403 @@ export default function AiBoardroomPanel() {
     } finally {
       setIsRunning(false);
     }
+  }
+
+  function handlePrintResult() {
+    if (!result) return;
+    const now = new Date().toLocaleString();
+    const metadata = [
+      { label: 'Generated', value: now },
+      ...(currentBoard ? [{ label: 'Board', value: currentBoard.name }] : []),
+      ...(activeRunMeta
+        ? [
+            {
+              label: 'Saved Run',
+              value: `${formatDateTime(activeRunMeta.createdAt)} (${activeRunMeta.durationMs}ms)`,
+            },
+          ]
+        : []),
+    ];
+    const debateSections = result.debate
+      ? [
+          {
+            title: 'Independent View',
+            items: result.debate.independentSummaries,
+          },
+          {
+            title: 'Critique',
+            items: result.debate.critiqueSummaries,
+          },
+          {
+            title: 'Revision',
+            items: result.debate.revisionSummaries,
+          },
+        ]
+      : [];
+    const printDocument = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Boardroom Result</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+        color: #171717;
+      }
+
+      body {
+        font-family: Georgia, 'Times New Roman', serif;
+        padding: 0;
+        line-height: 1.6;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .page {
+        max-width: 7.55in;
+        margin: 0 auto;
+        padding: 0.28in 0;
+      }
+
+      .header {
+        margin-bottom: 0.35in;
+        padding-bottom: 0.18in;
+        border-bottom: 1px solid #d4d4d4;
+      }
+
+      .eyebrow,
+      .meta-label,
+      .section-kicker,
+      .debate-label {
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #5f5f5f;
+      }
+
+      .eyebrow {
+        display: block;
+        margin-bottom: 12px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p,
+      ul,
+      ol,
+      dl,
+      dd {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 22px;
+        line-height: 1.18;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        margin-bottom: 8px;
+        max-width: 28ch;
+      }
+
+      .lede {
+        font-size: 13px;
+        line-height: 1.55;
+        color: #4b4b4b;
+        max-width: 74ch;
+      }
+
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(1.7in, 1fr));
+        gap: 12px 18px;
+        margin-top: 18px;
+      }
+
+      .meta-item {
+        padding-top: 8px;
+        border-top: 1px solid #ececec;
+      }
+
+      .meta-value {
+        display: block;
+        margin-top: 4px;
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        line-height: 1.45;
+        color: #171717;
+      }
+
+      .section {
+        margin-top: 0.3in;
+      }
+
+      .section-kicker {
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      h2 {
+        font-size: 19px;
+        line-height: 1.2;
+        font-weight: 700;
+        margin-bottom: 14px;
+      }
+
+      h3 {
+        font-size: 14px;
+        line-height: 1.3;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .decision-card {
+        background: #f7f3eb;
+        border: 1px solid #e6dcc9;
+        padding: 18px 20px;
+        break-inside: avoid;
+      }
+
+      .decision-text {
+        font-size: 17px;
+        line-height: 1.35;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+
+      .body-copy,
+      .body-copy p,
+      .body-copy li {
+        font-size: 12.5px;
+      }
+
+      .body-copy p + p {
+        margin-top: 10px;
+      }
+
+      .question-block {
+        padding-left: 14px;
+        border-left: 3px solid #d9d0bf;
+      }
+
+      ul,
+      ol {
+        padding-left: 20px;
+      }
+
+      li + li {
+        margin-top: 6px;
+      }
+
+      .two-column {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+
+      .panel {
+        break-inside: avoid;
+      }
+
+      .debate-stage + .debate-stage {
+        margin-top: 18px;
+      }
+
+      .debate-list {
+        list-style: none;
+        padding-left: 0;
+      }
+
+      .debate-list li + li {
+        margin-top: 10px;
+      }
+
+      .debate-label {
+        display: block;
+        margin-bottom: 3px;
+      }
+
+      .empty-state {
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        color: #737373;
+      }
+
+      @media print {
+        .page {
+          max-width: none;
+        }
+
+        .section,
+        .panel,
+        .decision-card {
+          break-inside: avoid;
+        }
+      }
+
+      @media screen {
+        body {
+          background: #f3f0ea;
+        }
+
+        .page {
+          background: #ffffff;
+          box-shadow: 0 14px 40px rgba(17, 17, 17, 0.12);
+          padding: 0.4in 0.4in;
+          margin: 24px auto;
+        }
+      }
+
+      @page {
+        size: auto;
+        margin: 0.55in 0.5in;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <span class="eyebrow">AI Boardroom Decision Packet</span>
+        <h1>${escapeHtml(result.decision)}</h1>
+        <p class="lede">A formatted record of the boardroom recommendation, including the framing question, rationale, action plan, tradeoffs, risks, dissent, and debate summary.</p>
+        <section class="meta-grid">
+          ${metadata
+            .map(
+              (item) =>
+                `<div class="meta-item"><span class="meta-label">${escapeHtml(item.label)}</span><span class="meta-value">${escapeHtml(item.value)}</span></div>`,
+            )
+            .join('')}
+        </section>
+      </header>
+
+      <section class="section">
+        <span class="section-kicker">Question</span>
+        <div class="question-block body-copy">
+          ${renderPrintParagraphs(question || 'N/A')}
+        </div>
+      </section>
+
+      <section class="section decision-card">
+        <span class="section-kicker">Final Decision</span>
+        <div class="decision-text">${escapeHtml(result.decision)}</div>
+        <div class="body-copy">${renderPrintParagraphs(result.reasoning)}</div>
+      </section>
+
+      <section class="section two-column">
+        <div class="panel">
+          <span class="section-kicker">Action Plan</span>
+          <h2>Recommended Next Steps</h2>
+          <div class="body-copy">${renderPrintList(result.actionPlan, true)}</div>
+        </div>
+        <div class="panel">
+          <span class="section-kicker">Tradeoffs</span>
+          <h2>What This Decision Optimizes</h2>
+          <div class="body-copy">${renderPrintList(result.keyTradeoffs)}</div>
+        </div>
+      </section>
+
+      <section class="section two-column">
+        <div class="panel">
+          <span class="section-kicker">Risks</span>
+          <h2>Points To Watch</h2>
+          <div class="body-copy">${renderPrintList(result.risks)}</div>
+        </div>
+        <div class="panel">
+          <span class="section-kicker">Dissent</span>
+          <h2>Counterarguments</h2>
+          <div class="body-copy">${renderPrintList(result.dissentingOpinions)}</div>
+        </div>
+      </section>
+
+      ${
+        debateSections.length > 0
+          ? `<section class="section">
+              <span class="section-kicker">Debate Record</span>
+              <h2>How The Board Reached Its Recommendation</h2>
+              ${debateSections
+                .map(
+                  (section) => `<section class="debate-stage panel">
+                      <h3>${escapeHtml(section.title)}</h3>
+                      ${
+                        section.items.length > 0
+                          ? `<ul class="debate-list body-copy">${section.items
+                              .map(
+                                (item) =>
+                                  `<li><span class="debate-label">${escapeHtml(item.memberLabel)}</span><div>${renderPrintParagraphs(item.summary)}</div></li>`,
+                              )
+                              .join('')}</ul>`
+                          : '<p class="empty-state">No debate notes were recorded for this stage.</p>'
+                      }
+                    </section>`,
+                )
+                .join('')}
+            </section>`
+          : ''
+      }
+    </main>
+  </body>
+</html>`;
+    if (!document.body) {
+      setError('Unable to prepare the print document. Please try again.');
+      return;
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('title', 'AI Boardroom Print Frame');
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    let hasPrinted = false;
+    let hasCleanedUp = false;
+
+    const cleanup = () => {
+      if (hasCleanedUp) {
+        return;
+      }
+      hasCleanedUp = true;
+      window.setTimeout(() => {
+        iframe.remove();
+      }, 1000);
+    };
+
+    iframe.onload = () => {
+      if (hasPrinted) {
+        return;
+      }
+      hasPrinted = true;
+      iframe.onload = null;
+
+      const frameWindow = iframe.contentWindow;
+      if (!frameWindow) {
+        cleanup();
+        setError('Unable to open the print preview. Please try again.');
+        return;
+      }
+
+      frameWindow.addEventListener('afterprint', cleanup, { once: true });
+      window.setTimeout(() => {
+        frameWindow.focus();
+        frameWindow.print();
+        window.setTimeout(cleanup, 1500);
+      }, 300);
+    };
+
+    document.body.appendChild(iframe);
+    iframe.srcdoc = printDocument;
   }
 
   async function handleSaveBoard() {
@@ -1102,7 +1532,7 @@ export default function AiBoardroomPanel() {
                 <Typography variant="body2" color="text.secondary">
                   {result.reasoning}
                 </Typography>
-                <Box>
+                <Stack direction="row" spacing={1}>
                   <Button
                     size="small"
                     variant="outlined"
@@ -1111,7 +1541,15 @@ export default function AiBoardroomPanel() {
                   >
                     {currentBoard?.id ? 'Update This Board' : 'Save This Board'}
                   </Button>
-                </Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={handlePrintResult}
+                    disabled={!result}
+                  >
+                    Print / Save PDF
+                  </Button>
+                </Stack>
               </Stack>
             </CardContent>
           </Card>
