@@ -106,6 +106,8 @@ export default function GeneratedChordGridDialog({
     totalSteps,
   });
 
+  const isVocalFeatureEnabled = resolvedVocalEntitlements.canUseVocalTrackRecording;
+
   const vocalTakeLimitReached =
     resolvedVocalEntitlements.maxVocalTakesPerArrangement !== null &&
     vocal$.takes.length >= resolvedVocalEntitlements.maxVocalTakesPerArrangement;
@@ -169,6 +171,10 @@ export default function GeneratedChordGridDialog({
     onPlayEntry: playEntry,
     onCountInBegin: () => setTrackScrollRequestKey((k) => k + 1),
     onLoopRestart: () => {
+      if (!isVocalFeatureEnabled) {
+        return;
+      }
+
       void vocal$.startVocalPlayback(0);
     },
     onStop: () => {
@@ -362,7 +368,11 @@ export default function GeneratedChordGridDialog({
   }, []);
 
   const handleVocalRecordToggle = () => {
-    if (!resolvedVocalEntitlements.canUseVocalTrackRecording || vocalTakeLimitReached) {
+    if (!isVocalFeatureEnabled) {
+      return;
+    }
+
+    if (vocalTakeLimitReached) {
       setShowVocalUpgradePrompt(true);
       trackClientAnalyticsEvent({
         name: 'vocal_take_limit_hit',
@@ -401,6 +411,11 @@ export default function GeneratedChordGridDialog({
   };
 
   useEffect(() => {
+    if (!isVocalFeatureEnabled) {
+      vocal$.stopVocalPlayback();
+      return;
+    }
+
     if (!engine$.isSequencerPlaying) {
       vocal$.stopVocalPlayback();
       return;
@@ -408,16 +423,16 @@ export default function GeneratedChordGridDialog({
 
     void vocal$.startVocalPlayback(engine$.currentStepRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engine$.isSequencerPlaying]);
+  }, [engine$.isSequencerPlaying, isVocalFeatureEnabled]);
 
   useEffect(() => {
-    if (!engine$.isSequencerPlaying) {
+    if (!isVocalFeatureEnabled || !engine$.isSequencerPlaying) {
       return;
     }
 
     void vocal$.startVocalPlayback(engine$.currentStepRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vocal$.takes.length]);
+  }, [vocal$.takes.length, isVocalFeatureEnabled, engine$.isSequencerPlaying]);
 
   return (
     <Dialog
@@ -497,6 +512,7 @@ export default function GeneratedChordGridDialog({
           }}
           onSingleShotCursorStepChange={setSingleShotCursorStep}
           isVocalRecording={vocal$.isVocalRecording}
+          showVocalTrackControls={isVocalFeatureEnabled}
           canUseVocalTrackRecording={resolvedVocalEntitlements.canUseVocalTrackRecording}
           isVocalTakeLimitReached={vocalTakeLimitReached}
           onVocalRecordToggle={handleVocalRecordToggle}
@@ -535,27 +551,29 @@ export default function GeneratedChordGridDialog({
           emptyTimelineHint={t('ui.chordGrid.dragOrRecordHint')}
         />
 
-        <VocalTrackLane
-          takes={vocal$.takes}
-          currentStep={engine$.currentStep}
-          totalSteps={totalSteps}
-          stepsPerBar={stepsPerBar}
-          beatsPerBar={beatsPerBar}
-          tempoBpm={tempoBpm}
-          loopLengthBars={loopLengthBars}
-          leadInBars={showRecordingLeadIn ? RECORDING_LEAD_IN_BARS : 0}
-          scrollToStep={showRecordingLeadIn ? stepsPerBar * RECORDING_LEAD_IN_BARS : 0}
-          scrollRequestKey={trackScrollRequestKey}
-          isPlaying={engine$.isSequencerPlaying || engine$.isCountInActive}
-          isRecording={vocal$.isVocalRecording}
-          selectedTakeId={vocal$.selectedTakeId}
-          onSelectTake={vocal$.setSelectedTakeId}
-          onDeleteTake={vocal$.deleteTake}
-          onToggleMuteTake={vocal$.toggleMuteTake}
-          onTakeGainChange={vocal$.setTakeGain}
-        />
+        {isVocalFeatureEnabled ? (
+          <VocalTrackLane
+            takes={vocal$.takes}
+            currentStep={engine$.currentStep}
+            totalSteps={totalSteps}
+            stepsPerBar={stepsPerBar}
+            beatsPerBar={beatsPerBar}
+            tempoBpm={tempoBpm}
+            loopLengthBars={loopLengthBars}
+            leadInBars={showRecordingLeadIn ? RECORDING_LEAD_IN_BARS : 0}
+            scrollToStep={showRecordingLeadIn ? stepsPerBar * RECORDING_LEAD_IN_BARS : 0}
+            scrollRequestKey={trackScrollRequestKey}
+            isPlaying={engine$.isSequencerPlaying || engine$.isCountInActive}
+            isRecording={vocal$.isVocalRecording}
+            selectedTakeId={vocal$.selectedTakeId}
+            onSelectTake={vocal$.setSelectedTakeId}
+            onDeleteTake={vocal$.deleteTake}
+            onToggleMuteTake={vocal$.toggleMuteTake}
+            onTakeGainChange={vocal$.setTakeGain}
+          />
+        ) : null}
 
-        {showVocalUpgradePrompt ? (
+        {isVocalFeatureEnabled && showVocalUpgradePrompt ? (
           <Alert
             severity="info"
             action={
@@ -587,7 +605,7 @@ export default function GeneratedChordGridDialog({
           </Alert>
         ) : null}
 
-        {vocal$.errorMessage ? (
+        {isVocalFeatureEnabled && vocal$.errorMessage ? (
           <Alert
             severity="warning"
             sx={{ mb: 1.5 }}

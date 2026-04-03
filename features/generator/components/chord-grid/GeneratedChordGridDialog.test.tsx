@@ -10,9 +10,11 @@ import {
   type PlaybackSettingsChangeHandlers,
 } from '../../lib/playbackSettingsModel';
 
+import type { UseVocalTrackReturn } from '../../hooks/useVocalTrack';
+
 const mockOpenAuthModal = jest.fn();
 const mockTrackClientAnalyticsEvent = jest.fn();
-const mockVocalHookState = {
+const mockVocalHookState: UseVocalTrackReturn = {
   takes: [],
   isVocalRecording: false,
   permissionStatus: 'granted',
@@ -519,6 +521,35 @@ describe('GeneratedChordGridDialog', () => {
     });
 
     expect(screen.getByText(/0 events/i)).toBeInTheDocument();
+  });
+
+  it('hides vocal controls when vocal feature entitlement is disabled', () => {
+    renderWithProviders(
+      <GeneratedChordGridDialog
+        open={true}
+        onClose={jest.fn()}
+        tempoBpm={120}
+        settings={PLAYBACK_SETTINGS_DEFAULTS}
+        onSettingsChange={mockHandlers}
+        onTempoBpmChange={jest.fn()}
+        chords={[mockChord]}
+        vocalEntitlements={{
+          canUseVocalTrackRecording: false,
+          maxVocalTakesPerArrangement: 0,
+        }}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Record vocal take',
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: 'Stop vocal recording',
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it('emits vocal paywall analytics when vocal take limit is reached', async () => {

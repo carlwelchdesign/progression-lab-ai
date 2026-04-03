@@ -99,6 +99,28 @@ export async function PATCH(
       updates.canSharePublicly = body.canSharePublicly;
     }
 
+    if (body.canUseVocalTrackRecording !== undefined) {
+      if (typeof body.canUseVocalTrackRecording !== 'boolean') {
+        return NextResponse.json({ message: 'Invalid canUseVocalTrackRecording' }, { status: 400 });
+      }
+      updates.canUseVocalTrackRecording = body.canUseVocalTrackRecording;
+    }
+
+    if (body.maxVocalTakesPerArrangement !== undefined) {
+      if (
+        body.maxVocalTakesPerArrangement !== null &&
+        (typeof body.maxVocalTakesPerArrangement !== 'number' ||
+          Number.isNaN(body.maxVocalTakesPerArrangement) ||
+          body.maxVocalTakesPerArrangement < 0)
+      ) {
+        return NextResponse.json(
+          { message: 'Invalid maxVocalTakesPerArrangement' },
+          { status: 400 },
+        );
+      }
+      updates.maxVocalTakesPerArrangement = body.maxVocalTakesPerArrangement;
+    }
+
     if (body.canUseAdvancedVoicingControls !== undefined) {
       if (typeof body.canUseAdvancedVoicingControls !== 'boolean') {
         return NextResponse.json(

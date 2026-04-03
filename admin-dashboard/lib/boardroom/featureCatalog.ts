@@ -17,7 +17,9 @@ function computeAvailability(params: {
   plans: SubscriptionPlan[];
   isEnabledForPlan: (plan: SubscriptionPlan) => boolean;
 }): BoardroomFeatureAvailability {
-  const availablePlans = params.plans.filter((plan) => params.isEnabledForPlan(plan)).map(asPlanLabel);
+  const availablePlans = params.plans
+    .filter((plan) => params.isEnabledForPlan(plan))
+    .map(asPlanLabel);
   const unavailablePlans = params.plans
     .filter((plan) => !params.isEnabledForPlan(plan))
     .map(asPlanLabel);
@@ -47,6 +49,10 @@ export async function getBoardroomFeatureCatalog(): Promise<BoardroomFeatureCata
       canSharePublicly: computeAvailability({
         plans: PLANS_TO_CONSIDER,
         isEnabledForPlan: (plan) => tierConfigs[plan].canSharePublicly,
+      }),
+      canUseVocalTrackRecording: computeAvailability({
+        plans: PLANS_TO_CONSIDER,
+        isEnabledForPlan: (plan) => tierConfigs[plan].canUseVocalTrackRecording,
       }),
       canUseAdvancedVoicingControls: computeAvailability({
         plans: PLANS_TO_CONSIDER,

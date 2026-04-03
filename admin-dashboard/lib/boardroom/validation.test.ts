@@ -33,6 +33,11 @@ const FEATURE_CATALOG_FIXTURE: BoardroomFeatureCatalog = {
       availablePlans: ['SESSION', 'COMPOSER', 'STUDIO'],
       unavailablePlans: [],
     },
+    canUseVocalTrackRecording: {
+      isAvailableToAll: false,
+      availablePlans: ['COMPOSER', 'STUDIO'],
+      unavailablePlans: ['SESSION'],
+    },
     canUseAdvancedVoicingControls: {
       isAvailableToAll: false,
       availablePlans: ['COMPOSER', 'STUDIO'],

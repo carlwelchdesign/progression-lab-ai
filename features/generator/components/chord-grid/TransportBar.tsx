@@ -52,6 +52,7 @@ type TransportBarProps = {
   onRecordingModeChange: (mode: RecordingMode) => void;
   onSingleShotCursorStepChange: (step: number | null) => void;
   isVocalRecording: boolean;
+  showVocalTrackControls: boolean;
   canUseVocalTrackRecording: boolean;
   isVocalTakeLimitReached: boolean;
   onVocalRecordToggle: () => void;
@@ -90,6 +91,7 @@ export default function TransportBar({
   onRecordingModeChange,
   onSingleShotCursorStepChange,
   isVocalRecording,
+  showVocalTrackControls,
   canUseVocalTrackRecording,
   isVocalTakeLimitReached,
   onVocalRecordToggle,
@@ -218,34 +220,36 @@ export default function TransportBar({
           </IconButton>
         </Tooltip>
 
-        <Tooltip
-          title={
-            !canUseVocalTrackRecording
-              ? t('ui.chordGrid.vocalUnavailableOnPlan', {
-                  defaultValue: 'Upgrade to unlock vocal recording',
-                })
-              : isVocalTakeLimitReached
-                ? t('ui.chordGrid.vocalTakeLimitReached', {
-                    defaultValue: 'Take limit reached for this plan',
+        {showVocalTrackControls ? (
+          <Tooltip
+            title={
+              !canUseVocalTrackRecording
+                ? t('ui.chordGrid.vocalUnavailableOnPlan', {
+                    defaultValue: 'Upgrade to unlock vocal recording',
                   })
-                : isVocalRecording
+                : isVocalTakeLimitReached
+                  ? t('ui.chordGrid.vocalTakeLimitReached', {
+                      defaultValue: 'Take limit reached for this plan',
+                    })
+                  : isVocalRecording
+                    ? t('ui.chordGrid.stopVocalRecording', { defaultValue: 'Stop vocal recording' })
+                    : t('ui.chordGrid.recordVocalTrack', { defaultValue: 'Record vocal take' })
+            }
+          >
+            <IconButton
+              size="small"
+              aria-label={
+                isVocalRecording
                   ? t('ui.chordGrid.stopVocalRecording', { defaultValue: 'Stop vocal recording' })
                   : t('ui.chordGrid.recordVocalTrack', { defaultValue: 'Record vocal take' })
-          }
-        >
-          <IconButton
-            size="small"
-            aria-label={
-              isVocalRecording
-                ? t('ui.chordGrid.stopVocalRecording', { defaultValue: 'Stop vocal recording' })
-                : t('ui.chordGrid.recordVocalTrack', { defaultValue: 'Record vocal take' })
-            }
-            onClick={onVocalRecordToggle}
-            sx={getTransportIconButtonSx(isVocalRecording, 'error')}
-          >
-            <MicIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+              }
+              onClick={onVocalRecordToggle}
+              sx={getTransportIconButtonSx(isVocalRecording, 'error')}
+            >
+              <MicIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        ) : null}
 
         <Tooltip
           title={

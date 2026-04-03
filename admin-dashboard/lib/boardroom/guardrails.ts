@@ -106,6 +106,16 @@ const FEATURE_REFERENCE_RULES: Array<{
     patterns: [/\bshare publicly\b/i, /\bpublic sharing\b/i, /\bpublic link\b/i],
   },
   {
+    feature: 'canUseVocalTrackRecording',
+    label: 'vocal recording',
+    patterns: [
+      /\bvocal recording\b/i,
+      /\bvocal track\b/i,
+      /\brecord vocal\b/i,
+      /\bmulti-?take vocal\b/i,
+    ],
+  },
+  {
     feature: 'canUseAdvancedVoicingControls',
     label: 'advanced voicing controls',
     patterns: [/\badvanced voicing\b/i, /\bvoicing controls\b/i],

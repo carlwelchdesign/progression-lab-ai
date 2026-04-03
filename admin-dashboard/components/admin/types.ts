@@ -88,6 +88,8 @@ export type SubscriptionTierConfig = {
   canExportMidi: boolean;
   canExportPdf: boolean;
   canSharePublicly: boolean;
+  canUseVocalTrackRecording: boolean;
+  maxVocalTakesPerArrangement: number | null;
   canUseAdvancedVoicingControls: boolean;
 };
 
