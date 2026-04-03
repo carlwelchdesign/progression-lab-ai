@@ -100,7 +100,7 @@ function buildSeedPresetMembers(preset: BoardSeedPreset): BoardroomBoardMemberDe
   );
 
   const members = preset.suggestionKeys
-    .map((key, displayOrder) => {
+    .map<BoardroomBoardMemberDefinition | null>((key, displayOrder) => {
       const suggestion = suggestionByKey.get(key);
       if (!suggestion) {
         return null;
@@ -118,7 +118,7 @@ function buildSeedPresetMembers(preset: BoardSeedPreset): BoardroomBoardMemberDe
         isActive: true,
       } satisfies BoardroomBoardMemberDefinition;
     })
-    .filter((member): member is BoardroomBoardMemberDefinition => Boolean(member));
+    .filter((member): member is BoardroomBoardMemberDefinition => member !== null);
 
   return members.length > 0 ? members : createDefaultBoardroomMembers(4);
 }
