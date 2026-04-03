@@ -199,6 +199,8 @@ export default function AiBoardroomPanel() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [loadingRunId, setLoadingRunId] = useState<string | null>(null);
+  const [isSavedRunsExpanded, setIsSavedRunsExpanded] = useState(false);
+  const [isAdvancedInputsExpanded, setIsAdvancedInputsExpanded] = useState(false);
 
   const canRun =
     question.trim().length > 0 &&
@@ -876,100 +878,119 @@ export default function AiBoardroomPanel() {
               placeholder="Example: Should we invest in product-led growth or paid acquisition first for the next 2 quarters?"
             />
 
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, md: 4 }}>
-                <TextField
-                  label="Product stage"
-                  value={productStage}
-                  onChange={(event) => setProductStage(event.target.value as BoardroomProductStage)}
-                  select
-                  fullWidth
-                >
-                  <MenuItem value="">Not specified</MenuItem>
-                  {PRODUCT_STAGES.map((item) => (
-                    <MenuItem key={item} value={item}>
-                      {item}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
+            <Accordion
+              expanded={isAdvancedInputsExpanded}
+              onChange={(_, expanded) => setIsAdvancedInputsExpanded(expanded)}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Stack spacing={0.5}>
+                  <Typography variant="subtitle2">Advanced Inputs</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Product stage, goals, constraints, budget, and risk context
+                  </Typography>
+                </Stack>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack spacing={2}>
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <TextField
+                        label="Product stage"
+                        value={productStage}
+                        onChange={(event) =>
+                          setProductStage(event.target.value as BoardroomProductStage)
+                        }
+                        select
+                        fullWidth
+                      >
+                        <MenuItem value="">Not specified</MenuItem>
+                        {PRODUCT_STAGES.map((item) => (
+                          <MenuItem key={item} value={item}>
+                            {item}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
 
-              <Grid size={{ xs: 12, md: 4 }}>
-                <TextField
-                  label="Budget"
-                  value={budget}
-                  onChange={(event) => setBudget(event.target.value)}
-                  fullWidth
-                  placeholder="Example: $30k over 90 days"
-                />
-              </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <TextField
+                        label="Budget"
+                        value={budget}
+                        onChange={(event) => setBudget(event.target.value)}
+                        fullWidth
+                        placeholder="Example: $30k over 90 days"
+                      />
+                    </Grid>
 
-              <Grid size={{ xs: 12, md: 4 }}>
-                <TextField
-                  label="Timeframe"
-                  value={timeframe}
-                  onChange={(event) => setTimeframe(event.target.value)}
-                  fullWidth
-                  placeholder="Example: Next 2 quarters"
-                />
-              </Grid>
-            </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <TextField
+                        label="Timeframe"
+                        value={timeframe}
+                        onChange={(event) => setTimeframe(event.target.value)}
+                        fullWidth
+                        placeholder="Example: Next 2 quarters"
+                      />
+                    </Grid>
+                  </Grid>
 
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  label="Goals (one per line)"
-                  value={goalsInput}
-                  onChange={(event) => setGoalsInput(event.target.value)}
-                  multiline
-                  minRows={3}
-                  fullWidth
-                />
-              </Grid>
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        label="Goals (one per line)"
+                        value={goalsInput}
+                        onChange={(event) => setGoalsInput(event.target.value)}
+                        multiline
+                        minRows={3}
+                        fullWidth
+                      />
+                    </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  label="Constraints (one per line)"
-                  value={constraintsInput}
-                  onChange={(event) => setConstraintsInput(event.target.value)}
-                  multiline
-                  minRows={3}
-                  fullWidth
-                />
-              </Grid>
-            </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        label="Constraints (one per line)"
+                        value={constraintsInput}
+                        onChange={(event) => setConstraintsInput(event.target.value)}
+                        multiline
+                        minRows={3}
+                        fullWidth
+                      />
+                    </Grid>
+                  </Grid>
 
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, md: 4 }}>
-                <TextField
-                  label="Risk tolerance"
-                  value={riskTolerance}
-                  onChange={(event) =>
-                    setRiskTolerance(event.target.value as BoardroomRiskTolerance)
-                  }
-                  select
-                  fullWidth
-                >
-                  <MenuItem value="">Not specified</MenuItem>
-                  {RISK_LEVELS.map((item) => (
-                    <MenuItem key={item} value={item}>
-                      {item}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <TextField
+                        label="Risk tolerance"
+                        value={riskTolerance}
+                        onChange={(event) =>
+                          setRiskTolerance(event.target.value as BoardroomRiskTolerance)
+                        }
+                        select
+                        fullWidth
+                      >
+                        <MenuItem value="">Not specified</MenuItem>
+                        {RISK_LEVELS.map((item) => (
+                          <MenuItem key={item} value={item}>
+                            {item}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
 
-              <Grid size={{ xs: 12, md: 8 }}>
-                <TextField
-                  label="Extra notes"
-                  value={extraNotes}
-                  onChange={(event) => setExtraNotes(event.target.value)}
-                  multiline
-                  minRows={2}
-                  fullWidth
-                />
-              </Grid>
-            </Grid>
+                    <Grid size={{ xs: 12, md: 8 }}>
+                      <TextField
+                        label="Extra notes"
+                        value={extraNotes}
+                        onChange={(event) => setExtraNotes(event.target.value)}
+                        multiline
+                        minRows={2}
+                        fullWidth
+                      />
+                    </Grid>
+                  </Grid>
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
 
             <Box>
               <Button variant="contained" disabled={!canRun} onClick={() => void handleRun()}>
@@ -998,15 +1019,25 @@ export default function AiBoardroomPanel() {
 
       {error ? <Alert severity="error">{error}</Alert> : null}
 
-      <Card variant="outlined">
-        <CardContent>
+      <Accordion
+        expanded={isSavedRunsExpanded}
+        onChange={(_, expanded) => setIsSavedRunsExpanded(expanded)}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Stack spacing={0.5}>
+            <Typography variant="subtitle1">Saved Boardroom Runs</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {savedRuns.length} saved run{savedRuns.length === 1 ? '' : 's'}
+            </Typography>
+          </Stack>
+        </AccordionSummary>
+        <AccordionDetails>
           <Stack spacing={2}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography variant="subtitle1">Saved Boardroom Runs</Typography>
+            <Box>
               <Button size="small" onClick={() => void loadHistory()} disabled={isHistoryLoading}>
                 Refresh
               </Button>
-            </Stack>
+            </Box>
 
             {isHistoryLoading ? <LinearProgress /> : null}
             {historyError ? <Alert severity="error">{historyError}</Alert> : null}
@@ -1045,8 +1076,8 @@ export default function AiBoardroomPanel() {
               ))}
             </Stack>
           </Stack>
-        </CardContent>
-      </Card>
+        </AccordionDetails>
+      </Accordion>
 
       {result && (
         <Stack spacing={2}>

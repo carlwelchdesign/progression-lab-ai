@@ -5,10 +5,9 @@ import {
   BoardroomRevisionResponse,
 } from './types';
 
-const MAX_SUMMARY_CHARS = 260;
 const MAX_LIST_ITEMS = 3;
 
-function truncate(value: string, maxChars = MAX_SUMMARY_CHARS): string {
+function truncate(value: string, maxChars = Number.POSITIVE_INFINITY): string {
   const trimmed = value.trim();
   if (trimmed.length <= maxChars) {
     return trimmed;
