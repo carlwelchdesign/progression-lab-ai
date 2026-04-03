@@ -17,6 +17,23 @@ export type BoardroomRunRequest = {
   context?: BoardroomContext;
 };
 
+export type BoardroomFeatureAvailability = {
+  isAvailableToAll: boolean;
+  availablePlans: string[];
+  unavailablePlans: string[];
+};
+
+export type BoardroomFeatureCatalog = {
+  generatedAtIso: string;
+  plansConsidered: string[];
+  capabilities: {
+    canExportMidi: BoardroomFeatureAvailability;
+    canExportPdf: BoardroomFeatureAvailability;
+    canSharePublicly: BoardroomFeatureAvailability;
+    canUseAdvancedVoicingControls: BoardroomFeatureAvailability;
+  };
+};
+
 export type BoardroomSpecialistRole = 'CTO' | 'CMO' | 'CFO' | 'INVESTOR' | 'OPERATOR';
 
 export type BoardroomAgentRole = BoardroomSpecialistRole | 'CHAIRMAN';

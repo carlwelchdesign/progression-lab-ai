@@ -1,11 +1,13 @@
 import {
   BoardroomAgentDefinition,
   BoardroomContext,
+  BoardroomFeatureCatalog,
   BoardroomIndependentResponse,
   BoardroomRevisionResponse,
   BoardroomRunRequest,
   BoardroomSpecialistRole,
 } from './types';
+import { BoardroomProductCharter } from './productCharter';
 import { buildBusinessModelGuardrailInstruction } from './guardrails';
 
 function formatContext(context?: BoardroomContext): string {
@@ -111,9 +113,79 @@ function strictJsonInstructionForSynthesis(): string {
   ].join('\n');
 }
 
+function formatAvailabilityLine(params: {
+  label: string;
+  isAvailableToAll: boolean;
+  availablePlans: string[];
+  unavailablePlans: string[];
+}): string {
+  return [
+    `${params.label}: ${params.isAvailableToAll ? 'all plans' : 'partial availability'}`,
+    `  available plans: ${params.availablePlans.join(', ') || 'none'}`,
+    `  unavailable plans: ${params.unavailablePlans.join(', ') || 'none'}`,
+  ].join('\n');
+}
+
+function formatCurrentProductSurface(catalog: BoardroomFeatureCatalog): string {
+  return [
+    'Current Product Surface (live plan-aware snapshot):',
+    `Plans considered: ${catalog.plansConsidered.join(', ')}`,
+    formatAvailabilityLine({
+      label: 'MIDI export',
+      ...catalog.capabilities.canExportMidi,
+    }),
+    formatAvailabilityLine({
+      label: 'PDF export',
+      ...catalog.capabilities.canExportPdf,
+    }),
+    formatAvailabilityLine({
+      label: 'Public sharing',
+      ...catalog.capabilities.canSharePublicly,
+    }),
+    formatAvailabilityLine({
+      label: 'Advanced voicing controls',
+      ...catalog.capabilities.canUseAdvancedVoicingControls,
+    }),
+    'Constraint: never recommend paid-only capabilities as if they are already available to all users.',
+  ].join('\n');
+}
+
+function formatProductCharterSummary(charter: BoardroomProductCharter): string {
+  const jobsStr = charter.jobsToBeDone
+    .filter((j) => j.priority === 'primary')
+    .map((j) => `- ${j.job}`)
+    .join('\n');
+
+  const personasStr = charter.targetPersonas
+    .filter((p) => p.priority === 'primary')
+    .map((p) => `- ${p.persona}: "${p.painPoint}"`)
+    .join('\n');
+
+  const nonGoalsStr = charter.nonGoals.map((ng) => `- ${ng.category}`).join('\n');
+
+  return [
+    `Product Charter Summary: ${charter.productName}`,
+    `Vision: ${charter.productVision}`,
+    `Core Purpose: ${charter.corePurpose}`,
+    '',
+    'Primary Jobs to Be Done (user outcomes we optimize for):',
+    jobsStr,
+    '',
+    'Primary Target Personas:',
+    personasStr,
+    '',
+    'Strategic Non-Goals (what we explicitly do NOT do):',
+    nonGoalsStr,
+    '',
+    'Strategic Guideline: All recommendations must serve a primary job-to-be-done for a primary persona. Recommendations requiring non-goal capabilities (full DAW features, melody generation, real-time collaboration) are out of scope and risky.',
+  ].join('\n');
+}
+
 export function buildIndependentPrompt(params: {
   request: BoardroomRunRequest;
   agent: BoardroomAgentDefinition;
+  featureCatalog: BoardroomFeatureCatalog;
+  productCharter: BoardroomProductCharter;
 }): string {
   const context = formatContext(params.request.context);
 
@@ -124,6 +196,8 @@ export function buildIndependentPrompt(params: {
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
     buildBusinessModelGuardrailInstruction(),
+    formatProductCharterSummary(params.productCharter),
+    formatCurrentProductSurface(params.featureCatalog),
     strictJsonInstructionForIndependent(),
   ].join('\n\n');
 }
@@ -131,6 +205,8 @@ export function buildIndependentPrompt(params: {
 export function buildCritiquePrompt(params: {
   request: BoardroomRunRequest;
   agent: BoardroomAgentDefinition;
+  featureCatalog: BoardroomFeatureCatalog;
+  productCharter: BoardroomProductCharter;
   otherIndependentSummaries: Array<{
     role: BoardroomSpecialistRole;
     response: BoardroomIndependentResponse;
@@ -155,6 +231,8 @@ export function buildCritiquePrompt(params: {
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
     buildBusinessModelGuardrailInstruction(),
+    formatProductCharterSummary(params.productCharter),
+    formatCurrentProductSurface(params.featureCatalog),
     'Peer independent responses (summarized):',
     others || 'No peer responses available.',
     strictJsonInstructionForCritique(),
@@ -164,6 +242,8 @@ export function buildCritiquePrompt(params: {
 export function buildRevisionPrompt(params: {
   request: BoardroomRunRequest;
   agent: BoardroomAgentDefinition;
+  featureCatalog: BoardroomFeatureCatalog;
+  productCharter: BoardroomProductCharter;
   priorIndependent: BoardroomIndependentResponse;
   critiqueSummary: {
     missingPoints: string[];
@@ -179,6 +259,8 @@ export function buildRevisionPrompt(params: {
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
     buildBusinessModelGuardrailInstruction(),
+    formatProductCharterSummary(params.productCharter),
+    formatCurrentProductSurface(params.featureCatalog),
     'Your phase 1 response:',
     [
       `Recommendation: ${params.priorIndependent.recommendation}`,
@@ -198,6 +280,8 @@ export function buildRevisionPrompt(params: {
 
 export function buildChairmanPrompt(params: {
   request: BoardroomRunRequest;
+  featureCatalog: BoardroomFeatureCatalog;
+  productCharter: BoardroomProductCharter;
   revisedPositions: Array<{
     role: BoardroomSpecialistRole;
     revision: BoardroomRevisionResponse;
@@ -221,6 +305,8 @@ export function buildChairmanPrompt(params: {
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
     buildBusinessModelGuardrailInstruction(),
+    formatProductCharterSummary(params.productCharter),
+    formatCurrentProductSurface(params.featureCatalog),
     'Revised specialist positions:',
     revisions || 'No revised specialist positions available.',
     strictJsonInstructionForSynthesis(),

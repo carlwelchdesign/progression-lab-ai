@@ -1,5 +1,6 @@
 import { createModelOutputInvalidError } from './errors';
-import { BoardroomDecision } from './types';
+import { BoardroomDecision, BoardroomFeatureCatalog } from './types';
+import { BoardroomProductCharter } from './productCharter';
 
 const ALLOWED_DOMAIN_PATTERNS: RegExp[] = [
   /\bmusic\b/i,
@@ -73,4 +74,110 @@ export function validateBusinessModelDecision(decision: BoardroomDecision): Boar
   }
 
   return decision;
+}
+
+const GLOBAL_AVAILABILITY_PATTERNS: RegExp[] = [
+  /\ball users\b/i,
+  /\bevery user\b/i,
+  /\beveryone\b/i,
+  /\bfree users\b/i,
+  /\bfor all plans\b/i,
+  /\bavailable to all\b/i,
+];
+
+const FEATURE_REFERENCE_RULES: Array<{
+  feature: keyof BoardroomFeatureCatalog['capabilities'];
+  patterns: RegExp[];
+  label: string;
+}> = [
+  {
+    feature: 'canExportMidi',
+    label: 'MIDI export',
+    patterns: [/\bmidi export\b/i, /\bexport midi\b/i, /\bdownload midi\b/i],
+  },
+  {
+    feature: 'canExportPdf',
+    label: 'PDF export',
+    patterns: [/\bpdf export\b/i, /\bexport pdf\b/i, /\bsheet music pdf\b/i],
+  },
+  {
+    feature: 'canSharePublicly',
+    label: 'public sharing',
+    patterns: [/\bshare publicly\b/i, /\bpublic sharing\b/i, /\bpublic link\b/i],
+  },
+  {
+    feature: 'canUseAdvancedVoicingControls',
+    label: 'advanced voicing controls',
+    patterns: [/\badvanced voicing\b/i, /\bvoicing controls\b/i],
+  },
+];
+
+export function validateDecisionAgainstFeatureCatalog(params: {
+  decision: BoardroomDecision;
+  featureCatalog: BoardroomFeatureCatalog;
+}): BoardroomDecision {
+  const allText = collectDecisionText(params.decision);
+  const hasGlobalClaim = GLOBAL_AVAILABILITY_PATTERNS.some((pattern) => pattern.test(allText));
+
+  if (!hasGlobalClaim) {
+    return params.decision;
+  }
+
+  const violations = FEATURE_REFERENCE_RULES.filter((rule) => {
+    const mentionsFeature = rule.patterns.some((pattern) => pattern.test(allText));
+    if (!mentionsFeature) {
+      return false;
+    }
+
+    return !params.featureCatalog.capabilities[rule.feature].isAvailableToAll;
+  }).map((rule) => rule.label);
+
+  if (violations.length > 0) {
+    throw createModelOutputInvalidError(
+      'Decision claims all-user availability for capabilities that are not available to all plans',
+      {
+        violations,
+      },
+    );
+  }
+
+  return params.decision;
+}
+
+/**
+ * Validate decision against product charter non-goals.
+ * Flags if decision recommends building capabilities that are explicitly out of scope.
+ */
+export function validateDecisionAgainstNonGoals(params: {
+  decision: BoardroomDecision;
+  productCharter: BoardroomProductCharter;
+}): BoardroomDecision {
+  const allText = collectDecisionText(params.decision);
+
+  // Create pattern rules from non-goals
+  const nonGoalViolations = params.productCharter.nonGoals
+    .flatMap((nonGoal) => {
+      const nonGoalTerms = [nonGoal.category, ...nonGoal.examples].map((term) =>
+        term.toLowerCase(),
+      );
+      return nonGoalTerms.map((term) => ({
+        term,
+        category: nonGoal.category,
+        pattern: new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'),
+      }));
+    })
+    .filter((rule) => rule.pattern.test(allText));
+
+  if (nonGoalViolations.length > 0) {
+    const categories = [...new Set(nonGoalViolations.map((v) => v.category))];
+    throw createModelOutputInvalidError(
+      'Decision recommends out-of-scope capabilities that are explicitly non-goals',
+      {
+        violations: categories,
+        reason: 'Product charter explicitly non-goals these categories',
+      },
+    );
+  }
+
+  return params.decision;
 }

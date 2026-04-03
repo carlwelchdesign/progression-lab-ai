@@ -1,5 +1,12 @@
 import { getDefaultBoardroomAgents } from './agents';
 import { BoardroomError } from './errors';
+import { getBoardroomFeatureCatalog } from './featureCatalog';
+import { getBoardroomProductCharter } from './productCharter';
+import {
+  validateBusinessModelDecision,
+  validateDecisionAgainstFeatureCatalog,
+  validateDecisionAgainstNonGoals,
+} from './guardrails';
 import {
   buildChairmanPrompt,
   buildCritiquePrompt,
@@ -23,7 +30,6 @@ import {
   parseIndependentResponse,
   parseRevisionResponse,
 } from './validation';
-import { validateBusinessModelDecision } from './guardrails';
 
 type BoardroomOrchestratorOptions = {
   provider?: BoardroomProvider;
@@ -59,6 +65,8 @@ export class BoardroomOrchestrator {
 
   async runWithRequest(request: BoardroomRunRequest): Promise<BoardroomRunResponse> {
     const specialists = getDefaultBoardroomAgents(this.maxAgents);
+    const featureCatalog = await getBoardroomFeatureCatalog();
+    const productCharter = getBoardroomProductCharter();
 
     const independentByRole: IndependentByRole = {};
     const critiqueByRole: CritiqueByRole = {};
@@ -66,7 +74,7 @@ export class BoardroomOrchestrator {
 
     await Promise.all(
       specialists.map(async (agent) => {
-        const prompt = buildIndependentPrompt({ request, agent });
+        const prompt = buildIndependentPrompt({ request, agent, featureCatalog, productCharter });
         const raw = await this.callProviderWithRetries({
           prompt,
           modelClass: agent.modelClass,
@@ -93,6 +101,8 @@ export class BoardroomOrchestrator {
         const prompt = buildCritiquePrompt({
           request,
           agent,
+          featureCatalog,
+          productCharter,
           otherIndependentSummaries,
         });
 
@@ -119,6 +129,8 @@ export class BoardroomOrchestrator {
         const prompt = buildRevisionPrompt({
           request,
           agent,
+          featureCatalog,
+          productCharter,
           priorIndependent,
           critiqueSummary,
         });
@@ -143,6 +155,8 @@ export class BoardroomOrchestrator {
 
     const chairmanPrompt = buildChairmanPrompt({
       request,
+      featureCatalog,
+      productCharter,
       revisedPositions,
     });
 
@@ -151,7 +165,13 @@ export class BoardroomOrchestrator {
       modelClass: 'LARGE',
     });
 
-    const decision = validateBusinessModelDecision(parseDecisionResponse(chairmanRaw));
+    const decision = validateDecisionAgainstNonGoals({
+      decision: validateDecisionAgainstFeatureCatalog({
+        decision: validateBusinessModelDecision(parseDecisionResponse(chairmanRaw)),
+        featureCatalog,
+      }),
+      productCharter,
+    });
 
     const independentSummaries = summarizeIndependentResponses(
       specialists
