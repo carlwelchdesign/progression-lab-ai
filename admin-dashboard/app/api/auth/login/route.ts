@@ -43,7 +43,9 @@ export async function POST(request: NextRequest) {
       preferPassword?: boolean;
     };
     const credentials = normalizeAuthPayload(payload);
-    const preferPassword = payload.preferPassword === true;
+    const passwordProvided =
+      typeof payload.password === 'string' && payload.password.trim().length > 0;
+    const preferPassword = payload.preferPassword === true || passwordProvided;
 
     if (!EMAIL_PATTERN.test(credentials.email) || credentials.email.length > 254) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
