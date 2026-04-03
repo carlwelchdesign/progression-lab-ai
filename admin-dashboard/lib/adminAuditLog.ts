@@ -26,6 +26,10 @@ export const AUDIT_ACTION_PROMO_CODE_UPDATED = 'UPDATE_PROMO_CODE';
 export const AUDIT_ACTION_PROMO_CODE_REVOKED = 'REVOKE_PROMO_CODE';
 export const AUDIT_TARGET_TYPE_BOARDROOM = 'AI_BOARDROOM';
 export const AUDIT_ACTION_BOARDROOM_RUN_EXECUTED = 'EXECUTE_BOARDROOM_RUN';
+export const AUDIT_TARGET_TYPE_BOARDROOM_BOARD = 'AI_BOARDROOM_BOARD';
+export const AUDIT_ACTION_BOARDROOM_BOARD_CREATED = 'CREATE_AI_BOARDROOM_BOARD';
+export const AUDIT_ACTION_BOARDROOM_BOARD_UPDATED = 'UPDATE_AI_BOARDROOM_BOARD';
+export const AUDIT_ACTION_BOARDROOM_BOARD_DELETED = 'DELETE_AI_BOARDROOM_BOARD';
 
 export type TierConfigAuditMetadata = {
   updatedFields: string[];
@@ -159,6 +163,30 @@ export async function recordBoardroomRunAuditLog(params: {
       actorRole: params.actor.role,
       action: params.action,
       targetType: AUDIT_TARGET_TYPE_BOARDROOM,
+      targetId: params.targetId,
+      metadata,
+    },
+  });
+}
+
+export async function recordBoardroomBoardAuditLog(params: {
+  actor: AdminUser;
+  action:
+    | typeof AUDIT_ACTION_BOARDROOM_BOARD_CREATED
+    | typeof AUDIT_ACTION_BOARDROOM_BOARD_UPDATED
+    | typeof AUDIT_ACTION_BOARDROOM_BOARD_DELETED;
+  targetId: string;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  const metadata = params.metadata as Prisma.InputJsonValue | undefined;
+
+  await prisma.adminAuditLog.create({
+    data: {
+      actorUserId: params.actor.id,
+      actorEmail: params.actor.email,
+      actorRole: params.actor.role,
+      action: params.action,
+      targetType: AUDIT_TARGET_TYPE_BOARDROOM_BOARD,
       targetId: params.targetId,
       metadata,
     },

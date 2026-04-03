@@ -38,6 +38,20 @@ describe('GET /api/boardroom/runs/[id]', () => {
     });
     mockBoardroomRunFindFirst.mockResolvedValue({
       id: 'run-1',
+      boardId: 'board-1',
+      boardName: 'Classic Boardroom',
+      boardSnapshot: [
+        {
+          personaLabel: 'CTO',
+          title: 'Chief Technology Officer',
+          priorities: ['Delivery feasibility'],
+          biases: ['Prefers low uncertainty'],
+          modelClass: 'SMALL',
+          maxOutputChars: 1400,
+          displayOrder: 0,
+          isActive: true,
+        },
+      ],
       question: 'Should we focus on retention?',
       context: { productStage: 'GROWTH' },
       decision: 'Prioritize retention loops before acquisition spend.',
@@ -75,6 +89,11 @@ describe('GET /api/boardroom/runs/[id]', () => {
       }),
     );
     expect(body.item.id).toBe('run-1');
+    expect(body.item).toMatchObject({
+      boardId: 'board-1',
+      boardName: 'Classic Boardroom',
+      boardMembers: expect.any(Array),
+    });
     expect(body.item.result.decision).toContain('retention');
   });
 });

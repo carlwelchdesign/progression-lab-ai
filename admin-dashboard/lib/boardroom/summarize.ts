@@ -3,7 +3,6 @@ import {
   BoardroomIndependentResponse,
   BoardroomPhaseSummary,
   BoardroomRevisionResponse,
-  BoardroomSpecialistRole,
 } from './types';
 
 const MAX_SUMMARY_CHARS = 260;
@@ -27,12 +26,12 @@ function compactList(list: string[]): string[] {
 
 export function summarizeIndependentResponses(
   items: Array<{
-    role: BoardroomSpecialistRole;
+    memberLabel: string;
     response: BoardroomIndependentResponse;
   }>,
 ): BoardroomPhaseSummary[] {
   return items.map((item) => ({
-    role: item.role,
+    memberLabel: item.memberLabel,
     summary: truncate(`${item.response.recommendation} ${item.response.reasoning}`),
     keyRisks: compactList(item.response.risks),
     topTradeoffs: compactList(item.response.assumptions),
@@ -41,12 +40,12 @@ export function summarizeIndependentResponses(
 
 export function summarizeCritiques(
   items: Array<{
-    role: BoardroomSpecialistRole;
+    memberLabel: string;
     response: BoardroomCritiqueResponse;
   }>,
 ): BoardroomPhaseSummary[] {
   return items.map((item) => ({
-    role: item.role,
+    memberLabel: item.memberLabel,
     summary: truncate(
       `Missing: ${item.response.missingPoints.join('; ')} Disagreements: ${item.response.disagreements.join('; ')}`,
     ),
@@ -57,12 +56,12 @@ export function summarizeCritiques(
 
 export function summarizeRevisions(
   items: Array<{
-    role: BoardroomSpecialistRole;
+    memberLabel: string;
     response: BoardroomRevisionResponse;
   }>,
 ): BoardroomPhaseSummary[] {
   return items.map((item) => ({
-    role: item.role,
+    memberLabel: item.memberLabel,
     summary: truncate(`${item.response.updatedRecommendation} ${item.response.updatedReasoning}`),
     keyRisks: [],
     topTradeoffs: compactList(item.response.changedBecause),

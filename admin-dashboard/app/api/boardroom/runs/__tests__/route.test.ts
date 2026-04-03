@@ -34,6 +34,8 @@ describe('GET /api/boardroom/runs', () => {
     mockBoardroomRunFindMany.mockResolvedValue([
       {
         id: 'run-1',
+        boardId: 'board-1',
+        boardName: 'Classic Boardroom',
         question: 'Should we focus on retention?',
         decision: 'Prioritize retention loops before acquisition spend.',
         durationMs: 1800,
@@ -73,5 +75,9 @@ describe('GET /api/boardroom/runs', () => {
     );
     expect(body.total).toBe(1);
     expect(body.items[0].id).toBe('run-1');
+    expect(body.items[0]).toMatchObject({
+      boardId: 'board-1',
+      boardName: 'Classic Boardroom',
+    });
   });
 });

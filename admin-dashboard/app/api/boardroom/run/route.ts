@@ -5,6 +5,7 @@ import {
   recordBoardroomRunAuditLog,
 } from '../../../../lib/adminAuditLog';
 import { getAdminUserFromRequest } from '../../../../lib/adminAccess';
+import { resolveBoardroomExecutionBoard } from '../../../../lib/boardroom/boards';
 import { BoardroomOrchestrator } from '../../../../lib/boardroom/orchestrator';
 import { toBoardroomError } from '../../../../lib/boardroom/errors';
 import { parseBoardroomRunRequest } from '../../../../lib/boardroom/validation';
@@ -14,6 +15,9 @@ import { prisma } from '../../../../lib/prisma';
 type RunBoardroomRequest = {
   question?: unknown;
   context?: unknown;
+  boardId?: unknown;
+  boardName?: unknown;
+  boardMembers?: unknown;
 };
 
 export async function POST(request: NextRequest) {
@@ -36,14 +40,26 @@ export async function POST(request: NextRequest) {
 
     const body = (await request.json()) as RunBoardroomRequest;
     const parsed = parseBoardroomRunRequest(body);
+    const resolvedBoard = await resolveBoardroomExecutionBoard(parsed);
 
     const orchestrator = new BoardroomOrchestrator();
-    const result = await orchestrator.runWithRequest(parsed);
+    const result = await orchestrator.runWithRequest({
+      ...parsed,
+      boardId: resolvedBoard.boardId ?? undefined,
+      boardName: resolvedBoard.boardName,
+      boardMembers: resolvedBoard.boardMembers,
+    });
     const durationMs = Date.now() - startedAt;
+    const modelClasses = Array.from(
+      new Set([...resolvedBoard.boardMembers.map((member) => member.modelClass), 'LARGE']),
+    );
 
     await prisma.boardroomRun.create({
       data: {
         adminUserId: adminUser.id,
+        boardId: resolvedBoard.boardId,
+        boardName: resolvedBoard.boardName,
+        boardSnapshot: resolvedBoard.boardMembers,
         question: parsed.question,
         context: parsed.context,
         decision: result.decision,
@@ -54,7 +70,7 @@ export async function POST(request: NextRequest) {
         dissentingOpinions: result.dissentingOpinions,
         debate: result.debate,
         durationMs,
-        modelClasses: ['SMALL', 'LARGE'],
+        modelClasses,
       },
     });
 
@@ -64,11 +80,13 @@ export async function POST(request: NextRequest) {
         action: AUDIT_ACTION_BOARDROOM_RUN_EXECUTED,
         targetId: 'AI_BOARDROOM',
         metadata: {
+          boardId: resolvedBoard.boardId,
+          boardName: resolvedBoard.boardName,
           questionLength: parsed.question.length,
           usedContext: Boolean(parsed.context),
-          agentCount: result.debate?.independentSummaries.length ?? 0,
+          memberCount: resolvedBoard.boardMembers.length,
           durationMs,
-          modelClasses: ['SMALL', 'LARGE'],
+          modelClasses,
         },
       });
     } catch (auditError) {

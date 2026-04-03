@@ -1,11 +1,10 @@
 import {
-  BoardroomAgentDefinition,
+  BoardroomBoardMemberDefinition,
   BoardroomContext,
   BoardroomFeatureCatalog,
   BoardroomIndependentResponse,
   BoardroomRevisionResponse,
   BoardroomRunRequest,
-  BoardroomSpecialistRole,
 } from './types';
 import { BoardroomProductCharter } from './productCharter';
 import { buildBusinessModelGuardrailInstruction } from './guardrails';
@@ -42,9 +41,9 @@ function formatContext(context?: BoardroomContext): string {
   return sections.length > 0 ? sections.join('\n') : 'No additional structured context provided.';
 }
 
-function formatAgentIdentity(agent: BoardroomAgentDefinition): string {
+function formatAgentIdentity(agent: BoardroomBoardMemberDefinition): string {
   return [
-    `Role: ${agent.role} (${agent.title})`,
+    `Board Member: ${agent.personaLabel} (${agent.title})`,
     `Priorities: ${agent.priorities.join('; ')}`,
     `Biases: ${agent.biases.join('; ')}`,
     `Max response characters: ${agent.maxOutputChars}`,
@@ -187,7 +186,7 @@ function formatProductCharterSummary(charter: BoardroomProductCharter): string {
 
 export function buildIndependentPrompt(params: {
   request: BoardroomRunRequest;
-  agent: BoardroomAgentDefinition;
+  agent: BoardroomBoardMemberDefinition;
   featureCatalog: BoardroomFeatureCatalog;
   productCharter: BoardroomProductCharter;
 }): string {
@@ -208,11 +207,11 @@ export function buildIndependentPrompt(params: {
 
 export function buildCritiquePrompt(params: {
   request: BoardroomRunRequest;
-  agent: BoardroomAgentDefinition;
+  agent: BoardroomBoardMemberDefinition;
   featureCatalog: BoardroomFeatureCatalog;
   productCharter: BoardroomProductCharter;
   otherIndependentSummaries: Array<{
-    role: BoardroomSpecialistRole;
+    memberLabel: string;
     response: BoardroomIndependentResponse;
   }>;
 }): string {
@@ -220,7 +219,7 @@ export function buildCritiquePrompt(params: {
   const others = params.otherIndependentSummaries
     .map((item) => {
       return [
-        `Role: ${item.role}`,
+        `Board Member: ${item.memberLabel}`,
         `Recommendation: ${item.response.recommendation}`,
         `Reasoning: ${item.response.reasoning}`,
         `Risks: ${item.response.risks.join('; ') || 'None listed'}`,
@@ -245,7 +244,7 @@ export function buildCritiquePrompt(params: {
 
 export function buildRevisionPrompt(params: {
   request: BoardroomRunRequest;
-  agent: BoardroomAgentDefinition;
+  agent: BoardroomBoardMemberDefinition;
   featureCatalog: BoardroomFeatureCatalog;
   productCharter: BoardroomProductCharter;
   priorIndependent: BoardroomIndependentResponse;
@@ -287,7 +286,7 @@ export function buildChairmanPrompt(params: {
   featureCatalog: BoardroomFeatureCatalog;
   productCharter: BoardroomProductCharter;
   revisedPositions: Array<{
-    role: BoardroomSpecialistRole;
+    memberLabel: string;
     revision: BoardroomRevisionResponse;
   }>;
 }): string {
@@ -295,7 +294,7 @@ export function buildChairmanPrompt(params: {
   const revisions = params.revisedPositions
     .map((item) => {
       return [
-        `Role: ${item.role}`,
+        `Board Member: ${item.memberLabel}`,
         `Updated recommendation: ${item.revision.updatedRecommendation}`,
         `Updated reasoning: ${item.revision.updatedReasoning}`,
         `Changed because: ${item.revision.changedBecause.join('; ') || 'No explicit changes listed'}`,

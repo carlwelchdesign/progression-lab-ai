@@ -1,23 +1,12 @@
-import { BoardroomAgentDefinition, BoardroomModelClass, BoardroomSpecialistRole } from './types';
+import { BoardroomBoardMemberDefinition, BoardroomModelClass } from './types';
 
-const DEFAULT_SPECIALIST_MODEL_CLASS: BoardroomModelClass = 'SMALL';
+const DEFAULT_MEMBER_MODEL_CLASS: BoardroomModelClass = 'SMALL';
+export const DEFAULT_BOARDROOM_MAX_OUTPUT_CHARS = 1400;
+export const DEFAULT_BOARDROOM_NAME = 'Classic Boardroom';
 
-const DEFAULT_MAX_OUTPUT_CHARS = 1400;
-
-export const BOARDROOM_SPECIALIST_ROLE_ORDER: BoardroomSpecialistRole[] = [
-  'CTO',
-  'CMO',
-  'CFO',
-  'INVESTOR',
-  'OPERATOR',
-];
-
-export const BOARDROOM_AGENT_DEFINITIONS: Record<
-  BoardroomSpecialistRole,
-  BoardroomAgentDefinition
-> = {
-  CTO: {
-    role: 'CTO',
+const DEFAULT_BOARDROOM_MEMBER_TEMPLATES: BoardroomBoardMemberDefinition[] = [
+  {
+    personaLabel: 'CTO',
     title: 'Chief Technology Officer',
     priorities: [
       'Delivery feasibility and engineering risk',
@@ -28,11 +17,13 @@ export const BOARDROOM_AGENT_DEFINITIONS: Record<
       'Prefers options with lower implementation uncertainty',
       'Strongly penalizes hidden integration complexity',
     ],
-    modelClass: DEFAULT_SPECIALIST_MODEL_CLASS,
-    maxOutputChars: DEFAULT_MAX_OUTPUT_CHARS,
+    modelClass: DEFAULT_MEMBER_MODEL_CLASS,
+    maxOutputChars: DEFAULT_BOARDROOM_MAX_OUTPUT_CHARS,
+    displayOrder: 0,
+    isActive: true,
   },
-  CMO: {
-    role: 'CMO',
+  {
+    personaLabel: 'CMO',
     title: 'Chief Marketing Officer',
     priorities: [
       'Message-channel fit and audience resonance',
@@ -43,11 +34,13 @@ export const BOARDROOM_AGENT_DEFINITIONS: Record<
       'Optimizes for measurable growth loops over broad awareness',
       'Favors clearer narrative over feature-heavy messaging',
     ],
-    modelClass: DEFAULT_SPECIALIST_MODEL_CLASS,
-    maxOutputChars: DEFAULT_MAX_OUTPUT_CHARS,
+    modelClass: DEFAULT_MEMBER_MODEL_CLASS,
+    maxOutputChars: DEFAULT_BOARDROOM_MAX_OUTPUT_CHARS,
+    displayOrder: 1,
+    isActive: true,
   },
-  CFO: {
-    role: 'CFO',
+  {
+    personaLabel: 'CFO',
     title: 'Chief Financial Officer',
     priorities: [
       'Cash runway protection and downside containment',
@@ -58,11 +51,13 @@ export const BOARDROOM_AGENT_DEFINITIONS: Record<
       'Prefers reversible bets and staged spend',
       'Challenges optimistic assumptions with conservative scenarios',
     ],
-    modelClass: DEFAULT_SPECIALIST_MODEL_CLASS,
-    maxOutputChars: DEFAULT_MAX_OUTPUT_CHARS,
+    modelClass: DEFAULT_MEMBER_MODEL_CLASS,
+    maxOutputChars: DEFAULT_BOARDROOM_MAX_OUTPUT_CHARS,
+    displayOrder: 2,
+    isActive: true,
   },
-  INVESTOR: {
-    role: 'INVESTOR',
+  {
+    personaLabel: 'Investor',
     title: 'Investor',
     priorities: [
       'Strategic moat and growth narrative strength',
@@ -73,11 +68,13 @@ export const BOARDROOM_AGENT_DEFINITIONS: Record<
       'Favors options with strong narrative leverage',
       'Discounts plans with weak differentiation signals',
     ],
-    modelClass: DEFAULT_SPECIALIST_MODEL_CLASS,
-    maxOutputChars: DEFAULT_MAX_OUTPUT_CHARS,
+    modelClass: DEFAULT_MEMBER_MODEL_CLASS,
+    maxOutputChars: DEFAULT_BOARDROOM_MAX_OUTPUT_CHARS,
+    displayOrder: 3,
+    isActive: true,
   },
-  OPERATOR: {
-    role: 'OPERATOR',
+  {
+    personaLabel: 'Operator',
     title: 'Operator',
     priorities: [
       'Operational sequencing and team throughput',
@@ -88,13 +85,17 @@ export const BOARDROOM_AGENT_DEFINITIONS: Record<
       'Prioritizes practical implementation over ideal strategy',
       'Rejects plans without concrete ownership and milestones',
     ],
-    modelClass: DEFAULT_SPECIALIST_MODEL_CLASS,
-    maxOutputChars: DEFAULT_MAX_OUTPUT_CHARS,
+    modelClass: DEFAULT_MEMBER_MODEL_CLASS,
+    maxOutputChars: DEFAULT_BOARDROOM_MAX_OUTPUT_CHARS,
+    displayOrder: 4,
+    isActive: true,
   },
-};
+];
 
-export function getDefaultBoardroomAgents(maxAgents = 5): BoardroomAgentDefinition[] {
-  return BOARDROOM_SPECIALIST_ROLE_ORDER.slice(0, maxAgents).map(
-    (role) => BOARDROOM_AGENT_DEFINITIONS[role],
-  );
+export function createDefaultBoardroomMembers(maxMembers = 5): BoardroomBoardMemberDefinition[] {
+  return DEFAULT_BOARDROOM_MEMBER_TEMPLATES.slice(0, maxMembers).map((member) => ({
+    ...member,
+    priorities: [...member.priorities],
+    biases: [...member.biases],
+  }));
 }

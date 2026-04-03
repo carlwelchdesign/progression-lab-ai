@@ -9,8 +9,11 @@ import type {
   CreatePromoCodeInput,
   RunBoardroomInput,
   BoardroomRunResult,
+  BoardroomBoard,
+  BoardroomBoardsResponse,
   BoardroomRunHistoryDetail,
   BoardroomRunHistoryPage,
+  BoardroomPersonaSuggestion,
   MarketingContentState,
   MarketingContentOperationResponse,
   MarketingContentVersion,
@@ -653,6 +656,66 @@ export async function runBoardroom(input: RunBoardroomInput): Promise<BoardroomR
   }
 
   return (await response.json()) as BoardroomRunResult;
+}
+
+export async function fetchBoardroomBoards(): Promise<BoardroomBoardsResponse> {
+  const response = await fetch('/api/boardroom/boards', {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to fetch AI Boardroom boards'));
+  }
+
+  return (await response.json()) as BoardroomBoardsResponse;
+}
+
+export async function createBoardroomBoard(input: BoardroomBoard): Promise<BoardroomBoard> {
+  const response = await fetch('/api/boardroom/boards', {
+    method: 'POST',
+    credentials: 'include',
+    headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to create AI Boardroom board'));
+  }
+
+  const data = (await response.json()) as { item: BoardroomBoard };
+  return data.item;
+}
+
+export async function updateBoardroomBoard(
+  id: string,
+  input: BoardroomBoard,
+): Promise<BoardroomBoard> {
+  const response = await fetch(`/api/boardroom/boards/${id}`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to update AI Boardroom board'));
+  }
+
+  const data = (await response.json()) as { item: BoardroomBoard };
+  return data.item;
+}
+
+export async function deleteBoardroomBoard(id: string): Promise<void> {
+  const response = await fetch(`/api/boardroom/boards/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: createCsrfHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to delete AI Boardroom board'));
+  }
 }
 
 export async function fetchBoardroomRuns(params?: {

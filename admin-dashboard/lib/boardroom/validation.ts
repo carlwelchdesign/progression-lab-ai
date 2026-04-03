@@ -1,8 +1,12 @@
 import {
+  BoardroomBoardDefinition,
+  BoardroomBoardMemberDefinition,
+  BoardroomBoardMemberInput,
   BoardroomContext,
   BoardroomCritiqueResponse,
   BoardroomDecision,
   BoardroomIndependentResponse,
+  BoardroomModelClass,
   BoardroomRevisionResponse,
   BoardroomRiskTolerance,
   BoardroomRunRequest,
@@ -10,12 +14,19 @@ import {
 import { createInvalidInputError, createModelOutputInvalidError } from './errors';
 
 const MAX_QUESTION_CHARS = 2000;
+const MAX_BOARD_NAME_CHARS = 120;
+const MAX_BOARD_DESCRIPTION_CHARS = 600;
 const MAX_NOTE_CHARS = 1200;
 const MAX_SHORT_TEXT_CHARS = 700;
 const MAX_LIST_ITEMS = 7;
 const MAX_LIST_ITEM_CHARS = 220;
+const MAX_BOARD_MEMBERS = 7;
+const MIN_BOARD_MEMBERS = 1;
+const MIN_OUTPUT_CHARS = 200;
+const MAX_OUTPUT_CHARS = 4000;
 const PRODUCT_STAGES = new Set(['IDEA', 'MVP', 'EARLY_TRACTION', 'GROWTH', 'SCALE']);
 const RISK_TOLERANCES = new Set(['LOW', 'MEDIUM', 'HIGH']);
+const MODEL_CLASSES = new Set(['SMALL', 'LARGE']);
 
 function sanitizeText(value: unknown, maxChars: number): string {
   if (typeof value !== 'string') {
@@ -38,6 +49,87 @@ function sanitizeStringList(value: unknown, maxItems = MAX_LIST_ITEMS): string[]
   );
 
   return Array.from(deduped).slice(0, maxItems);
+}
+
+function sanitizeOptionalText(value: unknown, maxChars: number): string | null {
+  const sanitized = sanitizeText(value, maxChars);
+  return sanitized || null;
+}
+
+function sanitizeModelClass(value: unknown): BoardroomModelClass {
+  if (typeof value === 'string' && MODEL_CLASSES.has(value)) {
+    return value as BoardroomModelClass;
+  }
+
+  return 'SMALL';
+}
+
+function sanitizeOutputChars(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 1400;
+  }
+
+  return Math.max(MIN_OUTPUT_CHARS, Math.min(MAX_OUTPUT_CHARS, Math.round(value)));
+}
+
+function normalizeBoardMembers(
+  value: unknown,
+  { allowEmpty = false }: { allowEmpty?: boolean } = {},
+): BoardroomBoardMemberDefinition[] {
+  if (!Array.isArray(value)) {
+    if (allowEmpty) {
+      return [];
+    }
+
+    throw createInvalidInputError('boardMembers must be an array');
+  }
+
+  const normalized = value
+    .filter((item): item is BoardroomBoardMemberInput => Boolean(item) && typeof item === 'object')
+    .slice(0, MAX_BOARD_MEMBERS)
+    .map((item, index) => {
+      const personaLabel = sanitizeText(item.personaLabel, MAX_SHORT_TEXT_CHARS);
+      const title = sanitizeText(item.title, MAX_SHORT_TEXT_CHARS);
+
+      if (!personaLabel || !title) {
+        throw createInvalidInputError('Each board member requires personaLabel and title');
+      }
+
+      return {
+        id: typeof item.id === 'string' ? item.id : undefined,
+        personaLabel,
+        title,
+        priorities: sanitizeStringList(item.priorities),
+        biases: sanitizeStringList(item.biases),
+        modelClass: sanitizeModelClass(item.modelClass),
+        maxOutputChars: sanitizeOutputChars(item.maxOutputChars),
+        displayOrder:
+          typeof item.displayOrder === 'number' && Number.isFinite(item.displayOrder)
+            ? Math.max(0, Math.round(item.displayOrder))
+            : index,
+        suggestionKey:
+          typeof item.suggestionKey === 'string' && item.suggestionKey.trim()
+            ? item.suggestionKey.trim()
+            : null,
+        isActive: item.isActive !== false,
+      } satisfies BoardroomBoardMemberDefinition;
+    })
+    .sort((left, right) => left.displayOrder - right.displayOrder)
+    .map((member, index) => ({
+      ...member,
+      displayOrder: index,
+    }));
+
+  const activeCount = normalized.filter((member) => member.isActive).length;
+  if (!allowEmpty && activeCount < MIN_BOARD_MEMBERS) {
+    throw createInvalidInputError('At least one active board member is required');
+  }
+
+  if (activeCount > MAX_BOARD_MEMBERS) {
+    throw createInvalidInputError(`A board supports at most ${MAX_BOARD_MEMBERS} active members`);
+  }
+
+  return normalized;
 }
 
 function parseContext(input: unknown): BoardroomContext | undefined {
@@ -106,6 +198,9 @@ export function parseBoardroomRunRequest(input: unknown): BoardroomRunRequest {
   const raw = input as {
     question?: unknown;
     context?: unknown;
+    boardId?: unknown;
+    boardName?: unknown;
+    boardMembers?: unknown;
   };
 
   const question = sanitizeText(raw.question, MAX_QUESTION_CHARS);
@@ -114,10 +209,47 @@ export function parseBoardroomRunRequest(input: unknown): BoardroomRunRequest {
   }
 
   const context = parseContext(raw.context);
+  const boardId = sanitizeText(raw.boardId, 200) || undefined;
+  const boardName = sanitizeText(raw.boardName, MAX_BOARD_NAME_CHARS) || undefined;
+
+  let boardMembers: BoardroomBoardMemberDefinition[] | undefined;
+  if (raw.boardMembers !== undefined) {
+    boardMembers = normalizeBoardMembers(raw.boardMembers);
+  }
 
   return {
     question,
     context,
+    boardId,
+    boardName,
+    boardMembers,
+  };
+}
+
+export function parseBoardroomBoardInput(input: unknown): BoardroomBoardDefinition {
+  if (!input || typeof input !== 'object') {
+    throw createInvalidInputError('Request body must be an object');
+  }
+
+  const raw = input as {
+    name?: unknown;
+    description?: unknown;
+    isDefault?: unknown;
+    members?: unknown;
+  };
+
+  const name = sanitizeText(raw.name, MAX_BOARD_NAME_CHARS);
+  if (!name) {
+    throw createInvalidInputError('Board name is required');
+  }
+
+  const members = normalizeBoardMembers(raw.members);
+
+  return {
+    name,
+    description: sanitizeOptionalText(raw.description, MAX_BOARD_DESCRIPTION_CHARS),
+    isDefault: raw.isDefault === true,
+    members,
   };
 }
 
