@@ -9,6 +9,8 @@ import type {
   CreatePromoCodeInput,
   RunBoardroomInput,
   BoardroomRunResult,
+  BoardroomRunHistoryDetail,
+  BoardroomRunHistoryPage,
   MarketingContentState,
   MarketingContentOperationResponse,
   MarketingContentVersion,
@@ -651,4 +653,56 @@ export async function runBoardroom(input: RunBoardroomInput): Promise<BoardroomR
   }
 
   return (await response.json()) as BoardroomRunResult;
+}
+
+export async function fetchBoardroomRuns(params?: {
+  page?: number;
+  pageSize?: number;
+}): Promise<BoardroomRunHistoryPage> {
+  const searchParams = new URLSearchParams();
+  if (params?.page) {
+    searchParams.set('page', String(params.page));
+  }
+  if (params?.pageSize) {
+    searchParams.set('pageSize', String(params.pageSize));
+  }
+
+  const query = searchParams.toString();
+  const url = query ? `/api/boardroom/runs?${query}` : '/api/boardroom/runs';
+  const response = await fetch(url, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to fetch AI Boardroom runs'));
+  }
+
+  return (await response.json()) as BoardroomRunHistoryPage;
+}
+
+export async function fetchBoardroomRun(id: string): Promise<BoardroomRunHistoryDetail> {
+  const response = await fetch(`/api/boardroom/runs/${id}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to fetch AI Boardroom run'));
+  }
+
+  const data = (await response.json()) as { item: BoardroomRunHistoryDetail };
+  return data.item;
+}
+
+export async function deleteBoardroomRun(id: string): Promise<void> {
+  const response = await fetch(`/api/boardroom/runs/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: createCsrfHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to delete AI Boardroom run'));
+  }
 }
