@@ -2,12 +2,54 @@ import { Prisma } from '@prisma/client';
 
 import { prisma } from '../prisma';
 import { DEFAULT_BOARDROOM_NAME, createDefaultBoardroomMembers } from './agents';
+import { BOARDROOM_PERSONA_SUGGESTIONS } from './personaSuggestions';
 import type {
   BoardroomBoardDefinition,
   BoardroomBoardMemberDefinition,
   BoardroomRunRequest,
 } from './types';
 import { createInvalidInputError } from './errors';
+
+const SEEDED_PRESET_DESCRIPTION_PREFIX = 'Seeded preset:';
+
+type BoardSeedPreset = {
+  name: string;
+  summary: string;
+  suggestionKeys: string[];
+};
+
+const BOARD_SEED_PRESETS: BoardSeedPreset[] = [
+  {
+    name: 'Founder Sprint Board',
+    summary: 'High-velocity decisions for rapid iteration and early traction.',
+    suggestionKeys: [
+      'bootstrapped-indie-hacker',
+      'stripe-product-thinker',
+      'paul-graham-investor',
+      'indra-nooyi-operator',
+    ],
+  },
+  {
+    name: 'Capital Discipline Board',
+    summary: 'Capital-efficient planning with explicit downside control.',
+    suggestionKeys: [
+      'warren-buffett-capital-allocator',
+      'paul-graham-investor',
+      'bootstrapped-indie-hacker',
+      'stripe-product-thinker',
+    ],
+  },
+  {
+    name: 'Enterprise Expansion Board',
+    summary: 'Execution guidance for scaling product and operations toward larger customers.',
+    suggestionKeys: [
+      'enterprise-saas-architect',
+      'stripe-product-thinker',
+      'indra-nooyi-operator',
+      'warren-buffett-capital-allocator',
+    ],
+  },
+];
 
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value)
@@ -50,6 +92,73 @@ function sortMembers(members: BoardroomBoardMemberDefinition[]): BoardroomBoardM
       priorities: [...member.priorities],
       biases: [...member.biases],
     }));
+}
+
+function buildSeedPresetMembers(preset: BoardSeedPreset): BoardroomBoardMemberDefinition[] {
+  const suggestionByKey = new Map(
+    BOARDROOM_PERSONA_SUGGESTIONS.map((suggestion) => [suggestion.key, suggestion]),
+  );
+
+  const members = preset.suggestionKeys
+    .map((key, displayOrder) => {
+      const suggestion = suggestionByKey.get(key);
+      if (!suggestion) {
+        return null;
+      }
+
+      return {
+        personaLabel: suggestion.label,
+        title: suggestion.title,
+        priorities: [...suggestion.priorities],
+        biases: [...suggestion.biases],
+        modelClass: suggestion.modelClass,
+        maxOutputChars: 1400,
+        displayOrder,
+        suggestionKey: suggestion.key,
+        isActive: true,
+      } satisfies BoardroomBoardMemberDefinition;
+    })
+    .filter((member): member is BoardroomBoardMemberDefinition => Boolean(member));
+
+  return members.length > 0 ? members : createDefaultBoardroomMembers(4);
+}
+
+async function ensureSeedPresetBoards(): Promise<void> {
+  const existingBoards = await prisma.boardroomBoard.findMany({
+    select: {
+      name: true,
+      description: true,
+    },
+  });
+
+  const existingNames = new Set(existingBoards.map((board) => board.name.trim().toLowerCase()));
+
+  for (const preset of BOARD_SEED_PRESETS) {
+    if (existingNames.has(preset.name.trim().toLowerCase())) {
+      continue;
+    }
+
+    await prisma.boardroomBoard.create({
+      data: {
+        name: preset.name,
+        description: `${SEEDED_PRESET_DESCRIPTION_PREFIX} ${preset.summary}`,
+        isDefault: false,
+        members: {
+          create: buildSeedPresetMembers(preset).map((member) => ({
+            displayOrder: member.displayOrder,
+            isActive: member.isActive,
+            personaLabel: member.personaLabel,
+            title: member.title,
+            priorities: member.priorities,
+            biases: member.biases,
+            modelClass: member.modelClass,
+            maxOutputChars: member.maxOutputChars,
+            suggestionKey: member.suggestionKey ?? null,
+          })),
+        },
+      },
+    });
+  }
 }
 
 function toBoardDefinition(board: {
@@ -170,6 +279,7 @@ export async function listBoardroomBoards(): Promise<
   Array<BoardroomBoardDefinition & { createdAt: string; updatedAt: string }>
 > {
   await ensureDefaultBoardroomBoard();
+  await ensureSeedPresetBoards();
 
   const rows = await prisma.boardroomBoard.findMany({
     orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
