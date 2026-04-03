@@ -26,6 +26,19 @@ export default class AdminDashboardPage {
     await expect(this.page.getByText('subscriber@progressionlab.ai')).toBeVisible();
   }
 
+  mobileNavTrigger() {
+    return this.page.getByRole('button', { name: 'Open admin navigation menu' });
+  }
+
+  async openMobileNavigation() {
+    await this.mobileNavTrigger().click();
+    await expect(this.page.getByRole('heading', { name: 'Admin Sections' })).toBeVisible();
+  }
+
+  async selectMobileSection(sectionName: string) {
+    await this.page.getByRole('button', { name: sectionName }).click();
+  }
+
   async logout() {
     await this.page.getByRole('button', { name: 'Logout' }).click();
   }

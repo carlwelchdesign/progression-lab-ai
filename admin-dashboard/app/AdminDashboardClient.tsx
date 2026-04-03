@@ -1,6 +1,22 @@
 'use client';
 
-import { Alert, Container, Stack, Box, Tabs, Tab } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import MenuIcon from '@mui/icons-material/Menu';
+import {
+  Alert,
+  Box,
+  Container,
+  Drawer,
+  IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Stack,
+  Tab,
+  Tabs,
+  Typography,
+} from '@mui/material';
 import { useState } from 'react';
 
 import AdminAuditLogTable from '../components/admin/AdminAuditLogTable';
@@ -20,19 +36,46 @@ import TierConfigTable from '../components/admin/TierConfigTable';
 import UsersTable from '../components/admin/UsersTable';
 import useAdminDashboard from '../components/admin/useAdminDashboard';
 
+type AdminTabValue =
+  | 'overview'
+  | 'progressions'
+  | 'tier-config'
+  | 'prompt-builder'
+  | 'marketing-content'
+  | 'plan-manager'
+  | 'promo-codes'
+  | 'boardroom'
+  | 'analytics'
+  | 'audit-log';
+
+type AdminTab = {
+  value: AdminTabValue;
+  label: string;
+  mobileLabel?: string;
+  adminOnly?: boolean;
+};
+
+const ADMIN_TABS: AdminTab[] = [
+  { value: 'overview', label: 'Users & Overview' },
+  { value: 'progressions', label: 'Progressions' },
+  {
+    value: 'tier-config',
+    label: 'Tier Configuration',
+    mobileLabel: 'Tier Config',
+    adminOnly: true,
+  },
+  { value: 'prompt-builder', label: 'Prompt Builder' },
+  { value: 'marketing-content', label: 'Marketing Content', mobileLabel: 'Marketing' },
+  { value: 'plan-manager', label: 'Plan Manager', adminOnly: true },
+  { value: 'promo-codes', label: 'Promo & Invites', mobileLabel: 'Promo & Invites' },
+  { value: 'boardroom', label: 'AI Boardroom', adminOnly: true },
+  { value: 'analytics', label: 'Analytics' },
+  { value: 'audit-log', label: 'Audit Log' },
+];
+
 export default function AdminDashboardClient() {
-  const [activeTab, setActiveTab] = useState<
-    | 'overview'
-    | 'progressions'
-    | 'tier-config'
-    | 'prompt-builder'
-    | 'marketing-content'
-    | 'plan-manager'
-    | 'promo-codes'
-    | 'boardroom'
-    | 'analytics'
-    | 'audit-log'
-  >('overview');
+  const [activeTab, setActiveTab] = useState<AdminTabValue>('overview');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [marketingFocus, setMarketingFocus] = useState<
     { contentKey: string; locale?: string; section?: string } | undefined
   >(undefined);
@@ -114,40 +157,94 @@ export default function AdminDashboardClient() {
     );
   }
 
+  const visibleTabs = ADMIN_TABS.filter((tab) => !tab.adminOnly || user.role === 'ADMIN');
+  const activeTabConfig =
+    visibleTabs.find((tab) => tab.value === activeTab) ??
+    visibleTabs.find((tab) => tab.value === 'overview') ??
+    visibleTabs[0];
+
   return (
-    <Container maxWidth="xl" sx={{ py: 5 }}>
+    <Container maxWidth="xl" sx={{ py: { xs: 2, md: 5 } }}>
       <Stack spacing={3}>
         <DashboardHeader user={user} onLogout={() => void handleLogout()} />
 
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Box
+          sx={{
+            display: { xs: 'flex', md: 'none' },
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 1,
+            px: 1,
+            py: 0.5,
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 1,
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            {activeTabConfig?.mobileLabel ?? activeTabConfig?.label}
+          </Typography>
+          <IconButton
+            aria-label="Open admin navigation menu"
+            onClick={() => setMobileNavOpen(true)}
+            size="large"
+          >
+            <MenuIcon />
+          </IconButton>
+        </Box>
+
+        <Drawer
+          anchor="right"
+          open={mobileNavOpen}
+          onClose={() => setMobileNavOpen(false)}
+          PaperProps={{ 'aria-label': 'Admin navigation drawer' }}
+        >
+          <Box sx={{ width: 280 }} role="presentation">
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              sx={{ px: 2, py: 1 }}
+            >
+              <Typography variant="h6">Admin Sections</Typography>
+              <IconButton
+                aria-label="Close admin navigation menu"
+                onClick={() => setMobileNavOpen(false)}
+                size="large"
+              >
+                <CloseIcon />
+              </IconButton>
+            </Stack>
+
+            <List>
+              {visibleTabs.map((tab) => (
+                <ListItem key={tab.value} disablePadding>
+                  <ListItemButton
+                    selected={activeTab === tab.value}
+                    onClick={() => {
+                      setActiveTab(tab.value);
+                      setMobileNavOpen(false);
+                    }}
+                  >
+                    <ListItemText primary={tab.mobileLabel ?? tab.label} />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        </Drawer>
+
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', display: { xs: 'none', md: 'block' } }}>
           <Tabs
             value={activeTab}
-            onChange={(_, newValue) =>
-              setActiveTab(
-                newValue as
-                  | 'overview'
-                  | 'progressions'
-                  | 'tier-config'
-                  | 'prompt-builder'
-                  | 'marketing-content'
-                  | 'plan-manager'
-                  | 'promo-codes'
-                  | 'boardroom'
-                  | 'analytics'
-                  | 'audit-log',
-              )
-            }
+            onChange={(_, newValue: AdminTabValue) => setActiveTab(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
           >
-            <Tab label="Users & Overview" value="overview" />
-            <Tab label="Progressions" value="progressions" />
-            {user.role === 'ADMIN' && <Tab label="Tier Configuration" value="tier-config" />}
-            <Tab label="Prompt Builder" value="prompt-builder" />
-            <Tab label="Marketing Content" value="marketing-content" />
-            {user.role === 'ADMIN' && <Tab label="Plan Manager" value="plan-manager" />}
-            <Tab label="Promo &amp; Invites" value="promo-codes" />
-            {user.role === 'ADMIN' && <Tab label="AI Boardroom" value="boardroom" />}
-            <Tab label="Analytics" value="analytics" />
-            <Tab label="Audit Log" value="audit-log" />
+            {visibleTabs.map((tab) => (
+              <Tab key={tab.value} label={tab.label} value={tab.value} />
+            ))}
           </Tabs>
         </Box>
 
