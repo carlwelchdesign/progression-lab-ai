@@ -15,8 +15,6 @@ type RunBoardroomRequest = {
   context?: unknown;
 };
 
-const orchestrator = new BoardroomOrchestrator();
-
 export async function POST(request: NextRequest) {
   const startedAt = Date.now();
 
@@ -38,6 +36,7 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as RunBoardroomRequest;
     const parsed = parseBoardroomRunRequest(body);
 
+    const orchestrator = new BoardroomOrchestrator();
     const result = await orchestrator.runWithRequest(parsed);
 
     try {

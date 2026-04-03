@@ -21,24 +21,20 @@ function getModelName(modelClass: BoardroomModelClass): string {
 }
 
 export class OpenAiBoardroomProvider implements BoardroomProvider {
-  private readonly client: OpenAI;
+  private readonly apiKey?: string;
+  private client: OpenAI | null;
 
   constructor(apiKey = process.env.OPENAI_API_KEY) {
-    if (!apiKey) {
-      throw new BoardroomError({
-        code: 'PROVIDER_FAILURE',
-        message: 'OPENAI_API_KEY is not configured',
-      });
-    }
-
-    this.client = new OpenAI({ apiKey });
+    this.apiKey = apiKey?.trim() || undefined;
+    this.client = null;
   }
 
   async generateJson(request: BoardroomProviderRequest): Promise<unknown> {
     const model = getModelName(request.modelClass);
+    const client = this.getClient();
 
     try {
-      const response = await this.client.responses.create({
+      const response = await client.responses.create({
         model,
         input: request.prompt,
       });
@@ -78,5 +74,22 @@ export class OpenAiBoardroomProvider implements BoardroomProvider {
         },
       });
     }
+  }
+
+  private getClient(): OpenAI {
+    if (this.client) {
+      return this.client;
+    }
+
+    if (!this.apiKey) {
+      throw new BoardroomError({
+        code: 'PROVIDER_FAILURE',
+        message: 'OPENAI_API_KEY is not configured',
+        status: 500,
+      });
+    }
+
+    this.client = new OpenAI({ apiKey: this.apiKey });
+    return this.client;
   }
 }
