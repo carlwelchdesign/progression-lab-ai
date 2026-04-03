@@ -138,10 +138,38 @@ function buildSuggestionMaps(suggestions: BoardroomPersonaSuggestion[]) {
   };
 }
 
+function boardSignature(board: BoardroomBoard | null): string {
+  if (!board) {
+    return '';
+  }
+
+  const normalized = normalizeBoard(cloneBoard(board));
+
+  return JSON.stringify({
+    id: normalized.id ?? null,
+    name: normalized.name,
+    description: normalized.description ?? '',
+    isDefault: normalized.isDefault === true,
+    members: normalized.members.map((member) => ({
+      id: member.id ?? null,
+      personaLabel: member.personaLabel,
+      title: member.title,
+      priorities: member.priorities,
+      biases: member.biases,
+      modelClass: member.modelClass,
+      maxOutputChars: member.maxOutputChars,
+      displayOrder: member.displayOrder,
+      suggestionKey: member.suggestionKey ?? null,
+      isActive: member.isActive,
+    })),
+  });
+}
+
 export default function AiBoardroomPanel() {
   const [boards, setBoards] = useState<BoardroomBoard[]>([]);
   const [suggestions, setSuggestions] = useState<BoardroomPersonaSuggestion[]>([]);
   const [currentBoard, setCurrentBoard] = useState<BoardroomBoard | null>(null);
+  const [baselineBoardSignature, setBaselineBoardSignature] = useState('');
   const [selectedBoardId, setSelectedBoardId] = useState('');
   const [isBoardsLoading, setIsBoardsLoading] = useState(false);
   const [boardError, setBoardError] = useState<string | null>(null);
@@ -190,8 +218,15 @@ export default function AiBoardroomPanel() {
     [suggestions],
   );
 
+  const isBoardDirty = useMemo(
+    () => boardSignature(currentBoard) !== baselineBoardSignature,
+    [baselineBoardSignature, currentBoard],
+  );
+
   const applyBoard = useCallback((board: BoardroomBoard) => {
-    setCurrentBoard(normalizeBoard(cloneBoard(board)));
+    const normalized = normalizeBoard(cloneBoard(board));
+    setCurrentBoard(normalized);
+    setBaselineBoardSignature(boardSignature(normalized));
     setSelectedBoardId(board.id ?? '');
   }, []);
 
@@ -212,18 +247,32 @@ export default function AiBoardroomPanel() {
 
       if (preferredBoard) {
         applyBoard(preferredBoard);
-      } else if (!currentBoard) {
-        setCurrentBoard(createBlankBoard());
+      } else {
+        setCurrentBoard((previous) => {
+          if (previous) {
+            return previous;
+          }
+
+          const blankBoard = createBlankBoard();
+          setBaselineBoardSignature(boardSignature(blankBoard));
+          return blankBoard;
+        });
       }
     } catch (loadError) {
       setBoardError((loadError as Error).message);
-      if (!currentBoard) {
-        setCurrentBoard(createBlankBoard());
-      }
+      setCurrentBoard((previous) => {
+        if (previous) {
+          return previous;
+        }
+
+        const blankBoard = createBlankBoard();
+        setBaselineBoardSignature(boardSignature(blankBoard));
+        return blankBoard;
+      });
     } finally {
       setIsBoardsLoading(false);
     }
-  }, [applyBoard, currentBoard, selectedBoardId]);
+  }, [applyBoard, selectedBoardId]);
 
   const loadHistory = useCallback(async () => {
     setIsHistoryLoading(true);
@@ -258,6 +307,10 @@ export default function AiBoardroomPanel() {
   }
 
   async function handleLoadRun(runId: string) {
+    if (isBoardDirty && !window.confirm('Discard unsaved board edits and load this saved run?')) {
+      return;
+    }
+
     setLoadingRunId(runId);
     setError(null);
 
@@ -265,15 +318,15 @@ export default function AiBoardroomPanel() {
       const run = await fetchBoardroomRun(runId);
       setQuestion(run.question);
       applyContextInputs(run.context);
-      setCurrentBoard(
-        normalizeBoard({
-          id: run.boardId ?? undefined,
-          name: run.boardName,
-          description: '',
-          isDefault: false,
-          members: run.boardMembers,
-        }),
-      );
+      const loadedBoard = normalizeBoard({
+        id: run.boardId ?? undefined,
+        name: run.boardName,
+        description: '',
+        isDefault: false,
+        members: run.boardMembers,
+      });
+      setCurrentBoard(loadedBoard);
+      setBaselineBoardSignature(boardSignature(loadedBoard));
       setSelectedBoardId(run.boardId ?? '');
       setResult(run.result);
       setActiveRunMeta({
@@ -354,7 +407,9 @@ export default function AiBoardroomPanel() {
         ? await updateBoardroomBoard(payload.id, payload)
         : await createBoardroomBoard(payload);
 
-      setCurrentBoard(normalizeBoard(saved));
+      const normalizedSavedBoard = normalizeBoard(saved);
+      setCurrentBoard(normalizedSavedBoard);
+      setBaselineBoardSignature(boardSignature(normalizedSavedBoard));
       setSelectedBoardId(saved.id ?? '');
       await loadBoards();
     } catch (saveError) {
@@ -366,7 +421,9 @@ export default function AiBoardroomPanel() {
 
   async function handleDeleteCurrentBoard() {
     if (!currentBoard?.id) {
-      setCurrentBoard(createBlankBoard(currentBoard ?? undefined));
+      const blankBoard = createBlankBoard(currentBoard ?? undefined);
+      setCurrentBoard(blankBoard);
+      setBaselineBoardSignature(boardSignature(blankBoard));
       setSelectedBoardId('');
       return;
     }
@@ -382,6 +439,33 @@ export default function AiBoardroomPanel() {
       setBoardError((deleteError as Error).message);
     } finally {
       setIsDeletingBoard(false);
+    }
+  }
+
+  async function handleSaveBoardAsNew() {
+    if (!currentBoard) {
+      return;
+    }
+
+    setIsSavingBoard(true);
+    setBoardError(null);
+
+    try {
+      const payload = normalizeBoard({
+        ...currentBoard,
+        id: undefined,
+        isDefault: false,
+      });
+      const saved = await createBoardroomBoard(payload);
+      const normalizedSavedBoard = normalizeBoard(saved);
+      setCurrentBoard(normalizedSavedBoard);
+      setBaselineBoardSignature(boardSignature(normalizedSavedBoard));
+      setSelectedBoardId(saved.id ?? '');
+      await loadBoards();
+    } catch (saveError) {
+      setBoardError((saveError as Error).message);
+    } finally {
+      setIsSavingBoard(false);
     }
   }
 
@@ -494,6 +578,16 @@ export default function AiBoardroomPanel() {
                   value={selectedBoardId}
                   onChange={(event) => {
                     const nextBoard = boards.find((board) => board.id === event.target.value);
+
+                    if (
+                      nextBoard &&
+                      nextBoard.id !== selectedBoardId &&
+                      isBoardDirty &&
+                      !window.confirm('Discard unsaved board edits and switch boards?')
+                    ) {
+                      return;
+                    }
+
                     setSelectedBoardId(event.target.value);
                     if (nextBoard) {
                       applyBoard(nextBoard);
@@ -546,6 +640,13 @@ export default function AiBoardroomPanel() {
               </Button>
               <Button
                 variant="outlined"
+                onClick={() => void handleSaveBoardAsNew()}
+                disabled={!currentBoard || isSavingBoard}
+              >
+                Save As New Board
+              </Button>
+              <Button
+                variant="outlined"
                 onClick={() => setCurrentBoard(createBlankBoard(currentBoard ?? undefined))}
               >
                 New Board Draft
@@ -565,6 +666,7 @@ export default function AiBoardroomPanel() {
               <Button variant="text" onClick={() => void loadBoards()} disabled={isBoardsLoading}>
                 {isBoardsLoading ? 'Refreshing boards...' : 'Refresh Boards'}
               </Button>
+              {isBoardDirty ? <Chip size="small" color="warning" label="Unsaved edits" /> : null}
             </Stack>
 
             <Stack spacing={2}>
