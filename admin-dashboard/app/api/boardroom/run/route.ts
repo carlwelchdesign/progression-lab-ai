@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
       {
         message: boardroomError.message,
         code: boardroomError.code,
+        details: boardroomError.details,
       },
       {
         status: boardroomError.status,

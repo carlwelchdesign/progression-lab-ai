@@ -240,7 +240,25 @@ export class BoardroomOrchestrator {
         );
       } catch (error) {
         lastError = error;
+
+        if (!this.isRetryableError(error)) {
+          throw error;
+        }
       }
+    }
+
+    if (lastError instanceof BoardroomError) {
+      throw new BoardroomError({
+        code: lastError.code,
+        message: lastError.message,
+        status: lastError.status,
+        details: {
+          ...(lastError.details ?? {}),
+          modelClass: params.modelClass,
+          maxRetries: this.maxRetries,
+          attempts: this.maxRetries + 1,
+        },
+      });
     }
 
     throw new BoardroomError({
@@ -253,6 +271,14 @@ export class BoardroomOrchestrator {
         reason: lastError instanceof Error ? lastError.message : 'Unknown',
       },
     });
+  }
+
+  private isRetryableError(error: unknown): boolean {
+    if (error instanceof BoardroomError) {
+      return error.code === 'PROVIDER_FAILURE' || error.code === 'ORCHESTRATION_TIMEOUT';
+    }
+
+    return true;
   }
 
   private async withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {

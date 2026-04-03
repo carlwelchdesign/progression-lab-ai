@@ -64,6 +64,8 @@ export class OpenAiBoardroomProvider implements BoardroomProvider {
         throw error;
       }
 
+      const reason = error instanceof Error ? error.message : 'Unknown provider error';
+
       throw new BoardroomError({
         code: 'PROVIDER_FAILURE',
         message: 'Provider request failed',
@@ -71,6 +73,7 @@ export class OpenAiBoardroomProvider implements BoardroomProvider {
         details: {
           modelClass: request.modelClass,
           timeoutMs: request.timeoutMs,
+          reason,
         },
       });
     }
