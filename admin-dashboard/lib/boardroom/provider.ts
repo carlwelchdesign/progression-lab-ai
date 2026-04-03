@@ -37,6 +37,7 @@ export class OpenAiBoardroomProvider implements BoardroomProvider {
       const response = await client.responses.create({
         model,
         input: request.prompt,
+        text: { format: { type: 'json_object' } },
       });
 
       const output = response.output_text?.trim();
