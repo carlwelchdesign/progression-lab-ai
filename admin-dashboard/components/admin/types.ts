@@ -391,3 +391,43 @@ export type AnalyticsFunnelBreakdownRow = {
   upgradeIntentRateFromAuthCompletion: number;
   upgradeCompletionRateFromIntent: number;
 };
+
+export type BoardroomProductStage = 'IDEA' | 'MVP' | 'EARLY_TRACTION' | 'GROWTH' | 'SCALE';
+
+export type BoardroomRiskTolerance = 'LOW' | 'MEDIUM' | 'HIGH';
+
+export type BoardroomContextInput = {
+  productStage?: BoardroomProductStage;
+  goals?: string[];
+  constraints?: string[];
+  budget?: string;
+  timeframe?: string;
+  riskTolerance?: BoardroomRiskTolerance;
+  extraNotes?: string;
+};
+
+export type RunBoardroomInput = {
+  question: string;
+  context?: BoardroomContextInput;
+};
+
+export type BoardroomPhaseSummary = {
+  role: 'CTO' | 'CMO' | 'CFO' | 'INVESTOR' | 'OPERATOR';
+  summary: string;
+  keyRisks: string[];
+  topTradeoffs: string[];
+};
+
+export type BoardroomRunResult = {
+  decision: string;
+  reasoning: string;
+  keyTradeoffs: string[];
+  risks: string[];
+  actionPlan: string[];
+  dissentingOpinions: string[];
+  debate?: {
+    independentSummaries: BoardroomPhaseSummary[];
+    critiqueSummaries: BoardroomPhaseSummary[];
+    revisionSummaries: BoardroomPhaseSummary[];
+  };
+};
