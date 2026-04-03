@@ -15,6 +15,20 @@ make build
 
 `make build` preserves the production sequence: Prisma generate, Prisma migrate deploy, and app build.
 
+For Vercel deployments, do not run migrations inside the app build. Use:
+
+```bash
+make vercel-build
+```
+
+Then run migrations separately from CI or a trusted machine with direct database access:
+
+```bash
+make db-migrate-deploy-safe
+```
+
+`make db-migrate-deploy-safe` fails fast when `DIRECT_URL` is missing or still points at Prisma Accelerate instead of a direct `postgresql://` connection.
+
 ## Operational Checks
 
 1. Confirm environment variables are present for app, auth, AI, billing, and telemetry.
