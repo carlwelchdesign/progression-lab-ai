@@ -6,6 +6,7 @@ import {
   BoardroomRunRequest,
   BoardroomSpecialistRole,
 } from './types';
+import { buildBusinessModelGuardrailInstruction } from './guardrails';
 
 function formatContext(context?: BoardroomContext): string {
   if (!context) {
@@ -122,6 +123,7 @@ export function buildIndependentPrompt(params: {
     'Task: produce your independent recommendation before seeing critiques.',
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
+    buildBusinessModelGuardrailInstruction(),
     strictJsonInstructionForIndependent(),
   ].join('\n\n');
 }
@@ -152,6 +154,7 @@ export function buildCritiquePrompt(params: {
     formatAgentIdentity(params.agent),
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
+    buildBusinessModelGuardrailInstruction(),
     'Peer independent responses (summarized):',
     others || 'No peer responses available.',
     strictJsonInstructionForCritique(),
@@ -175,6 +178,7 @@ export function buildRevisionPrompt(params: {
     formatAgentIdentity(params.agent),
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
+    buildBusinessModelGuardrailInstruction(),
     'Your phase 1 response:',
     [
       `Recommendation: ${params.priorIndependent.recommendation}`,
@@ -216,6 +220,7 @@ export function buildChairmanPrompt(params: {
     'Your job is to synthesize revised positions and produce one actionable decision package.',
     `Question: ${params.request.question}`,
     `Context:\n${context}`,
+    buildBusinessModelGuardrailInstruction(),
     'Revised specialist positions:',
     revisions || 'No revised specialist positions available.',
     strictJsonInstructionForSynthesis(),
