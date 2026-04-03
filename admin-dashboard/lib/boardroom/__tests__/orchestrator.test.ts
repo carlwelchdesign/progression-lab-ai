@@ -1,0 +1,145 @@
+/** @jest-environment node */
+
+import { BoardroomError } from '../errors';
+import { BoardroomOrchestrator } from '../orchestrator';
+import type { BoardroomProvider, BoardroomProviderRequest } from '../provider';
+
+type Role = 'CTO' | 'CMO';
+
+class DeterministicProvider implements BoardroomProvider {
+  public readonly requests: BoardroomProviderRequest[] = [];
+
+  async generateJson(request: BoardroomProviderRequest): Promise<unknown> {
+    this.requests.push(request);
+
+    if (request.prompt.includes('You are the Chairman')) {
+      return {
+        decision: 'Proceed with a staged experiment before full rollout',
+        reasoning: 'This balances learning speed and financial downside.',
+        keyTradeoffs: ['Execution speed vs confidence'],
+        risks: ['Short-term metric volatility'],
+        actionPlan: ['Define KPI targets', 'Run pilot in one segment', 'Review after 2 weeks'],
+        dissentingOpinions: ['CFO prefers smaller initial scope'],
+      };
+    }
+
+    const role = this.extractRole(request.prompt);
+
+    if (request.prompt.includes('phase 2 (critique)')) {
+      return {
+        missingPoints: [`${role} missing point`],
+        disagreements: [`${role} disagreement`],
+        weakAssumptions: [`${role} weak assumption`],
+      };
+    }
+
+    if (request.prompt.includes('phase 3 (revision)')) {
+      return {
+        updatedRecommendation: `${role} updated recommendation`,
+        updatedReasoning: `${role} updated reasoning`,
+        changedBecause: [`${role} adjusted from critiques`],
+      };
+    }
+
+    return {
+      recommendation: `${role} recommendation`,
+      reasoning: `${role} reasoning`,
+      risks: [`${role} risk`],
+      assumptions: [`${role} assumption`],
+    };
+  }
+
+  private extractRole(prompt: string): Role {
+    if (prompt.includes('Role: CTO')) {
+      return 'CTO';
+    }
+
+    return 'CMO';
+  }
+}
+
+describe('BoardroomOrchestrator', () => {
+  it('runs all phases and returns strict structured decision', async () => {
+    const provider = new DeterministicProvider();
+    const orchestrator = new BoardroomOrchestrator({
+      provider,
+      maxAgents: 2,
+      maxRetries: 0,
+      timeoutMsPerCall: 5000,
+    });
+
+    const result = await orchestrator.run({
+      question: 'Should we prioritize retention campaigns over acquisition this quarter?',
+      context: {
+        productStage: 'GROWTH',
+        goals: ['Increase net revenue retention'],
+      },
+    });
+
+    expect(result.decision).toBe('Proceed with a staged experiment before full rollout');
+    expect(result.actionPlan.length).toBeGreaterThan(0);
+    expect(result.debate?.independentSummaries.length).toBe(2);
+    expect(result.debate?.critiqueSummaries.length).toBe(2);
+    expect(result.debate?.revisionSummaries.length).toBe(2);
+
+    const smallCalls = provider.requests.filter((req) => req.modelClass === 'SMALL');
+    const largeCalls = provider.requests.filter((req) => req.modelClass === 'LARGE');
+    expect(smallCalls.length).toBe(6);
+    expect(largeCalls.length).toBe(1);
+  });
+
+  it('builds critique prompts from peers and excludes self independent response', async () => {
+    const provider = new DeterministicProvider();
+    const orchestrator = new BoardroomOrchestrator({
+      provider,
+      maxAgents: 2,
+      maxRetries: 0,
+      timeoutMsPerCall: 5000,
+    });
+
+    await orchestrator.run({
+      question: 'Should we invest in partner-led growth?',
+    });
+
+    const ctoCritiquePrompt = provider.requests.find(
+      (req) =>
+        req.prompt.includes('phase 2 (critique)') &&
+        req.prompt.includes('Role: CTO (Chief Technology Officer)'),
+    )?.prompt;
+    const cmoCritiquePrompt = provider.requests.find(
+      (req) =>
+        req.prompt.includes('phase 2 (critique)') &&
+        req.prompt.includes('Role: CMO (Chief Marketing Officer)'),
+    )?.prompt;
+
+    expect(ctoCritiquePrompt).toContain('Recommendation: CMO recommendation');
+    expect(ctoCritiquePrompt).not.toContain('Recommendation: CTO recommendation');
+
+    expect(cmoCritiquePrompt).toContain('Recommendation: CTO recommendation');
+    expect(cmoCritiquePrompt).not.toContain('Recommendation: CMO recommendation');
+  });
+
+  it('throws retries exhausted when provider keeps failing', async () => {
+    const provider: BoardroomProvider = {
+      generateJson: async () => {
+        throw new Error('provider failure');
+      },
+    };
+
+    const orchestrator = new BoardroomOrchestrator({
+      provider,
+      maxAgents: 1,
+      maxRetries: 1,
+      timeoutMsPerCall: 200,
+    });
+
+    await expect(
+      orchestrator.run({
+        question: 'Should we increase paid spend?',
+      }),
+    ).rejects.toMatchObject<Partial<BoardroomError>>({
+      code: 'RETRIES_EXHAUSTED',
+      status: 504,
+    });
+  });
+});

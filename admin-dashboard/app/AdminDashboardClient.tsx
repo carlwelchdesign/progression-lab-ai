@@ -4,6 +4,7 @@ import { Alert, Container, Stack, Box, Tabs, Tab } from '@mui/material';
 import { useState } from 'react';
 
 import AdminAuditLogTable from '../components/admin/AdminAuditLogTable';
+import AiBoardroomPanel from '../components/admin/AiBoardroomPanel';
 import AnalyticsInsightsPanel from '../components/admin/AnalyticsInsightsPanel';
 import AdminSummaryCards from '../components/admin/AdminSummaryCards';
 import DashboardHeader from '../components/admin/DashboardHeader';
@@ -28,6 +29,7 @@ export default function AdminDashboardClient() {
     | 'marketing-content'
     | 'plan-manager'
     | 'promo-codes'
+    | 'boardroom'
     | 'analytics'
     | 'audit-log'
   >('overview');
@@ -130,6 +132,7 @@ export default function AdminDashboardClient() {
                   | 'marketing-content'
                   | 'plan-manager'
                   | 'promo-codes'
+                  | 'boardroom'
                   | 'analytics'
                   | 'audit-log',
               )
@@ -142,6 +145,7 @@ export default function AdminDashboardClient() {
             <Tab label="Marketing Content" value="marketing-content" />
             {user.role === 'ADMIN' && <Tab label="Plan Manager" value="plan-manager" />}
             <Tab label="Promo &amp; Invites" value="promo-codes" />
+            {user.role === 'ADMIN' && <Tab label="AI Boardroom" value="boardroom" />}
             <Tab label="Analytics" value="analytics" />
             <Tab label="Audit Log" value="audit-log" />
           </Tabs>
@@ -214,6 +218,8 @@ export default function AdminDashboardClient() {
         )}
 
         {activeTab === 'promo-codes' && <PromoCodesPanel role={user.role} />}
+
+        {activeTab === 'boardroom' && user.role === 'ADMIN' && <AiBoardroomPanel />}
 
         {activeTab === 'analytics' && (
           <AnalyticsInsightsPanel

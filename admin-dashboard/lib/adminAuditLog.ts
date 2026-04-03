@@ -24,6 +24,8 @@ export const AUDIT_TARGET_TYPE_PROMO_CODE = 'PROMO_CODE';
 export const AUDIT_ACTION_PROMO_CODE_CREATED = 'CREATE_PROMO_CODE';
 export const AUDIT_ACTION_PROMO_CODE_UPDATED = 'UPDATE_PROMO_CODE';
 export const AUDIT_ACTION_PROMO_CODE_REVOKED = 'REVOKE_PROMO_CODE';
+export const AUDIT_TARGET_TYPE_BOARDROOM = 'AI_BOARDROOM';
+export const AUDIT_ACTION_BOARDROOM_RUN_EXECUTED = 'EXECUTE_BOARDROOM_RUN';
 
 export type TierConfigAuditMetadata = {
   updatedFields: string[];
@@ -137,6 +139,27 @@ export async function recordPlanVersionAuditLog(params: {
       action: params.action,
       targetType: AUDIT_TARGET_TYPE_PLAN_VERSION,
       targetId: params.planId,
+      metadata,
+    },
+  });
+}
+
+export async function recordBoardroomRunAuditLog(params: {
+  actor: AdminUser;
+  action: typeof AUDIT_ACTION_BOARDROOM_RUN_EXECUTED;
+  targetId: string;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  const metadata = params.metadata as Prisma.InputJsonValue | undefined;
+
+  await prisma.adminAuditLog.create({
+    data: {
+      actorUserId: params.actor.id,
+      actorEmail: params.actor.email,
+      actorRole: params.actor.role,
+      action: params.action,
+      targetType: AUDIT_TARGET_TYPE_BOARDROOM,
+      targetId: params.targetId,
       metadata,
     },
   });

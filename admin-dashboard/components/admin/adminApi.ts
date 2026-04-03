@@ -7,6 +7,8 @@ import type {
   AdminUserSummary,
   AdminAuditLogItem,
   CreatePromoCodeInput,
+  RunBoardroomInput,
+  BoardroomRunResult,
   MarketingContentState,
   MarketingContentOperationResponse,
   MarketingContentVersion,
@@ -634,4 +636,19 @@ export async function fetchPromoCodeRedemptions(id: string): Promise<PromoCodeRe
 
   const data4 = (await response.json()) as { items: PromoCodeRedemptionRow[] };
   return data4.items;
+}
+
+export async function runBoardroom(input: RunBoardroomInput): Promise<BoardroomRunResult> {
+  const response = await fetch('/api/boardroom/run', {
+    method: 'POST',
+    credentials: 'include',
+    headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to run AI Boardroom'));
+  }
+
+  return (await response.json()) as BoardroomRunResult;
 }
