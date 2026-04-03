@@ -2,6 +2,52 @@ export type BoardroomProductStage = 'IDEA' | 'MVP' | 'EARLY_TRACTION' | 'GROWTH'
 
 export type BoardroomRiskTolerance = 'LOW' | 'MEDIUM' | 'HIGH';
 
+export type BoardroomModelClass = 'SMALL' | 'LARGE';
+
+export type BoardroomBoardMemberInput = {
+  id?: string;
+  personaLabel: string;
+  title: string;
+  priorities?: string[];
+  biases?: string[];
+  modelClass?: BoardroomModelClass;
+  maxOutputChars?: number;
+  displayOrder?: number;
+  suggestionKey?: string | null;
+  isActive?: boolean;
+};
+
+export type BoardroomBoardMemberDefinition = {
+  id?: string;
+  personaLabel: string;
+  title: string;
+  priorities: string[];
+  biases: string[];
+  modelClass: BoardroomModelClass;
+  maxOutputChars: number;
+  displayOrder: number;
+  suggestionKey?: string | null;
+  isActive: boolean;
+};
+
+export type BoardroomBoardDefinition = {
+  id?: string;
+  name: string;
+  description?: string | null;
+  isDefault?: boolean;
+  members: BoardroomBoardMemberDefinition[];
+};
+
+export type BoardroomPersonaSuggestion = {
+  key: string;
+  label: string;
+  group: string;
+  title: string;
+  priorities: string[];
+  biases: string[];
+  modelClass: BoardroomModelClass;
+};
+
 export type BoardroomContext = {
   productStage?: BoardroomProductStage;
   goals?: string[];
@@ -15,6 +61,9 @@ export type BoardroomContext = {
 export type BoardroomRunRequest = {
   question: string;
   context?: BoardroomContext;
+  boardId?: string;
+  boardName?: string;
+  boardMembers?: BoardroomBoardMemberDefinition[];
 };
 
 export type BoardroomFeatureAvailability = {
@@ -33,21 +82,6 @@ export type BoardroomFeatureCatalog = {
     canUseVocalTrackRecording: BoardroomFeatureAvailability;
     canUseAdvancedVoicingControls: BoardroomFeatureAvailability;
   };
-};
-
-export type BoardroomSpecialistRole = 'CTO' | 'CMO' | 'CFO' | 'INVESTOR' | 'OPERATOR';
-
-export type BoardroomAgentRole = BoardroomSpecialistRole | 'CHAIRMAN';
-
-export type BoardroomModelClass = 'SMALL' | 'LARGE';
-
-export type BoardroomAgentDefinition = {
-  role: BoardroomSpecialistRole;
-  title: string;
-  priorities: string[];
-  biases: string[];
-  modelClass: BoardroomModelClass;
-  maxOutputChars: number;
 };
 
 export type BoardroomIndependentResponse = {
@@ -70,7 +104,7 @@ export type BoardroomRevisionResponse = {
 };
 
 export type BoardroomSpecialistRoundBundle = {
-  role: BoardroomSpecialistRole;
+  memberLabel: string;
   independent: BoardroomIndependentResponse;
   critique: BoardroomCritiqueResponse;
   revision: BoardroomRevisionResponse;
@@ -88,7 +122,7 @@ export type BoardroomDecision = {
 export type BoardroomRunResult = BoardroomDecision;
 
 export type BoardroomPhaseSummary = {
-  role: BoardroomSpecialistRole;
+  memberLabel: string;
   summary: string;
   keyRisks: string[];
   topTradeoffs: string[];

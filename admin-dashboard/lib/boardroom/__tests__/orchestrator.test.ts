@@ -54,7 +54,7 @@ class DeterministicProvider implements BoardroomProvider {
   }
 
   private extractRole(prompt: string): Role {
-    if (prompt.includes('Role: CTO')) {
+    if (prompt.includes('Board Member: CTO')) {
       return 'CTO';
     }
 
@@ -131,12 +131,12 @@ describe('BoardroomOrchestrator', () => {
     const ctoCritiquePrompt = provider.requests.find(
       (req) =>
         req.prompt.includes('phase 2 (critique)') &&
-        req.prompt.includes('Role: CTO (Chief Technology Officer)'),
+        req.prompt.includes('Board Member: CTO (Chief Technology Officer)'),
     )?.prompt;
     const cmoCritiquePrompt = provider.requests.find(
       (req) =>
         req.prompt.includes('phase 2 (critique)') &&
-        req.prompt.includes('Role: CMO (Chief Marketing Officer)'),
+        req.prompt.includes('Board Member: CMO (Chief Marketing Officer)'),
     )?.prompt;
 
     expect(ctoCritiquePrompt).toContain('Recommendation: CMO recommendation');

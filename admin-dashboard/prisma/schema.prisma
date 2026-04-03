@@ -78,6 +78,11 @@ enum MarketingTranslationOrigin {
   AI_ASSISTED
 }
 
+enum BoardroomModelClass {
+  SMALL
+  LARGE
+}
+
 model User {
   id           String        @id @default(cuid())
   email        String        @unique
@@ -109,9 +114,48 @@ model User {
   promoCodeRedemptions PromoCodeRedemption[]
 }
 
+model BoardroomBoard {
+  id          String               @id @default(cuid())
+  name        String
+  description String?
+  isDefault   Boolean              @default(false)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  members     BoardroomBoardMember[]
+  runs        BoardroomRun[]
+
+  @@index([isDefault, updatedAt])
+  @@index([createdAt])
+}
+
+model BoardroomBoardMember {
+  id             String              @id @default(cuid())
+  boardId        String
+  displayOrder   Int
+  isActive       Boolean             @default(true)
+  personaLabel   String
+  title          String
+  priorities     Json
+  biases         Json
+  modelClass     BoardroomModelClass @default(SMALL)
+  maxOutputChars Int                 @default(1400)
+  suggestionKey  String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  board          BoardroomBoard      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId, displayOrder])
+  @@index([boardId, isActive])
+}
+
 model BoardroomRun {
   id                 String   @id @default(cuid())
   adminUserId        String
+  boardId            String?
+  boardName          String
+  boardSnapshot      Json
   question           String
   context            Json?
   decision           String
@@ -127,8 +171,10 @@ model BoardroomRun {
   updatedAt          DateTime @updatedAt
 
   adminUser User @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  board     BoardroomBoard? @relation(fields: [boardId], references: [id], onDelete: SetNull)
 
   @@index([adminUserId, createdAt])
+  @@index([boardId, createdAt])
   @@index([createdAt])
 }
 

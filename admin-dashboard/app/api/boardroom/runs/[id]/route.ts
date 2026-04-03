@@ -10,6 +10,14 @@ function asStringArray(value: unknown): string[] {
     : [];
 }
 
+function asObjectArray(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value)
+    ? value.filter(
+        (item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object',
+      )
+    : [];
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const adminUser = await getAdminUserFromRequest(request);
@@ -33,6 +41,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       },
       select: {
         id: true,
+        boardId: true,
+        boardName: true,
+        boardSnapshot: true,
         question: true,
         context: true,
         decision: true,
@@ -55,6 +66,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({
       item: {
         id: row.id,
+        boardId: row.boardId,
+        boardName: row.boardName,
+        boardMembers: asObjectArray(row.boardSnapshot),
         question: row.question,
         context: row.context,
         durationMs: row.durationMs,

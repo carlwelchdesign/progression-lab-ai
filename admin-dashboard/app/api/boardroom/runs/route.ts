@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
         take: pageSize,
         select: {
           id: true,
+          boardId: true,
+          boardName: true,
           question: true,
           decision: true,
           createdAt: true,

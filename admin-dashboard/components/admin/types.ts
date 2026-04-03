@@ -408,13 +408,51 @@ export type BoardroomContextInput = {
   extraNotes?: string;
 };
 
+export type BoardroomModelClass = 'SMALL' | 'LARGE';
+
+export type BoardroomBoardMember = {
+  id?: string;
+  personaLabel: string;
+  title: string;
+  priorities: string[];
+  biases: string[];
+  modelClass: BoardroomModelClass;
+  maxOutputChars: number;
+  displayOrder: number;
+  suggestionKey?: string | null;
+  isActive: boolean;
+};
+
+export type BoardroomBoard = {
+  id?: string;
+  name: string;
+  description?: string | null;
+  isDefault?: boolean;
+  members: BoardroomBoardMember[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type BoardroomPersonaSuggestion = {
+  key: string;
+  label: string;
+  group: string;
+  title: string;
+  priorities: string[];
+  biases: string[];
+  modelClass: BoardroomModelClass;
+};
+
 export type RunBoardroomInput = {
   question: string;
   context?: BoardroomContextInput;
+  boardId?: string;
+  boardName?: string;
+  boardMembers?: BoardroomBoardMember[];
 };
 
 export type BoardroomPhaseSummary = {
-  role: 'CTO' | 'CMO' | 'CFO' | 'INVESTOR' | 'OPERATOR';
+  memberLabel: string;
   summary: string;
   keyRisks: string[];
   topTradeoffs: string[];
@@ -436,6 +474,8 @@ export type BoardroomRunResult = {
 
 export type BoardroomRunHistoryItem = {
   id: string;
+  boardId: string | null;
+  boardName: string;
   question: string;
   decision: string;
   durationMs: number;
@@ -451,10 +491,18 @@ export type BoardroomRunHistoryPage = {
 
 export type BoardroomRunHistoryDetail = {
   id: string;
+  boardId: string | null;
+  boardName: string;
+  boardMembers: BoardroomBoardMember[];
   question: string;
   context: BoardroomContextInput | null;
   durationMs: number;
   modelClasses: string[];
   createdAt: string;
   result: BoardroomRunResult;
+};
+
+export type BoardroomBoardsResponse = {
+  items: BoardroomBoard[];
+  suggestions: BoardroomPersonaSuggestion[];
 };

@@ -2,6 +2,8 @@ export * from './types';
 export * from './errors';
 export * from './validation';
 export * from './agents';
+export * from './boards';
+export * from './personaSuggestions';
 export * from './prompts';
 export * from './featureCatalog';
 export * from './productCharter';

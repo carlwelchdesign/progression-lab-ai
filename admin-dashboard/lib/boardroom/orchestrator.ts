@@ -1,4 +1,4 @@
-import { getDefaultBoardroomAgents } from './agents';
+import { createDefaultBoardroomMembers } from './agents';
 import { BoardroomError } from './errors';
 import { getBoardroomFeatureCatalog } from './featureCatalog';
 import { getBoardroomProductCharter } from './productCharter';
@@ -16,12 +16,12 @@ import {
 import { BoardroomProvider, OpenAiBoardroomProvider } from './provider';
 import { summarizeCritiques, summarizeIndependentResponses, summarizeRevisions } from './summarize';
 import {
+  BoardroomBoardMemberDefinition,
   BoardroomCritiqueResponse,
   BoardroomIndependentResponse,
   BoardroomRevisionResponse,
   BoardroomRunRequest,
   BoardroomRunResponse,
-  BoardroomSpecialistRole,
 } from './types';
 import {
   parseBoardroomRunRequest,
@@ -38,9 +38,9 @@ type BoardroomOrchestratorOptions = {
   maxRetries?: number;
 };
 
-type IndependentByRole = Partial<Record<BoardroomSpecialistRole, BoardroomIndependentResponse>>;
-type CritiqueByRole = Partial<Record<BoardroomSpecialistRole, BoardroomCritiqueResponse>>;
-type RevisionByRole = Partial<Record<BoardroomSpecialistRole, BoardroomRevisionResponse>>;
+type IndependentByMember = Partial<Record<string, BoardroomIndependentResponse>>;
+type CritiqueByMember = Partial<Record<string, BoardroomCritiqueResponse>>;
+type RevisionByMember = Partial<Record<string, BoardroomRevisionResponse>>;
 
 const DEFAULT_TIMEOUT_MS_PER_CALL = 20000;
 const DEFAULT_MAX_RETRIES = 1;
@@ -64,38 +64,48 @@ export class BoardroomOrchestrator {
   }
 
   async runWithRequest(request: BoardroomRunRequest): Promise<BoardroomRunResponse> {
-    const specialists = getDefaultBoardroomAgents(this.maxAgents);
+    const specialists = (request.boardMembers ?? createDefaultBoardroomMembers(this.maxAgents))
+      .filter((member) => member.isActive)
+      .slice(0, this.maxAgents);
+
+    if (specialists.length === 0) {
+      throw new BoardroomError({
+        code: 'INVALID_INPUT',
+        message: 'At least one active board member is required',
+        status: 400,
+      });
+    }
+
     const featureCatalog = await getBoardroomFeatureCatalog();
     const productCharter = getBoardroomProductCharter();
 
-    const independentByRole: IndependentByRole = {};
-    const critiqueByRole: CritiqueByRole = {};
-    const revisionByRole: RevisionByRole = {};
+    const independentByRole: IndependentByMember = {};
+    const critiqueByRole: CritiqueByMember = {};
+    const revisionByRole: RevisionByMember = {};
 
     await Promise.all(
       specialists.map(async (agent) => {
+        const memberKey = this.getMemberKey(agent);
         const prompt = buildIndependentPrompt({ request, agent, featureCatalog, productCharter });
         const raw = await this.callProviderWithRetries({
           prompt,
           modelClass: agent.modelClass,
         });
-        independentByRole[agent.role] = parseIndependentResponse(raw);
+        independentByRole[memberKey] = parseIndependentResponse(raw);
       }),
     );
 
     await Promise.all(
       specialists.map(async (agent) => {
+        const memberKey = this.getMemberKey(agent);
         const otherIndependentSummaries = specialists
-          .filter((peer) => peer.role !== agent.role)
+          .filter((peer) => this.getMemberKey(peer) !== memberKey)
           .map((peer) => ({
-            role: peer.role,
-            response: independentByRole[peer.role],
+            memberLabel: peer.personaLabel,
+            response: independentByRole[this.getMemberKey(peer)],
           }))
-          .filter(
-            (
-              item,
-            ): item is { role: BoardroomSpecialistRole; response: BoardroomIndependentResponse } =>
-              Boolean(item.response),
+          .filter((item): item is { memberLabel: string; response: BoardroomIndependentResponse } =>
+            Boolean(item.response),
           );
 
         const prompt = buildCritiquePrompt({
@@ -110,22 +120,23 @@ export class BoardroomOrchestrator {
           prompt,
           modelClass: agent.modelClass,
         });
-        critiqueByRole[agent.role] = parseCritiqueResponse(raw);
+        critiqueByRole[memberKey] = parseCritiqueResponse(raw);
       }),
     );
 
     await Promise.all(
       specialists.map(async (agent) => {
-        const priorIndependent = independentByRole[agent.role];
+        const memberKey = this.getMemberKey(agent);
+        const priorIndependent = independentByRole[memberKey];
         if (!priorIndependent) {
           throw new BoardroomError({
             code: 'ORCHESTRATION_TIMEOUT',
-            message: `Missing phase 1 output for ${agent.role}`,
+            message: `Missing phase 1 output for ${agent.personaLabel}`,
             status: 500,
           });
         }
 
-        const critiqueSummary = this.buildCritiqueSummaryForRole(agent.role, critiqueByRole);
+        const critiqueSummary = this.buildCritiqueSummaryForMember(memberKey, critiqueByRole);
         const prompt = buildRevisionPrompt({
           request,
           agent,
@@ -139,18 +150,17 @@ export class BoardroomOrchestrator {
           prompt,
           modelClass: agent.modelClass,
         });
-        revisionByRole[agent.role] = parseRevisionResponse(raw);
+        revisionByRole[memberKey] = parseRevisionResponse(raw);
       }),
     );
 
     const revisedPositions = specialists
       .map((agent) => ({
-        role: agent.role,
-        revision: revisionByRole[agent.role],
+        memberLabel: agent.personaLabel,
+        revision: revisionByRole[this.getMemberKey(agent)],
       }))
-      .filter(
-        (item): item is { role: BoardroomSpecialistRole; revision: BoardroomRevisionResponse } =>
-          Boolean(item.revision),
+      .filter((item): item is { memberLabel: string; revision: BoardroomRevisionResponse } =>
+        Boolean(item.revision),
       );
 
     const chairmanPrompt = buildChairmanPrompt({
@@ -176,38 +186,33 @@ export class BoardroomOrchestrator {
     const independentSummaries = summarizeIndependentResponses(
       specialists
         .map((agent) => ({
-          role: agent.role,
-          response: independentByRole[agent.role],
+          memberLabel: agent.personaLabel,
+          response: independentByRole[this.getMemberKey(agent)],
         }))
-        .filter(
-          (
-            item,
-          ): item is { role: BoardroomSpecialistRole; response: BoardroomIndependentResponse } =>
-            Boolean(item.response),
+        .filter((item): item is { memberLabel: string; response: BoardroomIndependentResponse } =>
+          Boolean(item.response),
         ),
     );
 
     const critiqueSummaries = summarizeCritiques(
       specialists
         .map((agent) => ({
-          role: agent.role,
-          response: critiqueByRole[agent.role],
+          memberLabel: agent.personaLabel,
+          response: critiqueByRole[this.getMemberKey(agent)],
         }))
-        .filter(
-          (item): item is { role: BoardroomSpecialistRole; response: BoardroomCritiqueResponse } =>
-            Boolean(item.response),
+        .filter((item): item is { memberLabel: string; response: BoardroomCritiqueResponse } =>
+          Boolean(item.response),
         ),
     );
 
     const revisionSummaries = summarizeRevisions(
       specialists
         .map((agent) => ({
-          role: agent.role,
-          response: revisionByRole[agent.role],
+          memberLabel: agent.personaLabel,
+          response: revisionByRole[this.getMemberKey(agent)],
         }))
-        .filter(
-          (item): item is { role: BoardroomSpecialistRole; response: BoardroomRevisionResponse } =>
-            Boolean(item.response),
+        .filter((item): item is { memberLabel: string; response: BoardroomRevisionResponse } =>
+          Boolean(item.response),
         ),
     );
 
@@ -221,9 +226,13 @@ export class BoardroomOrchestrator {
     };
   }
 
-  private buildCritiqueSummaryForRole(
-    role: BoardroomSpecialistRole,
-    critiques: CritiqueByRole,
+  private getMemberKey(member: BoardroomBoardMemberDefinition): string {
+    return `${member.displayOrder}:${member.personaLabel}`;
+  }
+
+  private buildCritiqueSummaryForMember(
+    memberKey: string,
+    critiques: CritiqueByMember,
   ): {
     missingPoints: string[];
     disagreements: string[];
@@ -231,8 +240,8 @@ export class BoardroomOrchestrator {
   } {
     const all = Object.entries(critiques)
       .filter(
-        (entry): entry is [BoardroomSpecialistRole, BoardroomCritiqueResponse] =>
-          Boolean(entry[1]) && entry[0] !== role,
+        (entry): entry is [string, BoardroomCritiqueResponse] =>
+          Boolean(entry[1]) && entry[0] !== memberKey,
       )
       .map(([, critique]) => critique);
 

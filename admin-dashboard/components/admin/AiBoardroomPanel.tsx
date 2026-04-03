@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Chip,
   Divider,
   Grid,
@@ -21,9 +22,21 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-import { fetchBoardroomRun, fetchBoardroomRuns, runBoardroom } from './adminApi';
+import GroupedAutocompleteField from '../../../components/ui/GroupedAutocompleteField';
+import {
+  createBoardroomBoard,
+  deleteBoardroomBoard,
+  fetchBoardroomBoards,
+  fetchBoardroomRun,
+  fetchBoardroomRuns,
+  runBoardroom,
+  updateBoardroomBoard,
+} from './adminApi';
 import type {
+  BoardroomBoard,
+  BoardroomBoardMember,
   BoardroomContextInput,
+  BoardroomPersonaSuggestion,
   BoardroomRunHistoryItem,
   BoardroomProductStage,
   BoardroomRiskTolerance,
@@ -38,6 +51,7 @@ const PRODUCT_STAGES: BoardroomProductStage[] = [
   'SCALE',
 ];
 const RISK_LEVELS: BoardroomRiskTolerance[] = ['LOW', 'MEDIUM', 'HIGH'];
+const DEFAULT_MEMBER_MAX_OUTPUT_CHARS = 1400;
 
 function toListFromMultiline(value: string): string[] {
   return value
@@ -54,7 +68,86 @@ function formatDateTime(value: string): string {
   return new Date(value).toLocaleString();
 }
 
+function cloneBoard(board: BoardroomBoard): BoardroomBoard {
+  return {
+    ...board,
+    members: board.members.map((member) => ({
+      ...member,
+      priorities: [...member.priorities],
+      biases: [...member.biases],
+    })),
+  };
+}
+
+function createBlankMember(displayOrder: number): BoardroomBoardMember {
+  return {
+    personaLabel: '',
+    title: '',
+    priorities: [],
+    biases: [],
+    modelClass: 'SMALL',
+    maxOutputChars: DEFAULT_MEMBER_MAX_OUTPUT_CHARS,
+    displayOrder,
+    suggestionKey: null,
+    isActive: true,
+  };
+}
+
+function createBlankBoard(template?: BoardroomBoard): BoardroomBoard {
+  if (template) {
+    const next = cloneBoard(template);
+    return {
+      ...next,
+      id: undefined,
+      isDefault: false,
+      name: `${template.name} Copy`,
+    };
+  }
+
+  return {
+    name: 'Untitled Board',
+    description: '',
+    isDefault: false,
+    members: [createBlankMember(0)],
+  };
+}
+
+function normalizeBoard(board: BoardroomBoard): BoardroomBoard {
+  return {
+    ...board,
+    description: board.description ?? '',
+    members: [...board.members]
+      .sort((left, right) => left.displayOrder - right.displayOrder)
+      .map((member, index) => ({
+        ...member,
+        displayOrder: index,
+      })),
+  };
+}
+
+function buildSuggestionMaps(suggestions: BoardroomPersonaSuggestion[]) {
+  const suggestionByKey = new Map(suggestions.map((suggestion) => [suggestion.key, suggestion]));
+  const groupByName = Object.fromEntries(
+    suggestions.map((suggestion) => [suggestion.key, suggestion.group]),
+  );
+
+  return {
+    suggestionByKey,
+    suggestionKeys: suggestions.map((suggestion) => suggestion.key),
+    groupByName,
+  };
+}
+
 export default function AiBoardroomPanel() {
+  const [boards, setBoards] = useState<BoardroomBoard[]>([]);
+  const [suggestions, setSuggestions] = useState<BoardroomPersonaSuggestion[]>([]);
+  const [currentBoard, setCurrentBoard] = useState<BoardroomBoard | null>(null);
+  const [selectedBoardId, setSelectedBoardId] = useState('');
+  const [isBoardsLoading, setIsBoardsLoading] = useState(false);
+  const [boardError, setBoardError] = useState<string | null>(null);
+  const [isSavingBoard, setIsSavingBoard] = useState(false);
+  const [isDeletingBoard, setIsDeletingBoard] = useState(false);
+
   const [question, setQuestion] = useState('');
   const [productStage, setProductStage] = useState<BoardroomProductStage | ''>('');
   const [goalsInput, setGoalsInput] = useState('');
@@ -78,7 +171,10 @@ export default function AiBoardroomPanel() {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [loadingRunId, setLoadingRunId] = useState<string | null>(null);
 
-  const canRun = question.trim().length > 0 && !isRunning;
+  const canRun =
+    question.trim().length > 0 &&
+    !isRunning &&
+    Boolean(currentBoard?.members.some((member) => member.isActive));
 
   const suspenseLines = useMemo(
     () => [
@@ -88,6 +184,46 @@ export default function AiBoardroomPanel() {
     ],
     [],
   );
+
+  const { suggestionByKey, suggestionKeys, groupByName } = useMemo(
+    () => buildSuggestionMaps(suggestions),
+    [suggestions],
+  );
+
+  const applyBoard = useCallback((board: BoardroomBoard) => {
+    setCurrentBoard(normalizeBoard(cloneBoard(board)));
+    setSelectedBoardId(board.id ?? '');
+  }, []);
+
+  const loadBoards = useCallback(async () => {
+    setIsBoardsLoading(true);
+    setBoardError(null);
+
+    try {
+      const response = await fetchBoardroomBoards();
+      setBoards(response.items);
+      setSuggestions(response.suggestions);
+
+      const preferredBoard =
+        response.items.find((board) => board.id === selectedBoardId) ??
+        response.items.find((board) => board.isDefault) ??
+        response.items[0] ??
+        null;
+
+      if (preferredBoard) {
+        applyBoard(preferredBoard);
+      } else if (!currentBoard) {
+        setCurrentBoard(createBlankBoard());
+      }
+    } catch (loadError) {
+      setBoardError((loadError as Error).message);
+      if (!currentBoard) {
+        setCurrentBoard(createBlankBoard());
+      }
+    } finally {
+      setIsBoardsLoading(false);
+    }
+  }, [applyBoard, currentBoard, selectedBoardId]);
 
   const loadHistory = useCallback(async () => {
     setIsHistoryLoading(true);
@@ -102,6 +238,10 @@ export default function AiBoardroomPanel() {
       setIsHistoryLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    void loadBoards();
+  }, [loadBoards]);
 
   useEffect(() => {
     void loadHistory();
@@ -125,6 +265,16 @@ export default function AiBoardroomPanel() {
       const run = await fetchBoardroomRun(runId);
       setQuestion(run.question);
       applyContextInputs(run.context);
+      setCurrentBoard(
+        normalizeBoard({
+          id: run.boardId ?? undefined,
+          name: run.boardName,
+          description: '',
+          isDefault: false,
+          members: run.boardMembers,
+        }),
+      );
+      setSelectedBoardId(run.boardId ?? '');
       setResult(run.result);
       setActiveRunMeta({
         id: run.id,
@@ -176,6 +326,9 @@ export default function AiBoardroomPanel() {
       const next = await runBoardroom({
         question: question.trim(),
         context: Object.keys(context).length > 0 ? context : undefined,
+        boardId: currentBoard?.id,
+        boardName: currentBoard?.name,
+        boardMembers: currentBoard?.members,
       });
       setResult(next);
       setActiveRunMeta(null);
@@ -187,6 +340,140 @@ export default function AiBoardroomPanel() {
     }
   }
 
+  async function handleSaveBoard() {
+    if (!currentBoard) {
+      return;
+    }
+
+    setIsSavingBoard(true);
+    setBoardError(null);
+
+    try {
+      const payload = normalizeBoard(currentBoard);
+      const saved = payload.id
+        ? await updateBoardroomBoard(payload.id, payload)
+        : await createBoardroomBoard(payload);
+
+      setCurrentBoard(normalizeBoard(saved));
+      setSelectedBoardId(saved.id ?? '');
+      await loadBoards();
+    } catch (saveError) {
+      setBoardError((saveError as Error).message);
+    } finally {
+      setIsSavingBoard(false);
+    }
+  }
+
+  async function handleDeleteCurrentBoard() {
+    if (!currentBoard?.id) {
+      setCurrentBoard(createBlankBoard(currentBoard ?? undefined));
+      setSelectedBoardId('');
+      return;
+    }
+
+    setIsDeletingBoard(true);
+    setBoardError(null);
+
+    try {
+      await deleteBoardroomBoard(currentBoard.id);
+      setSelectedBoardId('');
+      await loadBoards();
+    } catch (deleteError) {
+      setBoardError((deleteError as Error).message);
+    } finally {
+      setIsDeletingBoard(false);
+    }
+  }
+
+  function updateBoardFields(fields: Partial<BoardroomBoard>) {
+    setCurrentBoard((prev) => (prev ? normalizeBoard({ ...prev, ...fields }) : prev));
+  }
+
+  function updateMember(
+    index: number,
+    updater: (member: BoardroomBoardMember) => BoardroomBoardMember,
+  ) {
+    setCurrentBoard((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const members = prev.members.map((member, memberIndex) =>
+        memberIndex === index ? updater(member) : member,
+      );
+
+      return normalizeBoard({ ...prev, members });
+    });
+  }
+
+  function moveMember(index: number, direction: -1 | 1) {
+    setCurrentBoard((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= prev.members.length) {
+        return prev;
+      }
+
+      const members = [...prev.members];
+      const [member] = members.splice(index, 1);
+      members.splice(targetIndex, 0, member);
+
+      return normalizeBoard({ ...prev, members });
+    });
+  }
+
+  function removeMember(index: number) {
+    setCurrentBoard((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const members = prev.members.filter((_, memberIndex) => memberIndex !== index);
+      return normalizeBoard({
+        ...prev,
+        members: members.length > 0 ? members : [createBlankMember(0)],
+      });
+    });
+  }
+
+  function addMember() {
+    setCurrentBoard((prev) =>
+      prev
+        ? normalizeBoard({
+            ...prev,
+            members: [...prev.members, createBlankMember(prev.members.length)],
+          })
+        : prev,
+    );
+  }
+
+  function applySuggestion(index: number, rawValue: string) {
+    const suggestion = suggestionByKey.get(rawValue);
+
+    updateMember(index, (member) => {
+      if (!suggestion) {
+        return {
+          ...member,
+          personaLabel: rawValue,
+          suggestionKey: null,
+        };
+      }
+
+      return {
+        ...member,
+        personaLabel: suggestion.label,
+        title: suggestion.title,
+        priorities: [...suggestion.priorities],
+        biases: [...suggestion.biases],
+        modelClass: suggestion.modelClass,
+        suggestionKey: suggestion.key,
+      };
+    });
+  }
+
   return (
     <Stack spacing={3}>
       <Card variant="outlined">
@@ -194,9 +481,267 @@ export default function AiBoardroomPanel() {
           <Stack spacing={2}>
             <Typography variant="h6">AI Boardroom</Typography>
             <Typography variant="body2" color="text.secondary">
-              Ask a strategic question and receive a structured recommendation from a multi-role
-              decision pipeline.
+              Edit reusable boards, run them against strategic questions, and save strong boards for
+              reuse.
             </Typography>
+
+            {boardError ? <Alert severity="error">{boardError}</Alert> : null}
+
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <TextField
+                  label="Saved board"
+                  value={selectedBoardId}
+                  onChange={(event) => {
+                    const nextBoard = boards.find((board) => board.id === event.target.value);
+                    setSelectedBoardId(event.target.value);
+                    if (nextBoard) {
+                      applyBoard(nextBoard);
+                    }
+                  }}
+                  select
+                  fullWidth
+                  disabled={isBoardsLoading}
+                >
+                  <MenuItem value="">Unsaved current board</MenuItem>
+                  {boards.map((board) => (
+                    <MenuItem key={board.id} value={board.id}>
+                      {board.name}
+                      {board.isDefault ? ' (default)' : ''}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <TextField
+                  label="Board name"
+                  value={currentBoard?.name ?? ''}
+                  onChange={(event) => updateBoardFields({ name: event.target.value })}
+                  fullWidth
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <TextField
+                  label="Board notes"
+                  value={currentBoard?.description ?? ''}
+                  onChange={(event) => updateBoardFields({ description: event.target.value })}
+                  fullWidth
+                />
+              </Grid>
+            </Grid>
+
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
+              <Button
+                variant="contained"
+                onClick={() => void handleSaveBoard()}
+                disabled={!currentBoard || isSavingBoard}
+              >
+                {isSavingBoard
+                  ? 'Saving board...'
+                  : currentBoard?.id
+                    ? 'Update Board'
+                    : 'Save Board'}
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => setCurrentBoard(createBlankBoard(currentBoard ?? undefined))}
+              >
+                New Board Draft
+              </Button>
+              <Button
+                variant="text"
+                color="error"
+                onClick={() => void handleDeleteCurrentBoard()}
+                disabled={!currentBoard || isDeletingBoard}
+              >
+                {isDeletingBoard
+                  ? 'Deleting...'
+                  : currentBoard?.id
+                    ? 'Delete Board'
+                    : 'Discard Draft'}
+              </Button>
+              <Button variant="text" onClick={() => void loadBoards()} disabled={isBoardsLoading}>
+                {isBoardsLoading ? 'Refreshing boards...' : 'Refresh Boards'}
+              </Button>
+            </Stack>
+
+            <Stack spacing={2}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="subtitle1">Board Members</Typography>
+                <Button size="small" onClick={() => addMember()}>
+                  Add Member
+                </Button>
+              </Stack>
+
+              {currentBoard?.members.map((member, index) => (
+                <Card key={`${member.id ?? 'draft'}-${index}`} variant="outlined">
+                  <CardContent>
+                    <Stack spacing={2}>
+                      <Stack
+                        direction={{ xs: 'column', md: 'row' }}
+                        spacing={2}
+                        alignItems={{ xs: 'stretch', md: 'center' }}
+                      >
+                        <Box sx={{ minWidth: 140 }}>
+                          <Typography variant="subtitle2">Member {index + 1}</Typography>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Checkbox
+                              checked={member.isActive}
+                              onChange={(event) =>
+                                updateMember(index, (currentMember) => ({
+                                  ...currentMember,
+                                  isActive: event.target.checked,
+                                }))
+                              }
+                            />
+                            <Typography variant="body2" color="text.secondary">
+                              Active
+                            </Typography>
+                          </Stack>
+                        </Box>
+
+                        <Box sx={{ flex: 1 }}>
+                          <GroupedAutocompleteField
+                            label="Persona suggestion"
+                            value={member.suggestionKey ?? member.personaLabel}
+                            onChange={(value) => applySuggestion(index, value)}
+                            options={suggestionKeys}
+                            freeSolo
+                            groupByName={groupByName}
+                            getOptionLabel={(option) =>
+                              suggestionByKey.get(option)?.label ?? option
+                            }
+                            helperText="Pick a curated style or type a custom persona label."
+                          />
+                        </Box>
+                      </Stack>
+
+                      <Grid container spacing={2}>
+                        <Grid size={{ xs: 12, md: 4 }}>
+                          <TextField
+                            label="Persona label"
+                            value={member.personaLabel}
+                            onChange={(event) =>
+                              updateMember(index, (currentMember) => ({
+                                ...currentMember,
+                                personaLabel: event.target.value,
+                                suggestionKey: null,
+                              }))
+                            }
+                            fullWidth
+                          />
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 4 }}>
+                          <TextField
+                            label="Title"
+                            value={member.title}
+                            onChange={(event) =>
+                              updateMember(index, (currentMember) => ({
+                                ...currentMember,
+                                title: event.target.value,
+                              }))
+                            }
+                            fullWidth
+                          />
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 2 }}>
+                          <TextField
+                            label="Model"
+                            value={member.modelClass}
+                            onChange={(event) =>
+                              updateMember(index, (currentMember) => ({
+                                ...currentMember,
+                                modelClass: event.target
+                                  .value as BoardroomBoardMember['modelClass'],
+                              }))
+                            }
+                            select
+                            fullWidth
+                          >
+                            <MenuItem value="SMALL">SMALL</MenuItem>
+                            <MenuItem value="LARGE">LARGE</MenuItem>
+                          </TextField>
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 2 }}>
+                          <TextField
+                            label="Max chars"
+                            value={member.maxOutputChars}
+                            onChange={(event) =>
+                              updateMember(index, (currentMember) => ({
+                                ...currentMember,
+                                maxOutputChars:
+                                  Number(event.target.value) || DEFAULT_MEMBER_MAX_OUTPUT_CHARS,
+                              }))
+                            }
+                            type="number"
+                            fullWidth
+                          />
+                        </Grid>
+                      </Grid>
+
+                      <Grid container spacing={2}>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="Priorities (one per line)"
+                            value={toMultiline(member.priorities)}
+                            onChange={(event) =>
+                              updateMember(index, (currentMember) => ({
+                                ...currentMember,
+                                priorities: toListFromMultiline(event.target.value),
+                              }))
+                            }
+                            multiline
+                            minRows={3}
+                            fullWidth
+                          />
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="Biases (one per line)"
+                            value={toMultiline(member.biases)}
+                            onChange={(event) =>
+                              updateMember(index, (currentMember) => ({
+                                ...currentMember,
+                                biases: toListFromMultiline(event.target.value),
+                              }))
+                            }
+                            multiline
+                            minRows={3}
+                            fullWidth
+                          />
+                        </Grid>
+                      </Grid>
+
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          onClick={() => moveMember(index, -1)}
+                          disabled={index === 0}
+                        >
+                          Move Up
+                        </Button>
+                        <Button
+                          size="small"
+                          onClick={() => moveMember(index, 1)}
+                          disabled={index === (currentBoard?.members.length ?? 1) - 1}
+                        >
+                          Move Down
+                        </Button>
+                        <Button size="small" color="error" onClick={() => removeMember(index)}>
+                          Remove
+                        </Button>
+                      </Stack>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              ))}
+            </Stack>
 
             <TextField
               label="Decision question"
@@ -356,7 +901,7 @@ export default function AiBoardroomPanel() {
                     <Stack spacing={1}>
                       <Typography variant="subtitle2">{run.question}</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Saved {formatDateTime(run.createdAt)} • {run.durationMs}ms
+                        {run.boardName} • Saved {formatDateTime(run.createdAt)} • {run.durationMs}ms
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         {run.decision}
@@ -394,10 +939,25 @@ export default function AiBoardroomPanel() {
                     {activeRunMeta.durationMs}ms
                   </Typography>
                 ) : null}
+                {currentBoard ? (
+                  <Typography variant="caption" color="text.secondary">
+                    Active board: {currentBoard.name}
+                  </Typography>
+                ) : null}
                 <Typography variant="h6">{result.decision}</Typography>
                 <Typography variant="body2" color="text.secondary">
                   {result.reasoning}
                 </Typography>
+                <Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => void handleSaveBoard()}
+                    disabled={!currentBoard || isSavingBoard}
+                  >
+                    {currentBoard?.id ? 'Update This Board' : 'Save This Board'}
+                  </Button>
+                </Box>
               </Stack>
             </CardContent>
           </Card>
@@ -474,8 +1034,12 @@ export default function AiBoardroomPanel() {
                     <Stack spacing={1}>
                       <Typography variant="subtitle2">Independent</Typography>
                       {result.debate.independentSummaries.map((item) => (
-                        <Typography key={`ind-${item.role}`} variant="body2" color="text.secondary">
-                          <strong>{item.role}</strong>: {item.summary}
+                        <Typography
+                          key={`ind-${item.memberLabel}`}
+                          variant="body2"
+                          color="text.secondary"
+                        >
+                          <strong>{item.memberLabel}</strong>: {item.summary}
                         </Typography>
                       ))}
                     </Stack>
@@ -485,8 +1049,12 @@ export default function AiBoardroomPanel() {
                     <Stack spacing={1}>
                       <Typography variant="subtitle2">Critique</Typography>
                       {result.debate.critiqueSummaries.map((item) => (
-                        <Typography key={`crt-${item.role}`} variant="body2" color="text.secondary">
-                          <strong>{item.role}</strong>: {item.summary}
+                        <Typography
+                          key={`crt-${item.memberLabel}`}
+                          variant="body2"
+                          color="text.secondary"
+                        >
+                          <strong>{item.memberLabel}</strong>: {item.summary}
                         </Typography>
                       ))}
                     </Stack>
@@ -496,8 +1064,12 @@ export default function AiBoardroomPanel() {
                     <Stack spacing={1}>
                       <Typography variant="subtitle2">Revision</Typography>
                       {result.debate.revisionSummaries.map((item) => (
-                        <Typography key={`rev-${item.role}`} variant="body2" color="text.secondary">
-                          <strong>{item.role}</strong>: {item.summary}
+                        <Typography
+                          key={`rev-${item.memberLabel}`}
+                          variant="body2"
+                          color="text.secondary"
+                        >
+                          <strong>{item.memberLabel}</strong>: {item.summary}
                         </Typography>
                       ))}
                     </Stack>

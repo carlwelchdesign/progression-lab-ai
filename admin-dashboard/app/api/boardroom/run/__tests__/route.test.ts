@@ -9,6 +9,7 @@ const mockGetAdminUserFromRequest = jest.fn();
 const mockRunWithRequest = jest.fn();
 const mockRecordBoardroomRunAuditLog = jest.fn();
 const mockBoardroomRunCreate = jest.fn();
+const mockResolveBoardroomExecutionBoard = jest.fn();
 
 jest.mock('../../../../../lib/csrf', () => ({
   checkCsrfToken: (request: NextRequest) => mockCheckCsrfToken(request),
@@ -22,6 +23,11 @@ jest.mock('../../../../../lib/boardroom/orchestrator', () => ({
   BoardroomOrchestrator: jest.fn().mockImplementation(() => ({
     runWithRequest: (...args: unknown[]) => mockRunWithRequest(...args),
   })),
+}));
+
+jest.mock('../../../../../lib/boardroom/boards', () => ({
+  resolveBoardroomExecutionBoard: (...args: unknown[]) =>
+    mockResolveBoardroomExecutionBoard(...args),
 }));
 
 jest.mock('../../../../../lib/adminAuditLog', () => ({
@@ -60,6 +66,22 @@ describe('POST /api/boardroom/run', () => {
         critiqueSummaries: [],
         revisionSummaries: [],
       },
+    });
+    mockResolveBoardroomExecutionBoard.mockResolvedValue({
+      boardId: 'board-1',
+      boardName: 'Classic Boardroom',
+      boardMembers: [
+        {
+          personaLabel: 'CTO',
+          title: 'Chief Technology Officer',
+          priorities: ['Delivery feasibility'],
+          biases: ['Prefers low uncertainty'],
+          modelClass: 'SMALL',
+          maxOutputChars: 1400,
+          displayOrder: 0,
+          isActive: true,
+        },
+      ],
     });
     mockBoardroomRunCreate.mockResolvedValue({ id: 'run-1' });
     mockRecordBoardroomRunAuditLog.mockResolvedValue(undefined);
@@ -138,6 +160,9 @@ describe('POST /api/boardroom/run', () => {
     expect(mockRunWithRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         question: 'Should we double paid acquisition budget this quarter?',
+        boardId: 'board-1',
+        boardName: 'Classic Boardroom',
+        boardMembers: expect.any(Array),
         context: expect.objectContaining({
           productStage: 'GROWTH',
           goals: ['Increase MRR by 20%'],
@@ -148,6 +173,9 @@ describe('POST /api/boardroom/run', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           adminUserId: 'admin-1',
+          boardId: 'board-1',
+          boardName: 'Classic Boardroom',
+          boardSnapshot: expect.any(Array),
           question: 'Should we double paid acquisition budget this quarter?',
           decision: 'Run a staged growth experiment',
         }),
@@ -157,6 +185,11 @@ describe('POST /api/boardroom/run', () => {
       expect.objectContaining({
         action: 'EXECUTE_BOARDROOM_RUN',
         targetId: 'AI_BOARDROOM',
+        metadata: expect.objectContaining({
+          boardId: 'board-1',
+          boardName: 'Classic Boardroom',
+          memberCount: 1,
+        }),
       }),
     );
   });
