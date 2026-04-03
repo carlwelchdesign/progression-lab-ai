@@ -175,6 +175,7 @@ export default function AiBoardroomPanel() {
   const [boardError, setBoardError] = useState<string | null>(null);
   const [isSavingBoard, setIsSavingBoard] = useState(false);
   const [isDeletingBoard, setIsDeletingBoard] = useState(false);
+  const [isBoardMembersExpanded, setIsBoardMembersExpanded] = useState(false);
 
   const [question, setQuestion] = useState('');
   const [productStage, setProductStage] = useState<BoardroomProductStage | ''>('');
@@ -222,6 +223,9 @@ export default function AiBoardroomPanel() {
     () => boardSignature(currentBoard) !== baselineBoardSignature,
     [baselineBoardSignature, currentBoard],
   );
+  const boardMemberCount = currentBoard?.members.length ?? 0;
+  const activeBoardMemberCount =
+    currentBoard?.members.filter((member) => member.isActive).length ?? 0;
 
   const applyBoard = useCallback((board: BoardroomBoard) => {
     const normalized = normalizeBoard(cloneBoard(board));
@@ -669,181 +673,198 @@ export default function AiBoardroomPanel() {
               {isBoardDirty ? <Chip size="small" color="warning" label="Unsaved edits" /> : null}
             </Stack>
 
-            <Stack spacing={2}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="subtitle1">Board Members</Typography>
-                <Button size="small" onClick={() => addMember()}>
-                  Add Member
-                </Button>
-              </Stack>
+            <Accordion
+              expanded={isBoardMembersExpanded}
+              onChange={(_, expanded) => setIsBoardMembersExpanded(expanded)}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Stack spacing={0.5}>
+                  <Typography variant="subtitle1">Board Members</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {boardMemberCount} total, {activeBoardMemberCount} active
+                  </Typography>
+                </Stack>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack spacing={2}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="body2" color="text.secondary">
+                      Expand this section when you need to edit the board roster.
+                    </Typography>
+                    <Button size="small" onClick={() => addMember()}>
+                      Add Member
+                    </Button>
+                  </Stack>
 
-              {currentBoard?.members.map((member, index) => (
-                <Card key={`${member.id ?? 'draft'}-${index}`} variant="outlined">
-                  <CardContent>
-                    <Stack spacing={2}>
-                      <Stack
-                        direction={{ xs: 'column', md: 'row' }}
-                        spacing={2}
-                        alignItems={{ xs: 'stretch', md: 'center' }}
-                      >
-                        <Box sx={{ minWidth: 140 }}>
-                          <Typography variant="subtitle2">Member {index + 1}</Typography>
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <Checkbox
-                              checked={member.isActive}
-                              onChange={(event) =>
-                                updateMember(index, (currentMember) => ({
-                                  ...currentMember,
-                                  isActive: event.target.checked,
-                                }))
-                              }
-                            />
-                            <Typography variant="body2" color="text.secondary">
-                              Active
-                            </Typography>
-                          </Stack>
-                        </Box>
-
-                        <Box sx={{ flex: 1 }}>
-                          <GroupedAutocompleteField
-                            label="Persona suggestion"
-                            value={member.suggestionKey ?? member.personaLabel}
-                            onChange={(value) => applySuggestion(index, value)}
-                            options={suggestionKeys}
-                            freeSolo
-                            groupByName={groupByName}
-                            getOptionLabel={(option) =>
-                              suggestionByKey.get(option)?.label ?? option
-                            }
-                            helperText="Pick a curated style or type a custom persona label."
-                          />
-                        </Box>
-                      </Stack>
-
-                      <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, md: 4 }}>
-                          <TextField
-                            label="Persona label"
-                            value={member.personaLabel}
-                            onChange={(event) =>
-                              updateMember(index, (currentMember) => ({
-                                ...currentMember,
-                                personaLabel: event.target.value,
-                                suggestionKey: null,
-                              }))
-                            }
-                            fullWidth
-                          />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 4 }}>
-                          <TextField
-                            label="Title"
-                            value={member.title}
-                            onChange={(event) =>
-                              updateMember(index, (currentMember) => ({
-                                ...currentMember,
-                                title: event.target.value,
-                              }))
-                            }
-                            fullWidth
-                          />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 2 }}>
-                          <TextField
-                            label="Model"
-                            value={member.modelClass}
-                            onChange={(event) =>
-                              updateMember(index, (currentMember) => ({
-                                ...currentMember,
-                                modelClass: event.target
-                                  .value as BoardroomBoardMember['modelClass'],
-                              }))
-                            }
-                            select
-                            fullWidth
+                  {currentBoard?.members.map((member, index) => (
+                    <Card key={`${member.id ?? 'draft'}-${index}`} variant="outlined">
+                      <CardContent>
+                        <Stack spacing={2}>
+                          <Stack
+                            direction={{ xs: 'column', md: 'row' }}
+                            spacing={2}
+                            alignItems={{ xs: 'stretch', md: 'center' }}
                           >
-                            <MenuItem value="SMALL">SMALL</MenuItem>
-                            <MenuItem value="LARGE">LARGE</MenuItem>
-                          </TextField>
-                        </Grid>
+                            <Box sx={{ minWidth: 140 }}>
+                              <Typography variant="subtitle2">Member {index + 1}</Typography>
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <Checkbox
+                                  checked={member.isActive}
+                                  onChange={(event) =>
+                                    updateMember(index, (currentMember) => ({
+                                      ...currentMember,
+                                      isActive: event.target.checked,
+                                    }))
+                                  }
+                                />
+                                <Typography variant="body2" color="text.secondary">
+                                  Active
+                                </Typography>
+                              </Stack>
+                            </Box>
 
-                        <Grid size={{ xs: 12, md: 2 }}>
-                          <TextField
-                            label="Max chars"
-                            value={member.maxOutputChars}
-                            onChange={(event) =>
-                              updateMember(index, (currentMember) => ({
-                                ...currentMember,
-                                maxOutputChars:
-                                  Number(event.target.value) || DEFAULT_MEMBER_MAX_OUTPUT_CHARS,
-                              }))
-                            }
-                            type="number"
-                            fullWidth
-                          />
-                        </Grid>
-                      </Grid>
+                            <Box sx={{ flex: 1 }}>
+                              <GroupedAutocompleteField
+                                label="Persona suggestion"
+                                value={member.suggestionKey ?? member.personaLabel}
+                                onChange={(value) => applySuggestion(index, value)}
+                                options={suggestionKeys}
+                                freeSolo
+                                groupByName={groupByName}
+                                getOptionLabel={(option) =>
+                                  suggestionByKey.get(option)?.label ?? option
+                                }
+                                helperText="Pick a curated style or type a custom persona label."
+                              />
+                            </Box>
+                          </Stack>
 
-                      <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                          <TextField
-                            label="Priorities (one per line)"
-                            value={toMultiline(member.priorities)}
-                            onChange={(event) =>
-                              updateMember(index, (currentMember) => ({
-                                ...currentMember,
-                                priorities: toListFromMultiline(event.target.value),
-                              }))
-                            }
-                            multiline
-                            minRows={3}
-                            fullWidth
-                          />
-                        </Grid>
+                          <Grid container spacing={2}>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                              <TextField
+                                label="Persona label"
+                                value={member.personaLabel}
+                                onChange={(event) =>
+                                  updateMember(index, (currentMember) => ({
+                                    ...currentMember,
+                                    personaLabel: event.target.value,
+                                    suggestionKey: null,
+                                  }))
+                                }
+                                fullWidth
+                              />
+                            </Grid>
 
-                        <Grid size={{ xs: 12, md: 6 }}>
-                          <TextField
-                            label="Biases (one per line)"
-                            value={toMultiline(member.biases)}
-                            onChange={(event) =>
-                              updateMember(index, (currentMember) => ({
-                                ...currentMember,
-                                biases: toListFromMultiline(event.target.value),
-                              }))
-                            }
-                            multiline
-                            minRows={3}
-                            fullWidth
-                          />
-                        </Grid>
-                      </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                              <TextField
+                                label="Title"
+                                value={member.title}
+                                onChange={(event) =>
+                                  updateMember(index, (currentMember) => ({
+                                    ...currentMember,
+                                    title: event.target.value,
+                                  }))
+                                }
+                                fullWidth
+                              />
+                            </Grid>
 
-                      <Stack direction="row" spacing={1}>
-                        <Button
-                          size="small"
-                          onClick={() => moveMember(index, -1)}
-                          disabled={index === 0}
-                        >
-                          Move Up
-                        </Button>
-                        <Button
-                          size="small"
-                          onClick={() => moveMember(index, 1)}
-                          disabled={index === (currentBoard?.members.length ?? 1) - 1}
-                        >
-                          Move Down
-                        </Button>
-                        <Button size="small" color="error" onClick={() => removeMember(index)}>
-                          Remove
-                        </Button>
-                      </Stack>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              ))}
-            </Stack>
+                            <Grid size={{ xs: 12, md: 2 }}>
+                              <TextField
+                                label="Model"
+                                value={member.modelClass}
+                                onChange={(event) =>
+                                  updateMember(index, (currentMember) => ({
+                                    ...currentMember,
+                                    modelClass: event.target
+                                      .value as BoardroomBoardMember['modelClass'],
+                                  }))
+                                }
+                                select
+                                fullWidth
+                              >
+                                <MenuItem value="SMALL">SMALL</MenuItem>
+                                <MenuItem value="LARGE">LARGE</MenuItem>
+                              </TextField>
+                            </Grid>
+
+                            <Grid size={{ xs: 12, md: 2 }}>
+                              <TextField
+                                label="Max chars"
+                                value={member.maxOutputChars}
+                                onChange={(event) =>
+                                  updateMember(index, (currentMember) => ({
+                                    ...currentMember,
+                                    maxOutputChars:
+                                      Number(event.target.value) || DEFAULT_MEMBER_MAX_OUTPUT_CHARS,
+                                  }))
+                                }
+                                type="number"
+                                fullWidth
+                              />
+                            </Grid>
+                          </Grid>
+
+                          <Grid container spacing={2}>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                              <TextField
+                                label="Priorities (one per line)"
+                                value={toMultiline(member.priorities)}
+                                onChange={(event) =>
+                                  updateMember(index, (currentMember) => ({
+                                    ...currentMember,
+                                    priorities: toListFromMultiline(event.target.value),
+                                  }))
+                                }
+                                multiline
+                                minRows={3}
+                                fullWidth
+                              />
+                            </Grid>
+
+                            <Grid size={{ xs: 12, md: 6 }}>
+                              <TextField
+                                label="Biases (one per line)"
+                                value={toMultiline(member.biases)}
+                                onChange={(event) =>
+                                  updateMember(index, (currentMember) => ({
+                                    ...currentMember,
+                                    biases: toListFromMultiline(event.target.value),
+                                  }))
+                                }
+                                multiline
+                                minRows={3}
+                                fullWidth
+                              />
+                            </Grid>
+                          </Grid>
+
+                          <Stack direction="row" spacing={1}>
+                            <Button
+                              size="small"
+                              onClick={() => moveMember(index, -1)}
+                              disabled={index === 0}
+                            >
+                              Move Up
+                            </Button>
+                            <Button
+                              size="small"
+                              onClick={() => moveMember(index, 1)}
+                              disabled={index === (currentBoard?.members.length ?? 1) - 1}
+                            >
+                              Move Down
+                            </Button>
+                            <Button size="small" color="error" onClick={() => removeMember(index)}>
+                              Remove
+                            </Button>
+                          </Stack>
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
 
             <TextField
               label="Decision question"
