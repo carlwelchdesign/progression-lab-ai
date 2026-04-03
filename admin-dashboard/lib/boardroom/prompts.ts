@@ -3,11 +3,11 @@ import {
   BoardroomContext,
   BoardroomFeatureCatalog,
   BoardroomIndependentResponse,
-  BoardroomProductCharter,
   BoardroomRevisionResponse,
   BoardroomRunRequest,
   BoardroomSpecialistRole,
 } from './types';
+import { BoardroomProductCharter } from './productCharter';
 import { buildBusinessModelGuardrailInstruction } from './guardrails';
 
 function formatContext(context?: BoardroomContext): string {

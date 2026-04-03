@@ -1,5 +1,6 @@
 import { createModelOutputInvalidError } from './errors';
-import { BoardroomDecision, BoardroomFeatureCatalog, BoardroomProductCharter } from './types';
+import { BoardroomDecision, BoardroomFeatureCatalog } from './types';
+import { BoardroomProductCharter } from './productCharter';
 
 const ALLOWED_DOMAIN_PATTERNS: RegExp[] = [
   /\bmusic\b/i,
