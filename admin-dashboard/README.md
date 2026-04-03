@@ -42,11 +42,17 @@ Default local credentials:
 - Email: `demo@progressionlab.ai`
 - Password: `Admin123!ChangeMe`
 
+Local admin seed behavior:
+
+- Outside production, the seed script grants the demo admin a long-lived MFA bypass by default so password login works immediately in local development.
+- To require security key enrollment even locally, set `ADMIN_SEED_MFA_BYPASS_UNTIL=none` before running `make db-seed`.
+
 Optional overrides:
 
 - `ADMIN_SEED_EMAIL`
 - `ADMIN_SEED_PASSWORD`
 - `ADMIN_SEED_NAME`
+- `ADMIN_SEED_MFA_BYPASS_UNTIL`
 
 5. Start admin app:
 
