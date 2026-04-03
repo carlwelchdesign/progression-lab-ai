@@ -23,6 +23,7 @@ import {
   parseIndependentResponse,
   parseRevisionResponse,
 } from './validation';
+import { validateBusinessModelDecision } from './guardrails';
 
 type BoardroomOrchestratorOptions = {
   provider?: BoardroomProvider;
@@ -150,7 +151,7 @@ export class BoardroomOrchestrator {
       modelClass: 'LARGE',
     });
 
-    const decision = parseDecisionResponse(chairmanRaw);
+    const decision = validateBusinessModelDecision(parseDecisionResponse(chairmanRaw));
 
     const independentSummaries = summarizeIndependentResponses(
       specialists

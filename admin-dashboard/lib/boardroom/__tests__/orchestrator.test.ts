@@ -14,11 +14,15 @@ class DeterministicProvider implements BoardroomProvider {
 
     if (request.prompt.includes('You are the Chairman')) {
       return {
-        decision: 'Proceed with a staged experiment before full rollout',
-        reasoning: 'This balances learning speed and financial downside.',
-        keyTradeoffs: ['Execution speed vs confidence'],
+        decision: 'Proceed with a staged music creator experiment before full rollout',
+        reasoning: 'This balances learning speed and financial downside for musicians.',
+        keyTradeoffs: ['Execution speed vs confidence for music feature adoption'],
         risks: ['Short-term metric volatility'],
-        actionPlan: ['Define KPI targets', 'Run pilot in one segment', 'Review after 2 weeks'],
+        actionPlan: [
+          'Define music creator KPI targets',
+          'Run pilot in one musician segment',
+          'Review after 2 weeks',
+        ],
         dissentingOpinions: ['CFO prefers smaller initial scope'],
       };
     }
@@ -58,6 +62,23 @@ class DeterministicProvider implements BoardroomProvider {
   }
 }
 
+class OffDomainChairmanProvider extends DeterministicProvider {
+  async generateJson(request: BoardroomProviderRequest): Promise<unknown> {
+    if (request.prompt.includes('You are the Chairman')) {
+      return {
+        decision: 'Launch subscription meal plans for fitness enthusiasts',
+        reasoning: 'This market has strong retention and frequent repeat purchases.',
+        keyTradeoffs: ['Fast growth vs domain mismatch risk'],
+        risks: ['Team lacks nutrition expertise'],
+        actionPlan: ['Hire nutrition advisors', 'Create meal libraries', 'Run influencer campaigns'],
+        dissentingOpinions: ['This is outside current product direction'],
+      };
+    }
+
+    return super.generateJson(request);
+  }
+}
+
 describe('BoardroomOrchestrator', () => {
   it('runs all phases and returns strict structured decision', async () => {
     const provider = new DeterministicProvider();
@@ -76,7 +97,7 @@ describe('BoardroomOrchestrator', () => {
       },
     });
 
-    expect(result.decision).toBe('Proceed with a staged experiment before full rollout');
+    expect(result.decision).toBe('Proceed with a staged music creator experiment before full rollout');
     expect(result.actionPlan.length).toBeGreaterThan(0);
     expect(result.debate?.independentSummaries.length).toBe(2);
     expect(result.debate?.critiqueSummaries.length).toBe(2);
@@ -140,6 +161,25 @@ describe('BoardroomOrchestrator', () => {
     ).rejects.toMatchObject<Partial<BoardroomError>>({
       code: 'RETRIES_EXHAUSTED',
       status: 504,
+    });
+  });
+
+  it('rejects off-domain final decisions that violate business-model guardrails', async () => {
+    const provider = new OffDomainChairmanProvider();
+    const orchestrator = new BoardroomOrchestrator({
+      provider,
+      maxAgents: 2,
+      maxRetries: 0,
+      timeoutMsPerCall: 5000,
+    });
+
+    await expect(
+      orchestrator.run({
+        question: 'How should we increase paid conversion this quarter?',
+      }),
+    ).rejects.toMatchObject<Partial<BoardroomError>>({
+      code: 'MODEL_OUTPUT_INVALID',
+      status: 502,
     });
   });
 });
