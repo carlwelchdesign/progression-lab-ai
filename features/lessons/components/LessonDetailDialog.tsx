@@ -17,6 +17,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import type { Lesson, SkillLevel } from '../types';
 import TryInGeneratorButton from './TryInGeneratorButton';
+import PlayableChordCard from './PlayableChordCard';
 import CircleOfFifthsLesson from './CircleOfFifthsLesson';
 
 const SKILL_CHIP_COLOR: Record<SkillLevel, 'success' | 'warning' | 'error'> = {
@@ -86,9 +87,30 @@ function TextLessonContent({ lesson }: { lesson: Lesson }) {
       </Box>
 
       {content.relatedChords && content.relatedChords.length > 0 ? (
-        <Box>
-          <TryInGeneratorButton chords={content.relatedChords} />
-        </Box>
+        <>
+          <Divider />
+          <Box>
+            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+              Hear these chords
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Click the play button on any chord to hear how it sounds.
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                gap: 1.5,
+                mb: 2,
+              }}
+            >
+              {content.relatedChords.map((chord) => (
+                <PlayableChordCard key={chord} chord={chord} />
+              ))}
+            </Box>
+            <TryInGeneratorButton chords={content.relatedChords} />
+          </Box>
+        </>
       ) : null}
     </Stack>
   );

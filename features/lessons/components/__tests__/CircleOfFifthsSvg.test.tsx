@@ -13,12 +13,9 @@ describe('CircleOfFifthsSvg', () => {
     const handleSelect = jest.fn();
     renderWithTheme(<CircleOfFifthsSvg selectedSemitone={null} onKeySelect={handleSelect} />);
 
-    const buttons = screen.getAllByRole('button');
-    // Each key has 3 sectors (outer, middle, inner), all clickable, but only outer has aria-label
-    const labelledButtons = screen.getAllByRole('button', { hidden: false });
-    const majorKeyButtons = labelledButtons.filter((b) =>
-      b.getAttribute('aria-label')?.endsWith('major'),
-    );
+    const majorKeyButtons = screen
+      .getAllByRole('button', { hidden: false })
+      .filter((b) => b.getAttribute('aria-label')?.endsWith('major'));
     expect(majorKeyButtons).toHaveLength(12);
   });
 

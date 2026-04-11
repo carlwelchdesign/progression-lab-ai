@@ -5,6 +5,29 @@ import { LESSONS_BY_SKILL } from '../../data/lessonContent';
 
 const theme = createTheme();
 
+// Mock Tone.js-dependent audio module (not available in jsdom)
+jest.mock('../../../../domain/audio/audio', () => ({
+  playChordVoicing: jest.fn().mockResolvedValue(undefined),
+  stopAllAudio: jest.fn(),
+}));
+
+// Mock piano-chart (uses canvas APIs not available in jsdom)
+jest.mock('piano-chart', () => ({
+  Instrument: jest.fn().mockImplementation(() => ({
+    create: jest.fn(),
+    keyDown: jest.fn(),
+    destroy: jest.fn(),
+  })),
+}));
+
+// Mock chordVoicing so PlayableChordCard doesn't fail on invalid environments
+jest.mock('../../../../domain/music/chordVoicing', () => ({
+  createPianoVoicingFromChordSymbol: jest.fn().mockReturnValue({
+    leftHand: ['C2', 'G2'],
+    rightHand: ['C4', 'E4', 'G4'],
+  }),
+}));
+
 // next/navigation mock
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),

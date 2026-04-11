@@ -1,45 +1,95 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Box, Divider, Stack, Typography } from '@mui/material';
-import { getCircleOfFifthsNeighborSemitones } from '../../../domain/music/circleOfFifths';
-import { COF_KEYS } from '../data/circleOfFifthsData';
+import { createPianoVoicingFromChordSymbol } from '../../../domain/music/chordVoicing';
+import { playChordVoicing } from '../../../domain/audio/audio';
 import type { CofKeyData } from '../data/circleOfFifthsData';
 import CircleOfFifthsSvg from './CircleOfFifthsSvg';
 import CircleOfFifthsKeyPanel from './CircleOfFifthsKeyPanel';
 
-const INTRO_PARAGRAPHS = [
-  'The Circle of Fifths is a map of all 12 musical keys arranged so that each key is a perfect fifth away from its neighbours. Moving clockwise adds one sharp to the key signature; moving counter-clockwise adds one flat.',
-  'Keys that are adjacent on the circle share six of their seven notes — they are closely related and transition smoothly in a song. Keys that are opposite each other share very few notes and sound distant or surprising when juxtaposed.',
-  'Click any key to explore its diatonic chords, relative minor, and key signature. The highlighted neighbours show the closest related keys.',
+// ── Colour legend ─────────────────────────────────────────────────────────────
+
+const COLOR_LEGEND = [
+  {
+    swatch: 'linear-gradient(135deg, hsl(60,82%,52%) 0%, hsl(30,82%,52%) 100%)',
+    label: 'Selected key',
+    description: 'The key you are exploring.',
+  },
+  {
+    swatch: 'linear-gradient(135deg, hsl(90,65%,36%) 0%, hsl(30,65%,36%) 100%)',
+    label: 'Closely related (P4 / P5)',
+    description:
+      'One perfect fifth clockwise or one perfect fourth counter-clockwise. These keys share 6 of 7 notes and feel harmonically near.',
+  },
+  {
+    swatch:
+      'repeating-linear-gradient(135deg, hsl(0,0%,26%) 0px, hsl(0,0%,26%) 6px, transparent 6px, transparent 12px)',
+    border: '#f59e0b',
+    label: 'Tritone (amber border)',
+    description:
+      'The key directly opposite — 6 semitones away. The tritone is the most harmonically distant interval; its complementary colour on the wheel reflects that maximum tension.',
+  },
 ];
 
 export default function CircleOfFifthsLesson() {
   const [selectedKey, setSelectedKey] = useState<CofKeyData | null>(null);
+  const playingRef = useRef(false);
 
-  const highlightedSemitones =
-    selectedKey !== null
-      ? getCircleOfFifthsNeighborSemitones(selectedKey.semitone)
-      : new Set<number>();
+  const handleKeySelect = async (key: CofKeyData) => {
+    // Toggle off if same key
+    const isSame = selectedKey?.semitone === key.semitone;
+    setSelectedKey(isSame ? null : key);
 
-  const handleKeySelect = (key: CofKeyData) => {
-    setSelectedKey((prev) => (prev?.semitone === key.semitone ? null : key));
+    if (isSame || playingRef.current) return;
+
+    // Play the I chord (tonic) for the selected key
+    const voicing = createPianoVoicingFromChordSymbol(key.diatonicChords[0]);
+    if (!voicing) return;
+
+    playingRef.current = true;
+    try {
+      await playChordVoicing({
+        leftHand: voicing.leftHand,
+        rightHand: voicing.rightHand,
+        tempoBpm: 72,
+        playbackStyle: 'block',
+        instrument: 'piano',
+        duration: '2n',
+      });
+    } finally {
+      setTimeout(() => {
+        playingRef.current = false;
+      }, 1000);
+    }
   };
 
   return (
     <Stack spacing={3}>
-      {/* Intro text */}
+      {/* Intro */}
       <Stack spacing={1.5}>
-        {INTRO_PARAGRAPHS.map((p, i) => (
-          <Typography key={i} variant="body2" color="text.secondary">
-            {p}
-          </Typography>
-        ))}
+        <Typography variant="body2" color="text.secondary">
+          The Circle of Fifths arranges all 12 musical keys so that each is a perfect fifth from its
+          neighbours. Moving clockwise adds one sharp to the key signature; counter-clockwise adds
+          one flat.
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          <strong>Each colour represents a key&apos;s harmonic identity.</strong> Adjacent keys
+          share similar hues — because they share similar notes. The key directly opposite always
+          lands on the complementary colour, reflecting maximum harmonic distance (the tritone). The
+          further apart two keys sit on the colour wheel, the more surprising the transition between
+          them will sound.
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          <strong>Click any key to hear its tonic chord</strong> and explore its diatonic chords,
+          relative minor, and key signature. Closely related keys glow alongside it; the tritone
+          gets an amber border.
+        </Typography>
       </Stack>
 
       <Divider />
 
-      {/* SVG + key panel */}
+      {/* Diagram + panel */}
       <Box
         sx={{
           display: 'flex',
@@ -48,21 +98,48 @@ export default function CircleOfFifthsLesson() {
           alignItems: { xs: 'center', md: 'flex-start' },
         }}
       >
-        <Box sx={{ flexShrink: 0, width: { xs: '100%', md: '55%' }, maxWidth: 380 }}>
+        {/* SVG column */}
+        <Box sx={{ flexShrink: 0, width: { xs: '100%', md: '52%' }, maxWidth: 400 }}>
           <CircleOfFifthsSvg
             selectedSemitone={selectedKey?.semitone ?? null}
-            highlightedSemitones={highlightedSemitones}
             onKeySelect={handleKeySelect}
           />
-          <Typography
-            variant="caption"
-            color="text.disabled"
-            sx={{ display: 'block', textAlign: 'center', mt: 1 }}
-          >
-            Click a key to explore it. Highlighted segments are closely related keys.
-          </Typography>
+
+          {/* Colour legend */}
+          <Stack spacing={1} sx={{ mt: 2 }}>
+            {COLOR_LEGEND.map((item) => (
+              <Stack key={item.label} direction="row" spacing={1.5} alignItems="flex-start">
+                <Box
+                  sx={{
+                    flexShrink: 0,
+                    width: 28,
+                    height: 18,
+                    borderRadius: '3px',
+                    background: item.swatch,
+                    border: item.border
+                      ? `2px solid ${item.border}`
+                      : '1px solid rgba(255,255,255,0.12)',
+                    mt: '2px',
+                  }}
+                />
+                <Box>
+                  <Typography
+                    variant="caption"
+                    fontWeight={600}
+                    sx={{ display: 'block', lineHeight: 1.3 }}
+                  >
+                    {item.label}
+                  </Typography>
+                  <Typography variant="caption" color="text.disabled" sx={{ lineHeight: 1.3 }}>
+                    {item.description}
+                  </Typography>
+                </Box>
+              </Stack>
+            ))}
+          </Stack>
         </Box>
 
+        {/* Key panel column */}
         <Box sx={{ flex: 1, width: '100%' }}>
           {selectedKey ? (
             <CircleOfFifthsKeyPanel selectedKey={selectedKey} />
@@ -70,9 +147,12 @@ export default function CircleOfFifthsLesson() {
             <Box
               sx={{
                 height: '100%',
+                minHeight: 160,
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
+                gap: 1,
                 py: 4,
                 border: 1,
                 borderColor: 'divider',
@@ -80,27 +160,31 @@ export default function CircleOfFifthsLesson() {
                 borderStyle: 'dashed',
               }}
             >
-              <Typography variant="body2" color="text.disabled">
-                Select a key to see its chords and key signature
+              <Typography variant="body2" color="text.disabled" textAlign="center">
+                Click any key on the circle
+              </Typography>
+              <Typography variant="caption" color="text.disabled" textAlign="center">
+                Hear its tonic chord and explore its diatonic chords
               </Typography>
             </Box>
           )}
         </Box>
       </Box>
 
-      {/* How to use section */}
+      {/* Songwriting tips */}
       <Divider />
       <Box>
         <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-          How to use the Circle of Fifths for songwriting
+          Using the Circle of Fifths for songwriting
         </Typography>
         <Stack spacing={1} component="ul" sx={{ pl: 2, mt: 0 }}>
           {[
-            'Keys next to each other on the circle make smooth modulations — move one step clockwise or counter-clockwise to shift the mood while keeping it familiar.',
+            'Adjacent keys (one step clockwise or counter-clockwise) make seamless key changes — their similar colours signal their harmonic closeness.',
             'The V chord of any key is the key one step clockwise. This is why G7 resolves so naturally to C.',
-            'Minor keys sit in the inner ring, directly inside their relative major. A minor and C major share all seven notes.',
-            'Opposite keys (e.g. C and F#) are maximally distant — use them for dramatic key changes or unexpected colour.',
-            'Try the I–IV–V–vi of any key in the generator by clicking a key and pressing "Try in Generator".',
+            'Moving counter-clockwise gives you the IV chord — the other essential cadential chord.',
+            'The tritone (amber border) is the most harmonically tense point. Use a tritone substitution to create surprising but satisfying progressions.',
+            'Minor keys sit in the middle ring, inside their relative major. A minor and C major are the same key signature — same colour, same notes.',
+            'Long-range modulations (e.g. C → Ab, three steps counter-clockwise) create dramatic mood shifts. The further apart on the wheel, the bigger the surprise.',
           ].map((tip, i) => (
             <Typography key={i} component="li" variant="body2" color="text.secondary">
               {tip}
