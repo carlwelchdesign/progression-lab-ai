@@ -33,6 +33,7 @@ import PlanManagerPanel from '../components/admin/PlanManagerPanel';
 import PromoCodesPanel from '../components/admin/PromoCodesPanel';
 import PromptBuilderPanel from '../components/admin/PromptBuilderPanel';
 import TierConfigTable from '../components/admin/TierConfigTable';
+import PromoCodeSettingsPanel from '../components/admin/PromoCodeSettingsPanel';
 import UsersTable from '../components/admin/UsersTable';
 import useAdminDashboard from '../components/admin/useAdminDashboard';
 
@@ -46,7 +47,8 @@ type AdminTabValue =
   | 'promo-codes'
   | 'boardroom'
   | 'analytics'
-  | 'audit-log';
+  | 'audit-log'
+  | 'settings';
 
 type AdminTab = {
   value: AdminTabValue;
@@ -71,6 +73,7 @@ const ADMIN_TABS: AdminTab[] = [
   { value: 'boardroom', label: 'AI Boardroom', adminOnly: true },
   { value: 'analytics', label: 'Analytics' },
   { value: 'audit-log', label: 'Audit Log' },
+  { value: 'settings', label: 'Settings', adminOnly: true },
 ];
 
 export default function AdminDashboardClient() {
@@ -328,6 +331,8 @@ export default function AdminDashboardClient() {
         )}
 
         {activeTab === 'audit-log' && <AdminAuditLogTable />}
+
+        {activeTab === 'settings' && <PromoCodeSettingsPanel />}
 
         <ProgressionDetailsDialog
           open={detailsOpen}
