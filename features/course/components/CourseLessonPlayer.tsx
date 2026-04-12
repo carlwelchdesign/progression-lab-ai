@@ -70,7 +70,11 @@ function StepView({
           Correct — move to the next step.
         </Alert>
       ) : (
-        <ChordMatchExercise chord={exercise.chord} onSuccess={onExerciseSuccess} />
+        <ChordMatchExercise
+          chord={exercise.chord}
+          targetNotes={exercise.targetNotes}
+          onSuccess={onExerciseSuccess}
+        />
       )}
     </Stack>
   );

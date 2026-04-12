@@ -21,15 +21,29 @@ import { normalizeNote } from './MidiInteractivePiano';
 
 type Props = {
   chord: string;
+  /** Override the notes to match instead of deriving from chord voicing */
+  targetNotes?: string[];
   /** Called once after the user successfully plays the chord */
   onSuccess?: () => void;
 };
 
-const SUCCESS_DELAY_MS = 900;
-
-export default function ChordMatchExercise({ chord, onSuccess }: Props) {
+export default function ChordMatchExercise({
+  chord,
+  targetNotes: targetNotesProp,
+  onSuccess,
+}: Props) {
   const voicing = useMemo(() => createPianoVoicingFromChordSymbol(chord), [chord]);
-  const [transposeSemitones, setTransposeSemitones] = useState(0);
+  const [transposeSemitones, setTransposeSemitones] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    const saved = window.localStorage.getItem('midi-transpose-semitones');
+    return saved !== null ? Number(saved) : 0;
+  });
+
+  // Persist transpose preference
+  const handleTransposeChange = (value: number) => {
+    setTransposeSemitones(value);
+    window.localStorage.setItem('midi-transpose-semitones', String(value));
+  };
   const { pressedNotes, lastNote, lastNoteNumber, status } = useMidiInput({ transposeSemitones });
   const [isPlaying, setIsPlaying] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
@@ -41,10 +55,15 @@ export default function ChordMatchExercise({ chord, onSuccess }: Props) {
     successFiredRef.current = false;
   }, [chord]);
 
-  // Normalized target notes (right-hand voicing only, covers chord tones)
+  // Normalized target notes — use prop override when provided, otherwise derive from voicing
   const targetNotes = useMemo(
-    () => (voicing ? voicing.rightHand.map(normalizeNote) : []),
-    [voicing],
+    () =>
+      targetNotesProp
+        ? targetNotesProp.map(normalizeNote)
+        : voicing
+          ? voicing.rightHand.map(normalizeNote)
+          : [],
+    [targetNotesProp, voicing],
   );
 
   // Check if every target note is being held
@@ -54,17 +73,15 @@ export default function ChordMatchExercise({ chord, onSuccess }: Props) {
     return targetNotes.every((n) => normalizedPressed.has(n));
   }, [targetNotes, pressedNotes]);
 
-  // Trigger success once
+  // Trigger success once — call onSuccess immediately so releasing the key before
+  // a delay doesn't prevent the Next button from enabling.
   useEffect(() => {
-    if (isMatch && !succeeded && !successFiredRef.current) {
+    if (isMatch && !successFiredRef.current) {
       successFiredRef.current = true;
       setSucceeded(true);
-      const timer = setTimeout(() => {
-        onSuccess?.();
-      }, SUCCESS_DELAY_MS);
-      return () => clearTimeout(timer);
+      onSuccess?.();
     }
-  }, [isMatch, succeeded, onSuccess]);
+  }, [isMatch, onSuccess]);
 
   const handlePlay = async () => {
     if (!voicing || isPlaying) return;
@@ -113,7 +130,7 @@ export default function ChordMatchExercise({ chord, onSuccess }: Props) {
           lastNote={lastNote}
           lastNoteNumber={lastNoteNumber}
           transposeSemitones={transposeSemitones}
-          onTransposeChange={setTransposeSemitones}
+          onTransposeChange={handleTransposeChange}
         />
       </Box>
 

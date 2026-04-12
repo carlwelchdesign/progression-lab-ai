@@ -36,6 +36,22 @@ export function useLessonProgress() {
 
   const postProgress = useCallback(
     async (lessonId: string, completed: boolean, metadata?: Record<string, unknown>) => {
+      // Optimistic update so the UI reflects completion immediately
+      setProgressMap((prev) => {
+        const existing = prev.get(lessonId);
+        const optimistic: LessonProgressRow = {
+          id: existing?.id ?? '',
+          lessonId,
+          completed: completed || (existing?.completed ?? false),
+          completedAt: completed
+            ? (existing?.completedAt ?? new Date().toISOString())
+            : (existing?.completedAt ?? null),
+          attempts: (existing?.attempts ?? 0) + 1,
+          metadata: metadata ?? existing?.metadata ?? null,
+        };
+        return new Map(prev).set(lessonId, optimistic);
+      });
+
       try {
         await ensureCsrfCookie();
         const res = await fetch('/api/lessons/progress', {

@@ -5,6 +5,8 @@ export type CourseExercise = {
   prompt: string; // "Play this chord"
   chord: string; // chord symbol passed to ChordMatchExercise
   hint?: string;
+  /** Override the notes to match. Use for single-note exercises where chord voicing would require too many notes. */
+  targetNotes?: string[];
 };
 
 export type CourseLessonStep =
@@ -57,6 +59,7 @@ export const COURSE_UNITS: CourseUnit[] = [
               prompt: 'Play middle C',
               chord: 'C',
               hint: 'Just the single note C4 — the white key left of the two black keys in the middle of your keyboard.',
+              targetNotes: ['C4'],
             },
           },
           {
@@ -66,6 +69,7 @@ export const COURSE_UNITS: CourseUnit[] = [
               prompt: 'Now play G',
               chord: 'G',
               hint: 'G is 5 white keys to the right of C, or just left of the group of 3 black keys.',
+              targetNotes: ['G4'],
             },
           },
         ],
@@ -90,8 +94,9 @@ export const COURSE_UNITS: CourseUnit[] = [
             exercise: {
               id: 'ex-c5',
               prompt: 'Play C one octave above middle C',
-              chord: 'C5',
+              chord: 'C',
               hint: 'Count up 8 white keys from C4, or find the next C above middle C.',
+              targetNotes: ['C5'],
             },
           },
         ],
