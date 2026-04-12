@@ -6,9 +6,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
 
-function midiNoteToName(noteNumber: number): string {
-  const octave = Math.floor(noteNumber / 12) - 1; // MIDI 60 = C4
-  const name = NOTE_NAMES[noteNumber % 12];
+export function midiNoteToName(noteNumber: number, transposeOctaves = 0): string {
+  // Standard MIDI: note 60 = C4 (middle C)
+  const shifted = noteNumber + transposeOctaves * 12;
+  const octave = Math.floor(shifted / 12) - 1;
+  const name = NOTE_NAMES[((shifted % 12) + 12) % 12];
   return `${name}${octave}`;
 }
 
@@ -19,19 +21,31 @@ export type MidiStatus = 'unsupported' | 'pending' | 'connected' | 'no-device';
 export type UseMidiInputResult = {
   /** Notes currently held down, in piano-chart format e.g. "C4", "F#3" */
   pressedNotes: Set<string>;
+  /** Last individual note received (note-on), for diagnostics */
+  lastNote: string | null;
   status: MidiStatus;
 };
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
-export function useMidiInput(): UseMidiInputResult {
+type Options = {
+  /**
+   * Shift every incoming MIDI note by N octaves.
+   * Use +1 if your keyboard labels middle C as C3 and you want C4 shown.
+   * Use -1 if your keyboard labels middle C as C5.
+   */
+  transposeOctaves?: number;
+};
+
+export function useMidiInput({ transposeOctaves = 0 }: Options = {}): UseMidiInputResult {
   const [pressedNotes, setPressedNotes] = useState<Set<string>>(new Set());
+  const [lastNote, setLastNote] = useState<string | null>(null);
   const [status, setStatus] = useState<MidiStatus>('pending');
 
-  // Keep stable ref to the MIDI access object so we can clean up listeners
+  // Keep stable ref to the MIDI access object for cleanup
   const midiAccessRef = useRef<MIDIAccess | null>(null);
-  // Map from input id → handler function, so we can remove them precisely
-  const handlersRef = useRef<Map<string, (e: MIDIMessageEvent) => void>>(new Map());
+  const transposeRef = useRef(transposeOctaves);
+  transposeRef.current = transposeOctaves;
 
   const handleMessage = useCallback((event: MIDIMessageEvent) => {
     const data = event.data;
@@ -46,7 +60,11 @@ export function useMidiInput(): UseMidiInputResult {
 
     if (!isNoteOn && !isNoteOff) return;
 
-    const noteName = midiNoteToName(noteNumber);
+    const noteName = midiNoteToName(noteNumber, transposeRef.current);
+
+    if (isNoteOn) {
+      setLastNote(noteName);
+    }
 
     setPressedNotes((prev) => {
       const next = new Set(prev);
@@ -61,12 +79,10 @@ export function useMidiInput(): UseMidiInputResult {
 
   const attachInputs = useCallback(
     (access: MIDIAccess) => {
-      // Remove old handlers first
-      handlersRef.current.forEach((handler, id) => {
-        const input = access.inputs.get(id);
-        if (input) input.removeEventListener('midimessage', handler as EventListener);
+      // Detach all existing onmidimessage handlers
+      access.inputs.forEach((input) => {
+        input.onmidimessage = null;
       });
-      handlersRef.current.clear();
 
       if (access.inputs.size === 0) {
         setStatus('no-device');
@@ -76,9 +92,7 @@ export function useMidiInput(): UseMidiInputResult {
       setStatus('connected');
 
       access.inputs.forEach((input) => {
-        const handler = (e: MIDIMessageEvent) => handleMessage(e);
-        handlersRef.current.set(input.id, handler);
-        input.addEventListener('midimessage', handler as EventListener);
+        input.onmidimessage = handleMessage;
       });
     },
     [handleMessage],
@@ -100,7 +114,6 @@ export function useMidiInput(): UseMidiInputResult {
 
         access.onstatechange = () => {
           if (cancelled) return;
-          // Clear any notes that were held when a device disconnected
           setPressedNotes(new Set());
           attachInputs(access);
         };
@@ -112,20 +125,16 @@ export function useMidiInput(): UseMidiInputResult {
 
     return () => {
       cancelled = true;
-
       const access = midiAccessRef.current;
       if (access) {
-        handlersRef.current.forEach((handler, id) => {
-          const input = access.inputs.get(id);
-          if (input) input.removeEventListener('midimessage', handler as EventListener);
+        access.inputs.forEach((input) => {
+          input.onmidimessage = null;
         });
         access.onstatechange = null;
       }
-
-      handlersRef.current.clear();
       midiAccessRef.current = null;
     };
   }, [attachInputs]);
 
-  return { pressedNotes, status };
+  return { pressedNotes, lastNote, status };
 }

@@ -29,7 +29,8 @@ const SUCCESS_DELAY_MS = 900;
 
 export default function ChordMatchExercise({ chord, onSuccess }: Props) {
   const voicing = useMemo(() => createPianoVoicingFromChordSymbol(chord), [chord]);
-  const { pressedNotes, status } = useMidiInput();
+  const [transposeOctaves, setTransposeOctaves] = useState(0);
+  const { pressedNotes, lastNote, status } = useMidiInput({ transposeOctaves });
   const [isPlaying, setIsPlaying] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const successFiredRef = useRef(false);
@@ -105,9 +106,14 @@ export default function ChordMatchExercise({ chord, onSuccess }: Props) {
       {/* Piano with target highlights + live MIDI input */}
       <MidiInteractivePiano targetNotes={targetNotes} pressedNotes={pressedNotes} />
 
-      {/* MIDI status */}
+      {/* MIDI status + octave transpose control */}
       <Box>
-        <MidiStatusBadge status={status} />
+        <MidiStatusBadge
+          status={status}
+          lastNote={lastNote}
+          transposeOctaves={transposeOctaves}
+          onTransposeChange={setTransposeOctaves}
+        />
       </Box>
 
       {/* Success feedback */}
