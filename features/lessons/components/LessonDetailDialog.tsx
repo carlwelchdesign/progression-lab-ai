@@ -1,13 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Box,
+  Button,
   Chip,
   Dialog,
   DialogContent,
   DialogTitle,
   Divider,
   IconButton,
+  LinearProgress,
   Stack,
   Typography,
   useMediaQuery,
@@ -15,10 +18,12 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import type { Lesson, SkillLevel } from '../types';
 import TryInGeneratorButton from './TryInGeneratorButton';
 import PlayableChordCard from './PlayableChordCard';
 import CircleOfFifthsLesson from './CircleOfFifthsLesson';
+import ChordMatchExercise from './ChordMatchExercise';
 
 const SKILL_CHIP_COLOR: Record<SkillLevel, 'success' | 'warning' | 'error'> = {
   beginner: 'success',
@@ -30,6 +35,74 @@ type Props = {
   lesson: Lesson | null;
   onClose: () => void;
 };
+
+// ── Practice section ─────────────────────────────────────────────────────────
+
+function PracticeSection({ chords }: { chords: string[] }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [allDone, setAllDone] = useState(false);
+
+  const handleSuccess = () => {
+    if (currentIndex < chords.length - 1) {
+      setCurrentIndex((i) => i + 1);
+    } else {
+      setAllDone(true);
+    }
+  };
+
+  const handleRestart = () => {
+    setCurrentIndex(0);
+    setAllDone(false);
+  };
+
+  return (
+    <Box>
+      <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+        Practice with MIDI
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Connect a MIDI keyboard and play each chord. The diagram shows the target notes — your
+        keypresses light up alongside them.
+      </Typography>
+
+      {/* Progress bar */}
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+        <LinearProgress
+          variant="determinate"
+          value={allDone ? 100 : (currentIndex / chords.length) * 100}
+          sx={{ flex: 1, borderRadius: 1 }}
+        />
+        <Typography variant="caption" color="text.disabled" sx={{ whiteSpace: 'nowrap' }}>
+          {allDone ? chords.length : currentIndex} / {chords.length}
+        </Typography>
+      </Stack>
+
+      {allDone ? (
+        <Stack spacing={1.5} alignItems="flex-start">
+          <Typography variant="body2" color="success.main" fontWeight={600}>
+            All chords complete — great work!
+          </Typography>
+          <Button
+            size="small"
+            startIcon={<RestartAltIcon />}
+            onClick={handleRestart}
+            variant="outlined"
+          >
+            Practice again
+          </Button>
+        </Stack>
+      ) : (
+        <ChordMatchExercise
+          key={chords[currentIndex]}
+          chord={chords[currentIndex]}
+          onSuccess={handleSuccess}
+        />
+      )}
+    </Box>
+  );
+}
+
+// ── Text lesson ───────────────────────────────────────────────────────────────
 
 function TextLessonContent({ lesson }: { lesson: Lesson }) {
   const { content } = lesson;
@@ -110,6 +183,9 @@ function TextLessonContent({ lesson }: { lesson: Lesson }) {
             </Box>
             <TryInGeneratorButton chords={content.relatedChords} />
           </Box>
+
+          <Divider />
+          <PracticeSection chords={content.relatedChords} />
         </>
       ) : null}
     </Stack>
