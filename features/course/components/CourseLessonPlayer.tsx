@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Alert, Box, Button, Divider, LinearProgress, Stack, Typography } from '@mui/material';
+import { Box, Button, Divider, LinearProgress, Stack, Typography } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import KeyboardIcon from '@mui/icons-material/Keyboard';
 import type { CourseLesson, CourseLessonStep } from '../data/courseContent';
 import ChordMatchExercise from '../../lessons/components/ChordMatchExercise';
 
@@ -13,11 +14,9 @@ import ChordMatchExercise from '../../lessons/components/ChordMatchExercise';
 function StepView({
   step,
   onExerciseSuccess,
-  exerciseDone,
 }: {
   step: CourseLessonStep;
   onExerciseSuccess: () => void;
-  exerciseDone: boolean;
 }) {
   if (step.type === 'text') {
     return (
@@ -57,25 +56,29 @@ function StepView({
         {exercise.prompt}
       </Typography>
       {exercise.hint ? (
-        <Typography variant="body2" color="text.secondary">
-          {exercise.hint}
-        </Typography>
-      ) : null}
-      {exerciseDone ? (
-        <Alert
-          icon={<CheckCircleOutlineIcon fontSize="inherit" />}
-          severity="success"
-          sx={{ py: 0.5 }}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 1,
+            p: 1.25,
+            borderRadius: 1,
+            bgcolor: 'action.hover',
+            border: '1px solid',
+            borderColor: 'warning.main',
+          }}
         >
-          Correct — move to the next step.
-        </Alert>
-      ) : (
-        <ChordMatchExercise
-          chord={exercise.chord}
-          targetNotes={exercise.targetNotes}
-          onSuccess={onExerciseSuccess}
-        />
-      )}
+          <KeyboardIcon sx={{ fontSize: 15, color: 'warning.main', mt: 0.2, flexShrink: 0 }} />
+          <Typography variant="caption" color="text.secondary">
+            {exercise.hint}
+          </Typography>
+        </Box>
+      ) : null}
+      <ChordMatchExercise
+        chord={exercise.chord}
+        targetNotes={exercise.targetNotes}
+        onSuccess={onExerciseSuccess}
+      />
     </Stack>
   );
 }
@@ -101,6 +104,14 @@ export default function CourseLessonPlayer({ lesson, onComplete, onBack }: Props
 
   const handleExerciseSuccess = () => {
     setExerciseDoneSteps((prev) => new Set(prev).add(stepIndex));
+    const isLastStep = stepIndex === lesson.steps.length - 1;
+    setTimeout(() => {
+      if (isLastStep) {
+        onComplete();
+      } else {
+        setStepIndex((i) => i + 1);
+      }
+    }, 1200);
   };
 
   const handleNext = () => {
@@ -138,11 +149,7 @@ export default function CourseLessonPlayer({ lesson, onComplete, onBack }: Props
       <Divider />
 
       {/* Current step */}
-      <StepView
-        step={step}
-        onExerciseSuccess={handleExerciseSuccess}
-        exerciseDone={exerciseDoneSteps.has(stepIndex)}
-      />
+      <StepView step={step} onExerciseSuccess={handleExerciseSuccess} />
 
       {/* Navigation */}
       <Stack direction="row" justifyContent="flex-end" spacing={1}>

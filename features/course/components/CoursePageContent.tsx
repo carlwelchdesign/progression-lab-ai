@@ -140,13 +140,17 @@ function UnitCard({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+const ALL_LESSONS: CourseLesson[] = COURSE_UNITS.flatMap((u) => u.lessons);
+
 export default function CoursePageContent() {
   const [activeLesson, setActiveLesson] = useState<CourseLesson | null>(null);
   const { isCompleted, markComplete } = useLessonProgress();
 
   const handleLessonComplete = (lesson: CourseLesson) => {
     void markComplete(lesson.id);
-    setActiveLesson(null);
+    const idx = ALL_LESSONS.findIndex((l) => l.id === lesson.id);
+    const next = idx >= 0 ? ALL_LESSONS[idx + 1] : undefined;
+    setActiveLesson(next ?? null);
   };
 
   if (activeLesson) {

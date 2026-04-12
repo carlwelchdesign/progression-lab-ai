@@ -141,7 +141,7 @@ export default function ChordMatchExercise({
           severity="success"
           sx={{ py: 0.5 }}
         >
-          Correct! Well played.
+          Correct! Moving on…
         </Alert>
       </Collapse>
 
