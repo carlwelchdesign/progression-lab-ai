@@ -157,6 +157,7 @@ export default function CoursePageContent() {
     return (
       <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 } }}>
         <CourseLessonPlayer
+          key={activeLesson.id}
           lesson={activeLesson}
           onComplete={() => handleLessonComplete(activeLesson)}
           onBack={() => setActiveLesson(null)}
