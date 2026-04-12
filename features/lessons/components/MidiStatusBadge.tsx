@@ -9,6 +9,7 @@ import type { MidiStatus } from '../hooks/useMidiInput';
 type Props = {
   status: MidiStatus;
   lastNote?: string | null;
+  lastNoteNumber?: number | null;
   transposeSemitones?: number;
   onTransposeChange?: (value: number) => void;
 };
@@ -26,6 +27,7 @@ const STATUS_CONFIG: Record<
 export default function MidiStatusBadge({
   status,
   lastNote,
+  lastNoteNumber,
   transposeSemitones = 0,
   onTransposeChange,
 }: Props) {
@@ -52,6 +54,14 @@ export default function MidiStatusBadge({
             >
               {lastNote ?? '—'}
             </Box>
+            {lastNoteNumber != null && (
+              <Box
+                component="span"
+                sx={{ fontFamily: 'monospace', color: 'text.disabled', ml: 0.5 }}
+              >
+                (MIDI {lastNoteNumber})
+              </Box>
+            )}
           </Typography>
 
           {/* Semitone transpose */}

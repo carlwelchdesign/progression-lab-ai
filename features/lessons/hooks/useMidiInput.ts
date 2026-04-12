@@ -23,6 +23,8 @@ export type UseMidiInputResult = {
   pressedNotes: Set<string>;
   /** Last individual note received (note-on), for diagnostics */
   lastNote: string | null;
+  /** Raw MIDI note number of the last note-on, for diagnostics (e.g. 60 = standard middle C) */
+  lastNoteNumber: number | null;
   status: MidiStatus;
 };
 
@@ -40,6 +42,7 @@ type Options = {
 export function useMidiInput({ transposeSemitones = 0 }: Options = {}): UseMidiInputResult {
   const [pressedNotes, setPressedNotes] = useState<Set<string>>(new Set());
   const [lastNote, setLastNote] = useState<string | null>(null);
+  const [lastNoteNumber, setLastNoteNumber] = useState<number | null>(null);
   const [status, setStatus] = useState<MidiStatus>('pending');
 
   // Keep stable ref to the MIDI access object for cleanup
@@ -64,6 +67,7 @@ export function useMidiInput({ transposeSemitones = 0 }: Options = {}): UseMidiI
 
     if (isNoteOn) {
       setLastNote(noteName);
+      setLastNoteNumber(noteNumber);
     }
 
     setPressedNotes((prev) => {
@@ -136,5 +140,5 @@ export function useMidiInput({ transposeSemitones = 0 }: Options = {}): UseMidiI
     };
   }, [attachInputs]);
 
-  return { pressedNotes, lastNote, status };
+  return { pressedNotes, lastNote, lastNoteNumber, status };
 }

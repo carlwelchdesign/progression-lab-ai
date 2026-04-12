@@ -30,7 +30,7 @@ const SUCCESS_DELAY_MS = 900;
 export default function ChordMatchExercise({ chord, onSuccess }: Props) {
   const voicing = useMemo(() => createPianoVoicingFromChordSymbol(chord), [chord]);
   const [transposeSemitones, setTransposeSemitones] = useState(0);
-  const { pressedNotes, lastNote, status } = useMidiInput({ transposeSemitones });
+  const { pressedNotes, lastNote, lastNoteNumber, status } = useMidiInput({ transposeSemitones });
   const [isPlaying, setIsPlaying] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const successFiredRef = useRef(false);
@@ -111,6 +111,7 @@ export default function ChordMatchExercise({ chord, onSuccess }: Props) {
         <MidiStatusBadge
           status={status}
           lastNote={lastNote}
+          lastNoteNumber={lastNoteNumber}
           transposeSemitones={transposeSemitones}
           onTransposeChange={setTransposeSemitones}
         />
