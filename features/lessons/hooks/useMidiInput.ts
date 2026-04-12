@@ -6,9 +6,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
 
-export function midiNoteToName(noteNumber: number, transposeOctaves = 0): string {
+export function midiNoteToName(noteNumber: number, transposeSemitones = 0): string {
   // Standard MIDI: note 60 = C4 (middle C)
-  const shifted = noteNumber + transposeOctaves * 12;
+  const shifted = noteNumber + transposeSemitones;
   const octave = Math.floor(shifted / 12) - 1;
   const name = NOTE_NAMES[((shifted % 12) + 12) % 12];
   return `${name}${octave}`;
@@ -30,22 +30,22 @@ export type UseMidiInputResult = {
 
 type Options = {
   /**
-   * Shift every incoming MIDI note by N octaves.
-   * Use +1 if your keyboard labels middle C as C3 and you want C4 shown.
-   * Use -1 if your keyboard labels middle C as C5.
+   * Shift every incoming MIDI note by N semitones.
+   * Use +2 if pressing C shows A# (keyboard is transposed −2 semitones).
+   * Use −2 if pressing C shows D.
    */
-  transposeOctaves?: number;
+  transposeSemitones?: number;
 };
 
-export function useMidiInput({ transposeOctaves = 0 }: Options = {}): UseMidiInputResult {
+export function useMidiInput({ transposeSemitones = 0 }: Options = {}): UseMidiInputResult {
   const [pressedNotes, setPressedNotes] = useState<Set<string>>(new Set());
   const [lastNote, setLastNote] = useState<string | null>(null);
   const [status, setStatus] = useState<MidiStatus>('pending');
 
   // Keep stable ref to the MIDI access object for cleanup
   const midiAccessRef = useRef<MIDIAccess | null>(null);
-  const transposeRef = useRef(transposeOctaves);
-  transposeRef.current = transposeOctaves;
+  const transposeRef = useRef(transposeSemitones);
+  transposeRef.current = transposeSemitones;
 
   const handleMessage = useCallback((event: MIDIMessageEvent) => {
     const data = event.data;

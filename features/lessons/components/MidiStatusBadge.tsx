@@ -9,7 +9,7 @@ import type { MidiStatus } from '../hooks/useMidiInput';
 type Props = {
   status: MidiStatus;
   lastNote?: string | null;
-  transposeOctaves?: number;
+  transposeSemitones?: number;
   onTransposeChange?: (value: number) => void;
 };
 
@@ -26,7 +26,7 @@ const STATUS_CONFIG: Record<
 export default function MidiStatusBadge({
   status,
   lastNote,
-  transposeOctaves = 0,
+  transposeSemitones = 0,
   onTransposeChange,
 }: Props) {
   const { label, color, icon } = STATUS_CONFIG[status];
@@ -43,60 +43,62 @@ export default function MidiStatusBadge({
 
       {status === 'connected' && (
         <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
-          {/* Last note diagnostic */}
-          {lastNote ? (
-            <Typography variant="caption" color="text.disabled">
-              Last note:{' '}
-              <Box component="span" sx={{ fontFamily: 'monospace', color: 'text.primary' }}>
-                {lastNote}
-              </Box>
-            </Typography>
-          ) : (
-            <Typography variant="caption" color="text.disabled">
-              Press a key to test mapping
-            </Typography>
-          )}
+          {/* Last note received — diagnostic */}
+          <Typography variant="caption" color="text.disabled">
+            Last note:{' '}
+            <Box
+              component="span"
+              sx={{ fontFamily: 'monospace', color: lastNote ? 'text.primary' : 'text.disabled' }}
+            >
+              {lastNote ?? '—'}
+            </Box>
+          </Typography>
 
-          {/* Octave transpose */}
+          {/* Semitone transpose */}
           {onTransposeChange && (
             <Stack direction="row" alignItems="center" spacing={0.5}>
-              <Tooltip title="Shift MIDI notes down one octave">
+              <Tooltip title="Shift notes down 1 semitone">
                 <IconButton
                   size="small"
-                  onClick={() => onTransposeChange(transposeOctaves - 1)}
-                  disabled={transposeOctaves <= -3}
+                  onClick={() => onTransposeChange(transposeSemitones - 1)}
+                  disabled={transposeSemitones <= -12}
                   sx={{ width: 22, height: 22 }}
                 >
                   <RemoveIcon sx={{ fontSize: 14 }} />
                 </IconButton>
               </Tooltip>
-              <Typography
-                variant="caption"
-                sx={{ minWidth: 48, textAlign: 'center', fontFamily: 'monospace' }}
+              <Tooltip
+                title={
+                  transposeSemitones === 0
+                    ? 'No transpose'
+                    : `${transposeSemitones > 0 ? '+' : ''}${transposeSemitones} semitones`
+                }
               >
-                Oct {transposeOctaves >= 0 ? '+' : ''}
-                {transposeOctaves}
-              </Typography>
-              <Tooltip title="Shift MIDI notes up one octave">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    minWidth: 36,
+                    textAlign: 'center',
+                    fontFamily: 'monospace',
+                    cursor: transposeSemitones !== 0 ? 'pointer' : 'default',
+                    color: transposeSemitones !== 0 ? 'warning.main' : 'text.disabled',
+                  }}
+                  onClick={() => transposeSemitones !== 0 && onTransposeChange(0)}
+                >
+                  {transposeSemitones >= 0 ? '+' : ''}
+                  {transposeSemitones}st
+                </Typography>
+              </Tooltip>
+              <Tooltip title="Shift notes up 1 semitone">
                 <IconButton
                   size="small"
-                  onClick={() => onTransposeChange(transposeOctaves + 1)}
-                  disabled={transposeOctaves >= 3}
+                  onClick={() => onTransposeChange(transposeSemitones + 1)}
+                  disabled={transposeSemitones >= 12}
                   sx={{ width: 22, height: 22 }}
                 >
                   <AddIcon sx={{ fontSize: 14 }} />
                 </IconButton>
               </Tooltip>
-              {transposeOctaves !== 0 && (
-                <Typography
-                  variant="caption"
-                  color="text.disabled"
-                  sx={{ cursor: 'pointer', textDecoration: 'underline' }}
-                  onClick={() => onTransposeChange(0)}
-                >
-                  reset
-                </Typography>
-              )}
             </Stack>
           )}
         </Stack>
