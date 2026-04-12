@@ -35,6 +35,17 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+// Mock useLessonProgress (uses fetch, which isn't available in jsdom)
+jest.mock('../../hooks/useLessonProgress', () => ({
+  useLessonProgress: () => ({
+    progressMap: new Map(),
+    loading: false,
+    isCompleted: () => false,
+    markComplete: jest.fn().mockResolvedValue(undefined),
+    recordAttempt: jest.fn().mockResolvedValue(undefined),
+  }),
+}));
+
 // i18next mock
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({

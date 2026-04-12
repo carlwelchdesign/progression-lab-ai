@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { Box, Container, Stack, Typography } from '@mui/material';
 import { LESSONS_BY_SKILL } from '../data/lessonContent';
 import type { Lesson, SkillLevel } from '../types';
+import { useLessonProgress } from '../hooks/useLessonProgress';
 import LessonSkillTabs from './LessonSkillTabs';
 import LessonDetailDialog from './LessonDetailDialog';
 
 export default function LessonsPageContent() {
   const [activeSkill, setActiveSkill] = useState<SkillLevel>('beginner');
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const { isCompleted, markComplete } = useLessonProgress();
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
@@ -29,10 +31,15 @@ export default function LessonsPageContent() {
           lessonsBySkill={LESSONS_BY_SKILL}
           onSkillChange={setActiveSkill}
           onLessonClick={setSelectedLesson}
+          isCompleted={isCompleted}
         />
       </Stack>
 
-      <LessonDetailDialog lesson={selectedLesson} onClose={() => setSelectedLesson(null)} />
+      <LessonDetailDialog
+        lesson={selectedLesson}
+        onClose={() => setSelectedLesson(null)}
+        onComplete={(lessonId) => void markComplete(lessonId)}
+      />
     </Container>
   );
 }

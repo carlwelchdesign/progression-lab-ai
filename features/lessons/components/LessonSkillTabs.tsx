@@ -15,6 +15,7 @@ type Props = {
   lessonsBySkill: Record<SkillLevel, Lesson[]>;
   onSkillChange: (skill: SkillLevel) => void;
   onLessonClick: (lesson: Lesson) => void;
+  isCompleted: (lessonId: string) => boolean;
 };
 
 export default function LessonSkillTabs({
@@ -22,6 +23,7 @@ export default function LessonSkillTabs({
   lessonsBySkill,
   onSkillChange,
   onLessonClick,
+  isCompleted,
 }: Props) {
   const lessons = lessonsBySkill[activeSkill];
 
@@ -43,7 +45,11 @@ export default function LessonSkillTabs({
         <Grid container spacing={2}>
           {lessons.map((lesson) => (
             <Grid key={lesson.id} size={{ xs: 12, sm: 6, md: 4 }}>
-              <LessonCard lesson={lesson} onClick={onLessonClick} />
+              <LessonCard
+                lesson={lesson}
+                onClick={onLessonClick}
+                completed={isCompleted(lesson.id)}
+              />
             </Grid>
           ))}
         </Grid>

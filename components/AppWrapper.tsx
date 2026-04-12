@@ -229,6 +229,9 @@ export default function AppWrapper({ children }: Props) {
               <Button component={Link} href="/lessons" color="inherit">
                 {t('lessons', { ns: 'nav' })}
               </Button>
+              <Button component={Link} href="/course" color="inherit">
+                {t('course', { ns: 'nav' })}
+              </Button>
               <Button component={Link} href="/pricing" color="inherit">
                 {pricingLabel}
               </Button>
@@ -295,6 +298,9 @@ export default function AppWrapper({ children }: Props) {
             ))}
             <ListItemButton component={Link} href="/lessons" onClick={() => setMobileOpen(false)}>
               <ListItemText primary={t('lessons', { ns: 'nav' })} />
+            </ListItemButton>
+            <ListItemButton component={Link} href="/course" onClick={() => setMobileOpen(false)}>
+              <ListItemText primary={t('course', { ns: 'nav' })} />
             </ListItemButton>
             <ListItemButton component={Link} href="/pricing" onClick={() => setMobileOpen(false)}>
               <ListItemText primary={pricingLabel} />

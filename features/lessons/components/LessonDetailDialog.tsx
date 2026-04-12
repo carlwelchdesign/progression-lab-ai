@@ -34,11 +34,18 @@ const SKILL_CHIP_COLOR: Record<SkillLevel, 'success' | 'warning' | 'error'> = {
 type Props = {
   lesson: Lesson | null;
   onClose: () => void;
+  onComplete?: (lessonId: string) => void;
 };
 
 // ── Practice section ─────────────────────────────────────────────────────────
 
-function PracticeSection({ chords }: { chords: string[] }) {
+function PracticeSection({
+  chords,
+  onAllComplete,
+}: {
+  chords: string[];
+  onAllComplete?: () => void;
+}) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [allDone, setAllDone] = useState(false);
 
@@ -47,6 +54,7 @@ function PracticeSection({ chords }: { chords: string[] }) {
       setCurrentIndex((i) => i + 1);
     } else {
       setAllDone(true);
+      onAllComplete?.();
     }
   };
 
@@ -104,7 +112,7 @@ function PracticeSection({ chords }: { chords: string[] }) {
 
 // ── Text lesson ───────────────────────────────────────────────────────────────
 
-function TextLessonContent({ lesson }: { lesson: Lesson }) {
+function TextLessonContent({ lesson, onComplete }: { lesson: Lesson; onComplete?: () => void }) {
   const { content } = lesson;
   if (!content) return null;
 
@@ -185,14 +193,14 @@ function TextLessonContent({ lesson }: { lesson: Lesson }) {
           </Box>
 
           <Divider />
-          <PracticeSection chords={content.relatedChords} />
+          <PracticeSection chords={content.relatedChords} onAllComplete={onComplete} />
         </>
       ) : null}
     </Stack>
   );
 }
 
-export default function LessonDetailDialog({ lesson, onClose }: Props) {
+export default function LessonDetailDialog({ lesson, onClose, onComplete }: Props) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -242,7 +250,10 @@ export default function LessonDetailDialog({ lesson, onClose }: Props) {
             {lesson.component === 'cof' ? (
               <CircleOfFifthsLesson />
             ) : (
-              <TextLessonContent lesson={lesson} />
+              <TextLessonContent
+                lesson={lesson}
+                onComplete={lesson.id ? () => onComplete?.(lesson.id) : undefined}
+              />
             )}
           </DialogContent>
         </>

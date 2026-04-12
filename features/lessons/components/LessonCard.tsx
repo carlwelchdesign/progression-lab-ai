@@ -2,6 +2,7 @@
 
 import { Box, Card, CardActionArea, CardContent, Chip, Stack, Typography } from '@mui/material';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import type { Lesson, SkillLevel } from '../types';
 
 const SKILL_CHIP_COLOR: Record<SkillLevel, 'success' | 'warning' | 'error'> = {
@@ -13,11 +14,15 @@ const SKILL_CHIP_COLOR: Record<SkillLevel, 'success' | 'warning' | 'error'> = {
 type Props = {
   lesson: Lesson;
   onClick: (lesson: Lesson) => void;
+  completed?: boolean;
 };
 
-export default function LessonCard({ lesson, onClick }: Props) {
+export default function LessonCard({ lesson, onClick, completed = false }: Props) {
   return (
-    <Card variant="outlined" sx={{ height: '100%' }}>
+    <Card
+      variant="outlined"
+      sx={{ height: '100%', ...(completed && { borderColor: 'success.main', opacity: 0.9 }) }}
+    >
       <CardActionArea
         onClick={() => onClick(lesson)}
         sx={{ height: '100%', alignItems: 'flex-start' }}
@@ -36,6 +41,9 @@ export default function LessonCard({ lesson, onClick }: Props) {
                 {lesson.durationMinutes} min
               </Typography>
             </Box>
+            {completed ? (
+              <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main', ml: 'auto' }} />
+            ) : null}
           </Stack>
           <Typography variant="subtitle1" fontWeight={600}>
             {lesson.title}
