@@ -68,25 +68,27 @@ export default function MidiInteractivePiano({
     const piano = new Instrument(ref.current, {
       startOctave,
       endOctave,
-      showNoteNames: 'always',
+      showNoteNames: 'onhighlight',
       keyPressStyle: 'vivid',
       vividKeyPressColor: primaryColor,
-      // Target notes get a distinct muted highlight so live MIDI input stands out
+      // Target keys shown in bright orange so they're impossible to miss
       specialHighlightedNotes: normalizedTargets,
-      specialHighlightColor: '#9c7c38', // amber — visually distinct from primary blue keypress
+      specialHighlightColor: '#FF6B00',
     });
 
     piano.create();
 
-    // Scale the SVG to fill the container width while preserving aspect ratio
+    // Make the SVG scale to fill the container while keeping proportions.
+    // SVG needs an explicit pixel height — "auto" collapses it.
     const svg = ref.current.querySelector('svg');
     if (svg) {
-      const w = svg.getAttribute('width');
-      const h = svg.getAttribute('height');
+      const w = parseFloat(svg.getAttribute('width') ?? '0');
+      const h = parseFloat(svg.getAttribute('height') ?? '0');
       if (w && h) {
         svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
         svg.setAttribute('width', '100%');
-        svg.setAttribute('height', 'auto');
+        svg.removeAttribute('height'); // let viewBox aspect ratio drive height via CSS
+        (svg as SVGElement).style.display = 'block';
       }
     }
 
