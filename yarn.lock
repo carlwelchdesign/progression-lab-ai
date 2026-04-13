@@ -301,10 +301,8 @@
   resolved "https://registry.npmjs.org/@blazediff/core/-/core-1.9.1.tgz"
   integrity sha512-ehg3jIkYKulZh+8om/O25vkvSsXXwC+skXmyA87FFx6A/45eqOkZsBltMw/TVteb0mloiGT8oGRTcjRAz66zaA==
 
-"@carlwelchdesign/webauthn-core@^0.1.1":
+"@carlwelchdesign/webauthn-core@file:packages/webauthn-core":
   version "0.1.1"
-  resolved "https://npm.pkg.github.com/download/@carlwelchdesign/webauthn-core/0.1.1/2a05aad05670d2c435f2565d98991a4322f4a66a#2a05aad05670d2c435f2565d98991a4322f4a66a"
-  integrity sha512-MGh3cmgMCBn9sEgdd1IH33dauhrP0KAXxz/3ZqlsehKPnF+oPDFmZwybiJBxM3j0bluONw7vJGpVv9niDRGjKw==
   dependencies:
     "@simplewebauthn/server" "^13.3.0"
 

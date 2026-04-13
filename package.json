@@ -42,7 +42,7 @@
     "wiki:publish": "bash ./scripts/publish-wiki.sh"
   },
   "dependencies": {
-    "@carlwelchdesign/webauthn-core": "^0.1.1",
+    "@carlwelchdesign/webauthn-core": "file:packages/webauthn-core",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
