@@ -86,3 +86,27 @@ yarn playwright test         # Playwright e2e
 ## Stale Data Note
 
 The dev database already contains `MusicianProfile`, `GeneratedCurriculum`, and `LessonProgress` tables from the spike migration. Existing `GeneratedCurriculum` rows with `promptVersion: 1` will be treated as stale by the new code (which expects `promptVersion: 2`). No cleanup script needed — they are simply ignored and regenerated on next request.
+
+## Verification Evidence
+
+### Focused Jest validation
+```bash
+npx jest "features/musician-styles/services/__tests__/musicianRepository.test.ts" \
+	"features/musician-styles/services/__tests__/curriculumGenerationService.test.ts" \
+	"features/musician-styles/services/__tests__/profileGenerationService.test.ts" \
+	"features/musician-styles/components/__tests__/LessonFlowController.test.ts" \
+	"app/api/musician-styles/request/__tests__/route.test.ts" \
+	"app/api/musician-styles/__tests__/security.test.ts" \
+	"app/api/lessons/progress/__tests__/route.test.ts" --runInBand
+```
+
+Result: `7 passed, 7 total` test suites (`11 passed` tests).
+
+### Playwright spec registration
+```bash
+npx playwright test "e2e/musician-styles-seeded.spec.ts" \
+	"e2e/musician-styles-batch-continuation.spec.ts" \
+	"e2e/musician-styles-custom-request.spec.ts" --list
+```
+
+Result: `3 tests in 3 files` discovered.

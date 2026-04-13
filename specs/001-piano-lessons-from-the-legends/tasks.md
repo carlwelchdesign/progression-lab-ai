@@ -5,15 +5,17 @@
 
 **Tests**: Include both unit/integration tests and Playwright e2e tests per user story.
 
+> Migration Safety: Use additive migrations only. Never run `prisma migrate reset` or `prisma db push --force-reset` for this feature.
+
 ## Phase 1: Setup (Shared Infrastructure)
 
 **Purpose**: Prepare feature scaffolding and enforce safe migration workflow.
 
-- [ ] T001 Create feature module scaffolding in `features/musician-styles/components/.gitkeep`, `features/musician-styles/hooks/.gitkeep`, and `features/musician-styles/services/.gitkeep`
-- [ ] T002 Create API route scaffolding in `app/api/musician-styles/route.ts`, `app/api/musician-styles/[slug]/route.ts`, `app/api/musician-styles/[slug]/curriculum/route.ts`, and `app/api/musician-styles/request/route.ts`
-- [ ] T003 [P] Create lesson progress API scaffold in `app/api/lessons/progress/route.ts`
-- [ ] T004 [P] Create route shells in `app/styles/page.tsx` and `app/styles/[slug]/page.tsx`
-- [ ] T005 Add additive-only migration workflow note to `specs/001-piano-lessons-from-the-legends/tasks.md` header comments (explicitly forbid `prisma migrate reset` and `prisma db push --force-reset` in implementation notes)
+- [X] T001 Create feature module scaffolding in `features/musician-styles/components/.gitkeep`, `features/musician-styles/hooks/.gitkeep`, and `features/musician-styles/services/.gitkeep`
+- [X] T002 Create API route scaffolding in `app/api/musician-styles/route.ts`, `app/api/musician-styles/[slug]/route.ts`, `app/api/musician-styles/[slug]/curriculum/route.ts`, and `app/api/musician-styles/request/route.ts`
+- [X] T003 [P] Create lesson progress API scaffold in `app/api/lessons/progress/route.ts`
+- [X] T004 [P] Create route shells in `app/styles/page.tsx` and `app/styles/[slug]/page.tsx`
+- [X] T005 Add additive-only migration workflow note to `specs/001-piano-lessons-from-the-legends/tasks.md` header comments (explicitly forbid `prisma migrate reset` and `prisma db push --force-reset` in implementation notes)
 
 ---
 
@@ -23,16 +25,16 @@
 
 **CRITICAL**: Complete this phase before starting any user story.
 
-- [ ] T006 Update schema with `LessonProgress`, `MusicianProfile`, `GeneratedCurriculum`, and `User` relations in `prisma/schema.prisma`
-- [ ] T007 Create a single additive migration for new tables/indexes only in `prisma/migrations/20260413_add_musician_lessons/migration.sql`
-- [ ] T008 [P] Seed curated roster and prompt versions in `prisma/seed/musicianProfiles.ts`
-- [ ] T009 [P] Add generated lesson/curriculum domain types in `features/musician-styles/types.ts`
-- [ ] T010 [P] Add strict OpenAI curriculum JSON schema in `app/api/musician-styles/curriculumSchema.ts`
-- [ ] T011 Implement MIDI service interface and browser adapter in `features/musician-styles/services/midiService.ts`
-- [ ] T012 [P] Implement curriculum repository helpers in `features/musician-styles/services/curriculumRepository.ts`
-- [ ] T013 [P] Implement musician profile repository helpers in `features/musician-styles/services/musicianRepository.ts`
-- [ ] T014 [P] Implement lesson progress repository helpers in `features/musician-styles/services/lessonProgressRepository.ts`
-- [ ] T015 Implement skill-level assessment and completed-lesson summarization helpers in `features/musician-styles/services/skillAssessmentService.ts`
+- [X] T006 Update schema with `LessonProgress`, `MusicianProfile`, `GeneratedCurriculum`, and `User` relations in `prisma/schema.prisma`
+- [X] T007 Create a single additive migration for new tables/indexes only in `prisma/migrations/20260413_add_musician_lessons/migration.sql`
+- [X] T008 [P] Seed curated roster and prompt versions in `prisma/seed/musicianProfiles.ts`
+- [X] T009 [P] Add generated lesson/curriculum domain types in `features/musician-styles/types.ts`
+- [X] T010 [P] Add strict OpenAI curriculum JSON schema in `app/api/musician-styles/curriculumSchema.ts`
+- [X] T011 Implement MIDI service interface and browser adapter in `features/musician-styles/services/midiService.ts`
+- [X] T012 [P] Implement curriculum repository helpers in `features/musician-styles/services/curriculumRepository.ts`
+- [X] T013 [P] Implement musician profile repository helpers in `features/musician-styles/services/musicianRepository.ts`
+- [X] T014 [P] Implement lesson progress repository helpers in `features/musician-styles/services/lessonProgressRepository.ts`
+- [X] T015 Implement skill-level assessment and completed-lesson summarization helpers in `features/musician-styles/services/skillAssessmentService.ts`
 
 **Checkpoint**: Foundation is ready for independently testable story work.
 
@@ -46,25 +48,25 @@
 
 ### Tests for User Story 1
 
-- [ ] T016 [P] [US1] Add unit tests for roster search and grouped browse query behavior in `features/musician-styles/services/__tests__/musicianRepository.test.ts`
-- [ ] T017 [P] [US1] Add unit tests for lesson flow state transitions and duplicate MIDI match debounce in `features/musician-styles/components/__tests__/LessonFlowController.test.ts`
-- [ ] T018 [P] [US1] Add API route tests for initial curriculum generation and progress upsert in `app/api/musician-styles/[slug]/curriculum/__tests__/route.test.ts` and `app/api/lessons/progress/__tests__/route.test.ts`
-- [ ] T019 [P] [US1] Add Playwright e2e for seeded musician search, lesson start, MIDI-required gate, and step progression in `e2e/musician-styles-seeded.spec.ts`
+- [X] T016 [P] [US1] Add unit tests for roster search and grouped browse query behavior in `features/musician-styles/services/__tests__/musicianRepository.test.ts`
+- [X] T017 [P] [US1] Add unit tests for lesson flow state transitions and duplicate MIDI match debounce in `features/musician-styles/components/__tests__/LessonFlowController.test.ts`
+- [X] T018 [P] [US1] Add API route tests for initial curriculum generation and progress upsert in `app/api/musician-styles/[slug]/curriculum/__tests__/route.test.ts` and `app/api/lessons/progress/__tests__/route.test.ts`
+- [X] T019 [P] [US1] Add Playwright e2e for seeded musician search, lesson start, MIDI-required gate, and step progression in `e2e/musician-styles-seeded.spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T020 [US1] Implement authenticated roster endpoint with grouped browse and search modes in `app/api/musician-styles/route.ts`
-- [ ] T021 [US1] Implement authenticated musician detail endpoint returning profile + cached curriculum + staleness flag in `app/api/musician-styles/[slug]/route.ts`
-- [ ] T022 [US1] Implement initial curriculum generation endpoint (`force=false` first batch behavior + usage event) in `app/api/musician-styles/[slug]/curriculum/route.ts`
-- [ ] T023 [US1] Implement progress upsert endpoint returning `nextStepIndex` and metadata merge in `app/api/lessons/progress/route.ts`
-- [ ] T024 [P] [US1] Implement curriculum generation service (strict schema call + parse + validation) in `features/musician-styles/services/curriculumGenerationService.ts`
-- [ ] T025 [P] [US1] Implement progress service for step completion writes and lesson completion writes in `features/musician-styles/services/lessonProgressService.ts`
-- [ ] T026 [US1] Build roster UI with autocomplete + genre browse cards in `features/musician-styles/components/MusicianRoster.tsx` and `features/musician-styles/components/MusicianCard.tsx`
-- [ ] T027 [US1] Build lesson page shell and curriculum status bar in `features/musician-styles/components/MusicianStylePage.tsx` and `features/musician-styles/components/CurriculumStatusBar.tsx`
-- [ ] T028 [US1] Build lesson list and lesson player with single-primary-action text steps in `features/musician-styles/components/LessonList.tsx` and `features/musician-styles/components/LessonPlayer.tsx`
-- [ ] T029 [P] [US1] Build text and exercise step renderers with interactive piano diagram hooks in `features/musician-styles/components/LessonStepText.tsx` and `features/musician-styles/components/LessonStepExercise.tsx`
-- [ ] T030 [US1] Implement curriculum + progress hooks in `features/musician-styles/hooks/useGeneratedCurriculum.ts` and `features/musician-styles/hooks/useLessonProgress.ts`
-- [ ] T031 [US1] Wire `/styles` and `/styles/[slug]` routes to feature components in `app/styles/page.tsx` and `app/styles/[slug]/page.tsx`
+- [X] T020 [US1] Implement authenticated roster endpoint with grouped browse and search modes in `app/api/musician-styles/route.ts`
+- [X] T021 [US1] Implement authenticated musician detail endpoint returning profile + cached curriculum + staleness flag in `app/api/musician-styles/[slug]/route.ts`
+- [X] T022 [US1] Implement initial curriculum generation endpoint (`force=false` first batch behavior + usage event) in `app/api/musician-styles/[slug]/curriculum/route.ts`
+- [X] T023 [US1] Implement progress upsert endpoint returning `nextStepIndex` and metadata merge in `app/api/lessons/progress/route.ts`
+- [X] T024 [P] [US1] Implement curriculum generation service (strict schema call + parse + validation) in `features/musician-styles/services/curriculumGenerationService.ts`
+- [X] T025 [P] [US1] Implement progress service for step completion writes and lesson completion writes in `features/musician-styles/services/lessonProgressService.ts`
+- [X] T026 [US1] Build roster UI with autocomplete + genre browse cards in `features/musician-styles/components/MusicianRoster.tsx` and `features/musician-styles/components/MusicianCard.tsx`
+- [X] T027 [US1] Build lesson page shell and curriculum status bar in `features/musician-styles/components/MusicianStylePage.tsx` and `features/musician-styles/components/CurriculumStatusBar.tsx`
+- [X] T028 [US1] Build lesson list and lesson player with single-primary-action text steps in `features/musician-styles/components/LessonList.tsx` and `features/musician-styles/components/LessonPlayer.tsx`
+- [X] T029 [P] [US1] Build text and exercise step renderers with interactive piano diagram hooks in `features/musician-styles/components/LessonStepText.tsx` and `features/musician-styles/components/LessonStepExercise.tsx`
+- [X] T030 [US1] Implement curriculum + progress hooks in `features/musician-styles/hooks/useGeneratedCurriculum.ts` and `features/musician-styles/hooks/useLessonProgress.ts`
+- [X] T031 [US1] Wire `/styles` and `/styles/[slug]` routes to feature components in `app/styles/page.tsx` and `app/styles/[slug]/page.tsx`
 
 **Checkpoint**: US1 is independently usable and testable as the MVP lesson loop.
 
@@ -78,17 +80,17 @@
 
 ### Tests for User Story 2
 
-- [ ] T032 [P] [US2] Add unit tests for batch continuation, previous-lesson summaries, and skill threshold transitions in `features/musician-styles/services/__tests__/curriculumGenerationService.test.ts`
-- [ ] T033 [P] [US2] Add API route tests for `force` behavior, continuation no-op when lessons remain, and stale prompt regeneration flows in `app/api/musician-styles/[slug]/curriculum/__tests__/continuation.test.ts`
-- [ ] T034 [P] [US2] Add Playwright e2e for complete-last-lesson auto-generation and immediate next-lesson start CTA in `e2e/musician-styles-batch-continuation.spec.ts`
+- [X] T032 [P] [US2] Add unit tests for batch continuation, previous-lesson summaries, and skill threshold transitions in `features/musician-styles/services/__tests__/curriculumGenerationService.test.ts`
+- [X] T033 [P] [US2] Add API route tests for `force` behavior, continuation no-op when lessons remain, and stale prompt regeneration flows in `app/api/musician-styles/[slug]/curriculum/__tests__/continuation.test.ts`
+- [X] T034 [P] [US2] Add Playwright e2e for complete-last-lesson auto-generation and immediate next-lesson start CTA in `e2e/musician-styles-batch-continuation.spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T035 [US2] Extend curriculum generation service for append-only batch creation and previous-lesson context injection in `features/musician-styles/services/curriculumGenerationService.ts`
-- [ ] T036 [US2] Extend curriculum route for continuation trigger rules (`force`, completed-last-lesson checks, usage accounting) in `app/api/musician-styles/[slug]/curriculum/route.ts`
-- [ ] T037 [US2] Add stale curriculum decision handling (continue existing vs regenerate from current point) in `features/musician-styles/hooks/useGeneratedCurriculum.ts`
-- [ ] T038 [US2] Implement low-click completion UX (`Start Next Lesson`, no modal, back-navigation safety) in `features/musician-styles/components/LessonPlayer.tsx`
-- [ ] T039 [US2] Emit friction analytics (`manualClicks`, `autoAdvanceCount`, `backtrackCount`) in `features/musician-styles/components/LessonPlayer.tsx` and `lib/analytics.ts`
+- [X] T035 [US2] Extend curriculum generation service for append-only batch creation and previous-lesson context injection in `features/musician-styles/services/curriculumGenerationService.ts`
+- [X] T036 [US2] Extend curriculum route for continuation trigger rules (`force`, completed-last-lesson checks, usage accounting) in `app/api/musician-styles/[slug]/curriculum/route.ts`
+- [X] T037 [US2] Add stale curriculum decision handling (continue existing vs regenerate from current point) in `features/musician-styles/hooks/useGeneratedCurriculum.ts`
+- [X] T038 [US2] Implement low-click completion UX (`Start Next Lesson`, no modal, back-navigation safety) in `features/musician-styles/components/LessonPlayer.tsx`
+- [X] T039 [US2] Emit friction analytics (`manualClicks`, `autoAdvanceCount`, `backtrackCount`) in `features/musician-styles/components/LessonPlayer.tsx` and `lib/analytics.ts`
 
 **Checkpoint**: US2 delivers unlimited batched progression without dead ends.
 
@@ -102,16 +104,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T040 [P] [US3] Add unit tests for custom musician slug generation, profile validation, and duplicate-name resolution in `features/musician-styles/services/__tests__/profileGenerationService.test.ts`
-- [ ] T041 [P] [US3] Add API route tests for request endpoint success, 409 existing-profile redirect payload, and 422 insufficient-information response in `app/api/musician-styles/request/__tests__/route.test.ts`
-- [ ] T042 [P] [US3] Add Playwright e2e for autocomplete no-match request flow through redirect and lesson start in `e2e/musician-styles-custom-request.spec.ts`
+- [X] T040 [P] [US3] Add unit tests for custom musician slug generation, profile validation, and duplicate-name resolution in `features/musician-styles/services/__tests__/profileGenerationService.test.ts`
+- [X] T041 [P] [US3] Add API route tests for request endpoint success, 409 existing-profile redirect payload, and 422 insufficient-information response in `app/api/musician-styles/request/__tests__/route.test.ts`
+- [X] T042 [P] [US3] Add Playwright e2e for autocomplete no-match request flow through redirect and lesson start in `e2e/musician-styles-custom-request.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T043 [US3] Implement custom musician request endpoint with AI profile generation and conflict handling in `app/api/musician-styles/request/route.ts`
-- [ ] T044 [P] [US3] Implement profile generation service and schema validation for `MusicianProfile` fields in `features/musician-styles/services/profileGenerationService.ts`
-- [ ] T045 [US3] Extend roster autocomplete UI with no-match request CTA and submit states in `features/musician-styles/components/MusicianRoster.tsx`
-- [ ] T046 [US3] Add client request action and redirect wiring in `features/musician-styles/hooks/useGeneratedCurriculum.ts` and `app/styles/page.tsx`
+- [X] T043 [US3] Implement custom musician request endpoint with AI profile generation and conflict handling in `app/api/musician-styles/request/route.ts`
+- [X] T044 [P] [US3] Implement profile generation service and schema validation for `MusicianProfile` fields in `features/musician-styles/services/profileGenerationService.ts`
+- [X] T045 [US3] Extend roster autocomplete UI with no-match request CTA and submit states in `features/musician-styles/components/MusicianRoster.tsx`
+- [X] T046 [US3] Add client request action and redirect wiring in `features/musician-styles/hooks/useGeneratedCurriculum.ts` and `app/styles/page.tsx`
 
 **Checkpoint**: US3 unlocks “learn from any pianist” workflows.
 
@@ -121,10 +123,10 @@
 
 **Purpose**: Harden quality, observability, and release-readiness across all stories.
 
-- [ ] T047 [P] Add accessibility and keyboard-navigation refinements for search, lesson controls, and MIDI gate in `features/musician-styles/components/MusicianRoster.tsx` and `features/musician-styles/components/LessonPlayer.tsx`
-- [ ] T048 [P] Add defensive API validation/error mapping for all musician-style routes in `app/api/musician-styles/route.ts`, `app/api/musician-styles/[slug]/route.ts`, `app/api/musician-styles/[slug]/curriculum/route.ts`, and `app/api/musician-styles/request/route.ts`
-- [ ] T049 [P] Add regression tests for auth/CSRF/usage accounting across routes in `app/api/musician-styles/__tests__/security.test.ts`
-- [ ] T050 Run full verification suite and capture evidence in `specs/001-piano-lessons-from-the-legends/quickstart.md` (Jest + Playwright + manual MIDI checklist)
+- [X] T047 [P] Add accessibility and keyboard-navigation refinements for search, lesson controls, and MIDI gate in `features/musician-styles/components/MusicianRoster.tsx` and `features/musician-styles/components/LessonPlayer.tsx`
+- [X] T048 [P] Add defensive API validation/error mapping for all musician-style routes in `app/api/musician-styles/route.ts`, `app/api/musician-styles/[slug]/route.ts`, `app/api/musician-styles/[slug]/curriculum/route.ts`, and `app/api/musician-styles/request/route.ts`
+- [X] T049 [P] Add regression tests for auth/CSRF/usage accounting across routes in `app/api/musician-styles/__tests__/security.test.ts`
+- [X] T050 Run full verification suite and capture evidence in `specs/001-piano-lessons-from-the-legends/quickstart.md` (Jest + Playwright + manual MIDI checklist)
 
 ---
 

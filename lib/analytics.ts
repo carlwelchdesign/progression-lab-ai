@@ -18,7 +18,8 @@ export type AnalyticsEventType =
   | 'sample_progression_selected'
   | 'onboarding_persona_selected'
   | 'onboarding_persona_skipped'
-  | 'export_requested';
+  | 'export_requested'
+  | 'lesson_flow';
 
 export type AnalyticsEventProperties = Record<string, string | number | boolean | null | undefined>;
 

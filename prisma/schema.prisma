@@ -111,6 +111,8 @@ model User {
   webauthnChallenges WebAuthnChallenge[]
   createdPromoCodes PromoCode[] @relation("PromoCodeCreatedBy")
   promoCodeRedemptions PromoCodeRedemption[]
+  lessonProgress LessonProgress[]
+  generatedCurricula GeneratedCurriculum[]
 }
 
 model WebAuthnCredential {
@@ -230,6 +232,64 @@ model UsageEvent {
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, eventType, createdAt])
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  lessonId    String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  attempts    Int       @default(0)
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+}
+
+model MusicianProfile {
+  id                  String   @id @default(cuid())
+  slug                String   @unique
+  displayName         String
+  aliases             String[] @default([])
+  genre               String
+  era                 String
+  tagline             String
+  styleDescription    String   @db.Text
+  signatureTechniques String[] @default([])
+  exampleSongs        String[] @default([])
+  preferredKeys       String[] @default([])
+  promptTemplate      String   @db.Text
+  promptVersion       Int      @default(1)
+  isActive            Boolean  @default(true)
+  isCustom            Boolean  @default(false)
+  sortOrder           Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  generatedCurricula GeneratedCurriculum[]
+}
+
+model GeneratedCurriculum {
+  id             String   @id @default(cuid())
+  userId         String
+  musicianId     String
+  promptVersion  Int
+  skillLevel     String
+  curriculumJson Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  musician MusicianProfile @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, musicianId])
+  @@index([userId])
+  @@index([musicianId])
 }
 
 model SubscriptionTierConfig {
