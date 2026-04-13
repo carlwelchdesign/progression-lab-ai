@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import type { MusicianProfile, PrismaClient } from '@prisma/client';
 
 import type { MusicianProfileSummary } from '../types';
 
@@ -9,41 +9,46 @@ type MusicianProfileRecord = MusicianProfileSummary & {
   promptVersion: number;
 };
 
-type MusicianProfileModel = {
-  findMany(args: {
-    where?: { isActive?: boolean };
-    orderBy?: { sortOrder: 'asc' | 'desc' };
-    take?: number;
-  }): Promise<MusicianProfileRecord[]>;
-  findUnique(args: { where: { slug: string } }): Promise<MusicianProfileRecord | null>;
-  findFirst(args: { where: { slug: string } }): Promise<MusicianProfileRecord | null>;
-  create(args: { data: Omit<MusicianProfileRecord, 'id'> }): Promise<MusicianProfileRecord>;
-};
-
-type MusicianClient = PrismaClient & {
-  musicianProfile: MusicianProfileModel;
-};
+function mapMusicianProfile(profile: MusicianProfile): MusicianProfileRecord {
+  return {
+    id: profile.id,
+    slug: profile.slug,
+    displayName: profile.displayName,
+    genre: profile.genre,
+    era: profile.era,
+    tagline: profile.tagline,
+    signatureTechniques: profile.signatureTechniques,
+    exampleSongs: profile.exampleSongs,
+    preferredKeys: profile.preferredKeys,
+    sortOrder: profile.sortOrder,
+    isCustom: profile.isCustom,
+    aliases: profile.aliases,
+    isActive: profile.isActive,
+    promptTemplate: profile.promptTemplate,
+    promptVersion: profile.promptVersion,
+  };
+}
 
 export async function listActiveMusicians(
   prismaClient: PrismaClient,
 ): Promise<MusicianProfileRecord[]> {
-  const prisma = prismaClient as unknown as MusicianClient;
-
-  return prisma.musicianProfile.findMany({
+  const records = await prismaClient.musicianProfile.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
   });
+
+  return records.map(mapMusicianProfile);
 }
 
 export async function findMusicianBySlug(
   prismaClient: PrismaClient,
   slug: string,
 ): Promise<MusicianProfileRecord | null> {
-  const prisma = prismaClient as unknown as MusicianClient;
-
-  return prisma.musicianProfile.findUnique({
+  const record = await prismaClient.musicianProfile.findUnique({
     where: { slug },
   });
+
+  return record ? mapMusicianProfile(record) : null;
 }
 
 export async function searchMusicians(
