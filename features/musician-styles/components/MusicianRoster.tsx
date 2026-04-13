@@ -48,7 +48,7 @@ export default function MusicianRoster() {
         ) : (
           <Grid container spacing={2}>
             {musicians.map((m) => (
-              <Grid item xs={12} sm={6} key={m.id}>
+              <Grid size={{ xs: 12, sm: 6 }} key={m.id}>
                 <MusicianCard musician={m} onClick={() => router.push(`/styles/${m.slug}`)} />
               </Grid>
             ))}
