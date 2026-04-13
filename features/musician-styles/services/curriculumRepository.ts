@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import type { GeneratedCurriculum, PrismaClient } from '@prisma/client';
 
 import type { GeneratedCurriculumData, SkillLevel } from '../types';
 
@@ -13,39 +13,29 @@ type GeneratedCurriculumRecord = {
   updatedAt: Date;
 };
 
-type GeneratedCurriculumModel = {
-  findUnique(args: {
-    where: { userId_musicianId: { userId: string; musicianId: string } };
-  }): Promise<GeneratedCurriculumRecord | null>;
-  upsert(args: {
-    where: { userId_musicianId: { userId: string; musicianId: string } };
-    update: {
-      promptVersion: number;
-      skillLevel: SkillLevel;
-      curriculumJson: GeneratedCurriculumData;
-    };
-    create: {
-      userId: string;
-      musicianId: string;
-      promptVersion: number;
-      skillLevel: SkillLevel;
-      curriculumJson: GeneratedCurriculumData;
-    };
-  }): Promise<GeneratedCurriculumRecord>;
-};
+function isSkillLevel(value: string): value is SkillLevel {
+  return value === 'beginner' || value === 'intermediate' || value === 'advanced';
+}
 
-type CurriculumClient = PrismaClient & {
-  generatedCurriculum: GeneratedCurriculumModel;
-};
+function mapCurriculumRecord(record: GeneratedCurriculum): GeneratedCurriculumRecord {
+  return {
+    id: record.id,
+    userId: record.userId,
+    musicianId: record.musicianId,
+    promptVersion: record.promptVersion,
+    skillLevel: isSkillLevel(record.skillLevel) ? record.skillLevel : 'beginner',
+    curriculumJson: record.curriculumJson as GeneratedCurriculumData,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  };
+}
 
 export async function getCurriculumByUserAndMusician(
   prismaClient: PrismaClient,
   userId: string,
   musicianId: string,
 ): Promise<GeneratedCurriculumRecord | null> {
-  const prisma = prismaClient as unknown as CurriculumClient;
-
-  return prisma.generatedCurriculum.findUnique({
+  const record = await prismaClient.generatedCurriculum.findUnique({
     where: {
       userId_musicianId: {
         userId,
@@ -53,6 +43,8 @@ export async function getCurriculumByUserAndMusician(
       },
     },
   });
+
+  return record ? mapCurriculumRecord(record) : null;
 }
 
 export async function upsertCurriculum(
@@ -65,9 +57,7 @@ export async function upsertCurriculum(
     curriculumJson: GeneratedCurriculumData;
   },
 ): Promise<GeneratedCurriculumRecord> {
-  const prisma = prismaClient as unknown as CurriculumClient;
-
-  return prisma.generatedCurriculum.upsert({
+  const record = await prismaClient.generatedCurriculum.upsert({
     where: {
       userId_musicianId: {
         userId: input.userId,
@@ -87,4 +77,6 @@ export async function upsertCurriculum(
       curriculumJson: input.curriculumJson,
     },
   });
+
+  return mapCurriculumRecord(record);
 }

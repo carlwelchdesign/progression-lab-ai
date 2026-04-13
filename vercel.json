@@ -1,0 +1,3 @@
+{
+  "installCommand": "bash ./scripts/validate-npm-token.sh && yarn install --frozen-lockfile"
+}
