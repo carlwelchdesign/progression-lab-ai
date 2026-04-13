@@ -1,0 +1,3 @@
+{
+  "installCommand": "bash ./scripts/setup-github-packages.sh && yarn install --frozen-lockfile"
+}
