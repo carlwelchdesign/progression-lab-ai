@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import { createCsrfHeaders, ensureCsrfCookie } from '../../../lib/csrfClient';
+import { fetchWithCsrf } from '../../../lib/csrfClient';
 import type { GeneratedCurriculumData, MusicianStyleResponse } from '../types';
 
 export function useGeneratedCurriculum(slug: string) {
@@ -37,11 +37,9 @@ export function useGeneratedCurriculum(slug: string) {
       setError(null);
 
       try {
-        await ensureCsrfCookie();
-        const response = await fetch(`/api/musician-styles/${slug}/curriculum`, {
+        const response = await fetchWithCsrf(`/api/musician-styles/${slug}/curriculum`, {
           method: 'POST',
-          credentials: 'include',
-          headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ force }),
         });
 
@@ -74,11 +72,9 @@ export function useGeneratedCurriculum(slug: string) {
   );
 
   const requestCustomMusician = useCallback(async (name: string, genre?: string) => {
-    await ensureCsrfCookie();
-    const response = await fetch('/api/musician-styles/request', {
+    const response = await fetchWithCsrf('/api/musician-styles/request', {
       method: 'POST',
-      credentials: 'include',
-      headers: createCsrfHeaders({ 'Content-Type': 'application/json' }),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, genre }),
     });
 

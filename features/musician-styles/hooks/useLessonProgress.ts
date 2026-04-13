@@ -2,6 +2,8 @@
 
 import { useCallback } from 'react';
 
+import { fetchWithCsrf } from '../../../lib/csrfClient';
+
 export function useLessonProgress() {
   const saveStep = useCallback(
     async (payload: {
@@ -12,9 +14,8 @@ export function useLessonProgress() {
       autoAdvance?: boolean;
       metadata?: Record<string, unknown>;
     }) => {
-      const response = await fetch('/api/lessons/progress', {
+      const response = await fetchWithCsrf('/api/lessons/progress', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });

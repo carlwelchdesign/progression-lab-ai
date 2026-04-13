@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { fetchWithCsrf } from '../../../lib/csrfClient';
 import { MusicianCard } from './MusicianCard';
 import type { MusicianProfileSummary } from '../types';
 
@@ -82,9 +83,8 @@ export function MusicianRoster({ genres }: MusicianRosterProps) {
                   setIsRequesting(true);
                   setRequestError(null);
                   try {
-                    const response = await fetch('/api/musician-styles/request', {
+                    const response = await fetchWithCsrf('/api/musician-styles/request', {
                       method: 'POST',
-                      credentials: 'include',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ name: query.trim() }),
                     });
