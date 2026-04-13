@@ -1,79 +1,33 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Chip,
-  CircularProgress,
-  Collapse,
-  IconButton,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, CircularProgress, Collapse, IconButton, Stack, Typography } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import KeyboardIcon from '@mui/icons-material/Keyboard';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import { createPianoVoicingFromChordSymbol } from '../../../domain/music/chordVoicing';
 import { playChordVoicing } from '../../../domain/audio/audio';
 import { useMidiInput } from '../hooks/useMidiInput';
 import MidiInteractivePiano from './MidiInteractivePiano';
-import MidiStatusBadge from './MidiStatusBadge';
 import { normalizeNote } from './MidiInteractivePiano';
 
 type Props = {
   chord: string;
-  /** Override the notes to match instead of deriving from chord voicing */
   targetNotes?: string[];
-  /** Called once after the user successfully plays the chord */
   onSuccess?: () => void;
 };
 
-/** Extract octave number from a note string like "C4", "Bb3" */
-function noteOctave(note: string): number {
-  const m = /(\d+)$/.exec(note);
-  return m ? parseInt(m[1], 10) : 4;
+/** Strip the octave number — "C#4" → "C#", "Bb3" → "A#" */
+function pitchClass(note: string): string {
+  return normalizeNote(note).replace(/\d+$/, '');
 }
 
-/** Split a Set of MIDI pressed notes into left-hand (octave ≤ 3) and right-hand (octave ≥ 4) */
-function splitByHand(notes: Set<string>): { left: Set<string>; right: Set<string> } {
-  const left = new Set<string>();
-  const right = new Set<string>();
-  for (const note of notes) {
-    if (noteOctave(note) <= 3) left.add(note);
-    else right.add(note);
-  }
-  return { left, right };
-}
-
-/** Note chips that light up green as each target note is held */
-function NoteChips({
-  displayNotes,
-  pressedNotes,
-}: {
-  displayNotes: string[];
-  pressedNotes: Set<string>;
-}) {
-  const normalizedPressed = useMemo(
-    () => new Set([...pressedNotes].map(normalizeNote)),
-    [pressedNotes],
-  );
-  return (
-    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-      {displayNotes.map((note) => {
-        const isHeld = normalizedPressed.has(normalizeNote(note));
-        return (
-          <Chip
-            key={note}
-            label={note}
-            size="small"
-            color={isHeld ? 'success' : 'default'}
-            variant={isHeld ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '0.75rem' }}
-          />
-        );
-      })}
-    </Stack>
-  );
+function getDefaultTranspose(): number {
+  if (typeof window === 'undefined') return 2;
+  const saved = window.localStorage.getItem('midi-transpose-semitones');
+  return saved !== null ? Number(saved) : 2;
 }
 
 export default function ChordMatchExercise({
@@ -82,11 +36,7 @@ export default function ChordMatchExercise({
   onSuccess,
 }: Props) {
   const voicing = useMemo(() => createPianoVoicingFromChordSymbol(chord), [chord]);
-  const [transposeSemitones, setTransposeSemitones] = useState(() => {
-    if (typeof window === 'undefined') return 0;
-    const saved = window.localStorage.getItem('midi-transpose-semitones');
-    return saved !== null ? Number(saved) : 0;
-  });
+  const [transposeSemitones, setTransposeSemitones] = useState(getDefaultTranspose);
 
   const handleTransposeChange = (value: number) => {
     setTransposeSemitones(value);
@@ -103,19 +53,25 @@ export default function ChordMatchExercise({
     successFiredRef.current = false;
   }, [chord]);
 
-  // When targetNotesProp is provided (single-note exercises), use it directly.
-  // Otherwise match only the right hand of the voicing.
-  const targetNotesDisplay = useMemo(
-    () => targetNotesProp ?? voicing?.rightHand ?? [],
-    [targetNotesProp, voicing],
-  );
-  const targetNotes = useMemo(() => targetNotesDisplay.map(normalizeNote), [targetNotesDisplay]);
+  // All chord notes (both hands) used for piano highlighting
+  const allTargetNotes = useMemo(() => {
+    if (targetNotesProp) return targetNotesProp;
+    if (!voicing) return [];
+    return [...voicing.leftHand, ...voicing.rightHand];
+  }, [targetNotesProp, voicing]);
 
+  // The notes the user must match — right hand only (or override), by pitch class
+  const targetPitchClasses = useMemo(() => {
+    const notes = targetNotesProp ?? voicing?.rightHand ?? [];
+    return new Set(notes.map(pitchClass));
+  }, [targetNotesProp, voicing]);
+
+  // Match by pitch class — any octave counts
   const isMatch = useMemo(() => {
-    if (targetNotes.length === 0 || pressedNotes.size === 0) return false;
-    const normalizedPressed = new Set([...pressedNotes].map(normalizeNote));
-    return targetNotes.every((n) => normalizedPressed.has(n));
-  }, [targetNotes, pressedNotes]);
+    if (targetPitchClasses.size === 0 || pressedNotes.size === 0) return false;
+    const pressedClasses = new Set([...pressedNotes].map(pitchClass));
+    return [...targetPitchClasses].every((pc) => pressedClasses.has(pc));
+  }, [targetPitchClasses, pressedNotes]);
 
   useEffect(() => {
     if (isMatch && !successFiredRef.current) {
@@ -142,107 +98,156 @@ export default function ChordMatchExercise({
     }
   };
 
-  // Split live MIDI input by hand boundary (octave 3 / 4)
-  const { left: leftPressed, right: rightPressed } = useMemo(
-    () => splitByHand(pressedNotes),
-    [pressedNotes],
-  );
-
-  // When targetNotesProp is used (single-note), show one piano; otherwise show both hands.
-  const showBothHands = !targetNotesProp && !!voicing;
-
-  const leftHandNotes = useMemo(
-    () => (showBothHands ? voicing!.leftHand.map(normalizeNote) : []),
-    [showBothHands, voicing],
-  );
-  const rightHandNotes = useMemo(() => targetNotes, [targetNotes]);
-
   if (!voicing) return null;
 
+  const isConnected = status === 'connected';
+  const isNoDevice = status === 'no-device';
+
   return (
-    <Stack spacing={1.5}>
-      {/* Chord name + play button */}
-      <Stack direction="row" alignItems="center" spacing={1}>
-        <Typography variant="subtitle1" fontWeight={700}>
-          Play: {chord}
-        </Typography>
+    <Stack spacing={2}>
+      {/* Chord name + listen button */}
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Box>
+          <Typography
+            variant="h5"
+            fontWeight={800}
+            sx={{ letterSpacing: '-0.02em', lineHeight: 1 }}
+          >
+            {chord}
+          </Typography>
+          <Typography variant="caption" color="text.disabled" sx={{ opacity: 0.6 }}>
+            Play the highlighted keys
+          </Typography>
+        </Box>
         <IconButton
-          size="small"
           onClick={() => void handlePlay()}
           disabled={isPlaying}
-          aria-label={`Play ${chord}`}
-          color="primary"
+          aria-label={`Listen to ${chord}`}
+          size="small"
+          sx={{
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 1.5,
+            px: 1,
+            gap: 0.5,
+            color: 'text.secondary',
+            '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+          }}
         >
-          {isPlaying ? <CircularProgress size={16} color="inherit" /> : <PlayArrowIcon />}
+          {isPlaying ? (
+            <CircularProgress size={14} color="inherit" />
+          ) : (
+            <PlayArrowIcon sx={{ fontSize: 16 }} />
+          )}
+          <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600 }}>
+            Listen
+          </Typography>
         </IconButton>
       </Stack>
 
-      {showBothHands ? (
-        /* ── Two-hand layout ─────────────────────────────────────────── */
-        <Stack spacing={2}>
-          {/* Left hand */}
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-              Left Hand
-            </Typography>
-            <MidiInteractivePiano
-              targetNotes={leftHandNotes}
-              pressedNotes={leftPressed}
-              startOctave={2}
-              endOctave={3}
-            />
-            <Box sx={{ mt: 0.75 }}>
-              <NoteChips displayNotes={voicing!.leftHand} pressedNotes={leftPressed} />
-            </Box>
-          </Box>
-
-          {/* Right hand */}
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-              Right Hand
-            </Typography>
-            <MidiInteractivePiano
-              targetNotes={rightHandNotes}
-              pressedNotes={rightPressed}
-              startOctave={3}
-              endOctave={5}
-            />
-            <Box sx={{ mt: 0.75 }}>
-              <NoteChips displayNotes={targetNotesDisplay} pressedNotes={rightPressed} />
-            </Box>
-          </Box>
-        </Stack>
-      ) : (
-        /* ── Single piano (targetNotesProp override) ─────────────────── */
-        <Box>
-          <MidiInteractivePiano targetNotes={rightHandNotes} pressedNotes={pressedNotes} />
-          <Box sx={{ mt: 0.75 }}>
-            <NoteChips displayNotes={targetNotesDisplay} pressedNotes={pressedNotes} />
-          </Box>
-        </Box>
-      )}
-
-      {/* MIDI status + transpose */}
-      <Box>
-        <MidiStatusBadge
-          status={status}
-          lastNote={lastNote}
-          lastNoteNumber={lastNoteNumber}
-          transposeSemitones={transposeSemitones}
-          onTransposeChange={handleTransposeChange}
+      {/* Piano keyboard */}
+      <Box
+        sx={{
+          borderRadius: 1.5,
+          overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.07)',
+          bgcolor: succeeded ? 'rgba(74, 222, 128, 0.04)' : 'rgba(0,0,0,0.2)',
+          transition: 'background-color 0.4s ease',
+          p: 1,
+        }}
+      >
+        <MidiInteractivePiano
+          targetNotes={allTargetNotes}
+          pressedNotes={pressedNotes}
+          startOctave={2}
+          endOctave={6}
         />
       </Box>
 
-      {/* Success feedback */}
+      {/* Success */}
       <Collapse in={succeeded}>
-        <Alert
-          icon={<CheckCircleOutlineIcon fontSize="inherit" />}
-          severity="success"
-          sx={{ py: 0.5 }}
-        >
-          Correct! Moving on…
-        </Alert>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
+          <CheckCircleIcon sx={{ fontSize: 18, color: '#4ADE80' }} />
+          <Typography variant="body2" sx={{ color: '#4ADE80', fontWeight: 600 }}>
+            Correct! Moving on…
+          </Typography>
+        </Stack>
       </Collapse>
+
+      {/* MIDI status bar */}
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1.5}
+        sx={{ opacity: 0.7, flexWrap: 'wrap', gap: 1 }}
+      >
+        {/* Connection dot */}
+        <Stack direction="row" spacing={0.625} alignItems="center">
+          <Box
+            sx={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              bgcolor:
+                status === 'connected'
+                  ? '#4ADE80'
+                  : status === 'pending'
+                    ? '#F59E0B'
+                    : 'text.disabled',
+              boxShadow: isConnected ? '0 0 6px #4ADE8088' : 'none',
+              flexShrink: 0,
+            }}
+          />
+          <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.7rem' }}>
+            {status === 'connected'
+              ? lastNote
+                ? `${lastNote} (MIDI ${lastNoteNumber ?? '—'})`
+                : 'MIDI connected'
+              : status === 'pending'
+                ? 'Detecting MIDI…'
+                : status === 'no-device'
+                  ? 'No MIDI device'
+                  : 'MIDI not supported'}
+          </Typography>
+        </Stack>
+
+        {/* Transpose control — only show when connected or no-device */}
+        {(isConnected || isNoDevice) && (
+          <Stack direction="row" alignItems="center" spacing={0.25}>
+            <KeyboardIcon sx={{ fontSize: 12, color: 'text.disabled' }} />
+            <IconButton
+              size="small"
+              onClick={() => handleTransposeChange(transposeSemitones - 1)}
+              disabled={transposeSemitones <= -12}
+              sx={{ width: 18, height: 18, p: 0 }}
+            >
+              <RemoveIcon sx={{ fontSize: 11 }} />
+            </IconButton>
+            <Typography
+              variant="caption"
+              onClick={() => transposeSemitones !== 2 && handleTransposeChange(2)}
+              sx={{
+                minWidth: 28,
+                textAlign: 'center',
+                fontSize: '0.68rem',
+                fontFamily: 'monospace',
+                color: transposeSemitones !== 2 ? 'warning.main' : 'text.disabled',
+                cursor: transposeSemitones !== 2 ? 'pointer' : 'default',
+              }}
+            >
+              {transposeSemitones >= 0 ? '+' : ''}
+              {transposeSemitones}
+            </Typography>
+            <IconButton
+              size="small"
+              onClick={() => handleTransposeChange(transposeSemitones + 1)}
+              disabled={transposeSemitones >= 12}
+              sx={{ width: 18, height: 18, p: 0 }}
+            >
+              <AddIcon sx={{ fontSize: 11 }} />
+            </IconButton>
+          </Stack>
+        )}
+      </Stack>
     </Stack>
   );
 }

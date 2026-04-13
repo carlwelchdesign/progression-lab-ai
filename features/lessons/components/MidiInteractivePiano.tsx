@@ -6,9 +6,6 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Instrument } from 'piano-chart';
 
 // ── Enharmonic normalization ──────────────────────────────────────────────────
-//
-// piano-chart uses sharp notation; chord voicings may return flats.
-// Normalize both target and pressed notes before comparing.
 
 const ENHARMONIC: Record<string, string> = {
   Db: 'C#',
@@ -21,7 +18,6 @@ const ENHARMONIC: Record<string, string> = {
 };
 
 export function normalizeNote(note: string): string {
-  // note is e.g. "Bb3", "C#4", "F5"
   const match = /^([A-G][b#]?)(\d+)$/.exec(note);
   if (!match) return note;
   const [, pitch, octave] = match;
@@ -32,7 +28,7 @@ export function normalizeNote(note: string): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 type Props = {
-  /** Notes to highlight as "target" — shown in a muted accent color */
+  /** Notes to highlight as "target" — shown in a soft coral red */
   targetNotes: string[];
   /** Live MIDI input notes — shown as active keypresses */
   pressedNotes: Set<string>;
@@ -43,17 +39,15 @@ type Props = {
 export default function MidiInteractivePiano({
   targetNotes,
   pressedNotes,
-  startOctave = 3,
+  startOctave = 2,
   endOctave = 6,
 }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
 
-  // Normalize target notes so flat names are matched correctly
   const normalizedTargets = useMemo(() => targetNotes.map(normalizeNote), [targetNotes]);
 
-  // Stable dep string for the Set (Sets don't trigger useEffect by reference)
   const pressedSignature = useMemo(
     () => [...pressedNotes].map(normalizeNote).sort().join('|'),
     [pressedNotes],
@@ -68,18 +62,15 @@ export default function MidiInteractivePiano({
     const piano = new Instrument(ref.current, {
       startOctave,
       endOctave,
-      showNoteNames: 'onhighlight',
+      showNoteNames: 'never',
       keyPressStyle: 'vivid',
       vividKeyPressColor: primaryColor,
-      // Target keys shown in bright orange so they're impossible to miss
       specialHighlightedNotes: normalizedTargets,
-      specialHighlightColor: '#FF6B00',
+      specialHighlightColor: '#FF7575',
     });
 
     piano.create();
 
-    // Make the SVG scale to fill the container while keeping proportions.
-    // SVG needs an explicit pixel height — "auto" collapses it.
     const svg = ref.current.querySelector('svg');
     if (svg) {
       const w = parseFloat(svg.getAttribute('width') ?? '0');
@@ -87,12 +78,11 @@ export default function MidiInteractivePiano({
       if (w && h) {
         svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
         svg.setAttribute('width', '100%');
-        svg.removeAttribute('height'); // let viewBox aspect ratio drive height via CSS
+        svg.removeAttribute('height');
         (svg as SVGElement).style.display = 'block';
       }
     }
 
-    // Render live MIDI keypresses on top of target highlights
     pressedSignature.split('|').forEach((note) => {
       if (note) piano.keyDown(note);
     });
