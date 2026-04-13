@@ -28,6 +28,54 @@ type Props = {
   onSuccess?: () => void;
 };
 
+/** Extract octave number from a note string like "C4", "Bb3" */
+function noteOctave(note: string): number {
+  const m = /(\d+)$/.exec(note);
+  return m ? parseInt(m[1], 10) : 4;
+}
+
+/** Split a Set of MIDI pressed notes into left-hand (octave ≤ 3) and right-hand (octave ≥ 4) */
+function splitByHand(notes: Set<string>): { left: Set<string>; right: Set<string> } {
+  const left = new Set<string>();
+  const right = new Set<string>();
+  for (const note of notes) {
+    if (noteOctave(note) <= 3) left.add(note);
+    else right.add(note);
+  }
+  return { left, right };
+}
+
+/** Note chips that light up green as each target note is held */
+function NoteChips({
+  displayNotes,
+  pressedNotes,
+}: {
+  displayNotes: string[];
+  pressedNotes: Set<string>;
+}) {
+  const normalizedPressed = useMemo(
+    () => new Set([...pressedNotes].map(normalizeNote)),
+    [pressedNotes],
+  );
+  return (
+    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+      {displayNotes.map((note) => {
+        const isHeld = normalizedPressed.has(normalizeNote(note));
+        return (
+          <Chip
+            key={note}
+            label={note}
+            size="small"
+            color={isHeld ? 'success' : 'default'}
+            variant={isHeld ? 'filled' : 'outlined'}
+            sx={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '0.75rem' }}
+          />
+        );
+      })}
+    </Stack>
+  );
+}
+
 export default function ChordMatchExercise({
   chord,
   targetNotes: targetNotesProp,
@@ -40,40 +88,35 @@ export default function ChordMatchExercise({
     return saved !== null ? Number(saved) : 0;
   });
 
-  // Persist transpose preference
   const handleTransposeChange = (value: number) => {
     setTransposeSemitones(value);
     window.localStorage.setItem('midi-transpose-semitones', String(value));
   };
+
   const { pressedNotes, lastNote, lastNoteNumber, status } = useMidiInput({ transposeSemitones });
   const [isPlaying, setIsPlaying] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const successFiredRef = useRef(false);
 
-  // Reset when the chord changes
   useEffect(() => {
     setSucceeded(false);
     successFiredRef.current = false;
   }, [chord]);
 
-  // Display names (pre-normalization) — used for chip labels so flats show as flats
+  // When targetNotesProp is provided (single-note exercises), use it directly.
+  // Otherwise match only the right hand of the voicing.
   const targetNotesDisplay = useMemo(
     () => targetNotesProp ?? voicing?.rightHand ?? [],
     [targetNotesProp, voicing],
   );
-
-  // Normalized target notes for matching
   const targetNotes = useMemo(() => targetNotesDisplay.map(normalizeNote), [targetNotesDisplay]);
 
-  // Check if every target note is being held
   const isMatch = useMemo(() => {
     if (targetNotes.length === 0 || pressedNotes.size === 0) return false;
     const normalizedPressed = new Set([...pressedNotes].map(normalizeNote));
     return targetNotes.every((n) => normalizedPressed.has(n));
   }, [targetNotes, pressedNotes]);
 
-  // Trigger success once — call onSuccess immediately so releasing the key before
-  // a delay doesn't prevent the Next button from enabling.
   useEffect(() => {
     if (isMatch && !successFiredRef.current) {
       successFiredRef.current = true;
@@ -99,6 +142,21 @@ export default function ChordMatchExercise({
     }
   };
 
+  // Split live MIDI input by hand boundary (octave 3 / 4)
+  const { left: leftPressed, right: rightPressed } = useMemo(
+    () => splitByHand(pressedNotes),
+    [pressedNotes],
+  );
+
+  // When targetNotesProp is used (single-note), show one piano; otherwise show both hands.
+  const showBothHands = !targetNotesProp && !!voicing;
+
+  const leftHandNotes = useMemo(
+    () => (showBothHands ? voicing!.leftHand.map(normalizeNote) : []),
+    [showBothHands, voicing],
+  );
+  const rightHandNotes = useMemo(() => targetNotes, [targetNotes]);
+
   if (!voicing) return null;
 
   return (
@@ -119,28 +177,52 @@ export default function ChordMatchExercise({
         </IconButton>
       </Stack>
 
-      {/* Piano with target highlights + live MIDI input */}
-      <MidiInteractivePiano targetNotes={targetNotes} pressedNotes={pressedNotes} />
-
-      {/* Per-note chips — light up as each note is held */}
-      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-        {targetNotesDisplay.map((note) => {
-          const normalizedPressed = new Set([...pressedNotes].map(normalizeNote));
-          const isHeld = normalizedPressed.has(normalizeNote(note));
-          return (
-            <Chip
-              key={note}
-              label={note}
-              size="small"
-              color={isHeld ? 'success' : 'default'}
-              variant={isHeld ? 'filled' : 'outlined'}
-              sx={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '0.75rem' }}
+      {showBothHands ? (
+        /* ── Two-hand layout ─────────────────────────────────────────── */
+        <Stack spacing={2}>
+          {/* Left hand */}
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Left Hand
+            </Typography>
+            <MidiInteractivePiano
+              targetNotes={leftHandNotes}
+              pressedNotes={leftPressed}
+              startOctave={2}
+              endOctave={3}
             />
-          );
-        })}
-      </Stack>
+            <Box sx={{ mt: 0.75 }}>
+              <NoteChips displayNotes={voicing!.leftHand} pressedNotes={leftPressed} />
+            </Box>
+          </Box>
 
-      {/* MIDI status + octave transpose control */}
+          {/* Right hand */}
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Right Hand
+            </Typography>
+            <MidiInteractivePiano
+              targetNotes={rightHandNotes}
+              pressedNotes={rightPressed}
+              startOctave={3}
+              endOctave={5}
+            />
+            <Box sx={{ mt: 0.75 }}>
+              <NoteChips displayNotes={targetNotesDisplay} pressedNotes={rightPressed} />
+            </Box>
+          </Box>
+        </Stack>
+      ) : (
+        /* ── Single piano (targetNotesProp override) ─────────────────── */
+        <Box>
+          <MidiInteractivePiano targetNotes={rightHandNotes} pressedNotes={pressedNotes} />
+          <Box sx={{ mt: 0.75 }}>
+            <NoteChips displayNotes={targetNotesDisplay} pressedNotes={pressedNotes} />
+          </Box>
+        </Box>
+      )}
+
+      {/* MIDI status + transpose */}
       <Box>
         <MidiStatusBadge
           status={status}

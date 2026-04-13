@@ -78,6 +78,18 @@ export default function MidiInteractivePiano({
 
     piano.create();
 
+    // Scale the SVG to fill the container width while preserving aspect ratio
+    const svg = ref.current.querySelector('svg');
+    if (svg) {
+      const w = svg.getAttribute('width');
+      const h = svg.getAttribute('height');
+      if (w && h) {
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', 'auto');
+      }
+    }
+
     // Render live MIDI keypresses on top of target highlights
     pressedSignature.split('|').forEach((note) => {
       if (note) piano.keyDown(note);
@@ -89,15 +101,5 @@ export default function MidiInteractivePiano({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetSignature, pressedSignature, startOctave, endOctave, primaryColor]);
 
-  return (
-    <Box
-      ref={ref}
-      sx={{
-        width: '100%',
-        display: 'flex',
-        justifyContent: 'center',
-        '& > *': { marginLeft: 'auto', marginRight: 'auto' },
-      }}
-    />
-  );
+  return <Box ref={ref} sx={{ width: '100%' }} />;
 }
