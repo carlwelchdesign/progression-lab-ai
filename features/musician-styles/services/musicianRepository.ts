@@ -9,6 +9,26 @@ type MusicianProfileRecord = MusicianProfileSummary & {
   promptVersion: number;
 };
 
+const legacyMusicianSelect = Prisma.validator<Prisma.MusicianProfileSelect>()({
+  id: true,
+  slug: true,
+  displayName: true,
+  genre: true,
+  era: true,
+  tagline: true,
+  signatureTechniques: true,
+  exampleSongs: true,
+  preferredKeys: true,
+  sortOrder: true,
+  isActive: true,
+  promptTemplate: true,
+  promptVersion: true,
+});
+
+type LegacyMusicianProfile = Prisma.MusicianProfileGetPayload<{
+  select: typeof legacyMusicianSelect;
+}>;
+
 function mapMusicianProfile(profile: MusicianProfile): MusicianProfileRecord {
   return {
     id: profile.id,
@@ -48,9 +68,7 @@ function isMissingColumnError(error: unknown): boolean {
   return column.includes('aliases') || column.includes('isCustom');
 }
 
-function mapLegacyMusicianProfile(
-  profile: Omit<MusicianProfile, 'aliases' | 'isCustom'>,
-): MusicianProfileRecord {
+function mapLegacyMusicianProfile(profile: LegacyMusicianProfile): MusicianProfileRecord {
   return {
     id: profile.id,
     slug: profile.slug,
@@ -88,21 +106,7 @@ export async function listActiveMusicians(
     const records = await prismaClient.musicianProfile.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
-      select: {
-        id: true,
-        slug: true,
-        displayName: true,
-        genre: true,
-        era: true,
-        tagline: true,
-        signatureTechniques: true,
-        exampleSongs: true,
-        preferredKeys: true,
-        sortOrder: true,
-        isActive: true,
-        promptTemplate: true,
-        promptVersion: true,
-      },
+      select: legacyMusicianSelect,
     });
 
     return records.map(mapLegacyMusicianProfile);
@@ -126,21 +130,7 @@ export async function findMusicianBySlug(
 
     const record = await prismaClient.musicianProfile.findUnique({
       where: { slug },
-      select: {
-        id: true,
-        slug: true,
-        displayName: true,
-        genre: true,
-        era: true,
-        tagline: true,
-        signatureTechniques: true,
-        exampleSongs: true,
-        preferredKeys: true,
-        sortOrder: true,
-        isActive: true,
-        promptTemplate: true,
-        promptVersion: true,
-      },
+      select: legacyMusicianSelect,
     });
 
     return record ? mapLegacyMusicianProfile(record) : null;
