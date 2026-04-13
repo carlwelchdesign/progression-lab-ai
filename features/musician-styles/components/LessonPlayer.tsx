@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { trackEvent } from '../../../lib/analytics';
 import { useLessonProgress } from '../hooks/useLessonProgress';
+import { normalizeMidiNoteName, WebMidiService } from '../services/midiService';
 import type { GeneratedLesson } from '../types';
 import { LessonStepExercise } from './LessonStepExercise';
 import { LessonStepText } from './LessonStepText';
@@ -18,14 +19,19 @@ type LessonPlayerProps = {
   onStartNextLesson: () => void;
 };
 
+type MidiConnectionState = 'unsupported' | 'idle' | 'connecting' | 'connected' | 'denied';
+
 export function LessonPlayer({ lesson, onStartNextLesson }: LessonPlayerProps) {
   const { saveStep } = useLessonProgress();
+  const [midiService] = useState(() => new WebMidiService());
   const [stepIndex, setStepIndex] = useState(0);
   const [flowState, setFlowState] = useState<LessonFlowState>('idle');
   const [lastMidiMatchAt, setLastMidiMatchAt] = useState<number | null>(null);
   const [manualClicks, setManualClicks] = useState(0);
   const [autoAdvanceCount, setAutoAdvanceCount] = useState(0);
   const [backtrackCount, setBacktrackCount] = useState(0);
+  const [midiStatus, setMidiStatus] = useState<MidiConnectionState>('idle');
+  const [playedNotes, setPlayedNotes] = useState<string[]>([]);
 
   const currentStep = useMemo(() => {
     if (!lesson) {
@@ -39,7 +45,80 @@ export function LessonPlayer({ lesson, onStartNextLesson }: LessonPlayerProps) {
     setStepIndex(0);
     setFlowState('idle');
     setLastMidiMatchAt(null);
+    setPlayedNotes([]);
   }, [lesson?.id]);
+
+  useEffect(() => {
+    if (!midiService.isSupported()) {
+      setMidiStatus('unsupported');
+      return;
+    }
+
+    setMidiStatus('idle');
+  }, [midiService]);
+
+  useEffect(() => {
+    if (midiStatus !== 'connected') {
+      return;
+    }
+
+    const subscription = midiService.subscribeToNotes((event) => {
+      const normalizedNote = normalizeMidiNoteName(event.note);
+      setPlayedNotes((current) => [
+        ...current.filter((note) => note !== normalizedNote),
+        normalizedNote,
+      ]);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [midiService, midiStatus]);
+
+  useEffect(() => {
+    setPlayedNotes([]);
+  }, [stepIndex, lesson?.id]);
+
+  useEffect(() => {
+    if (!currentStep || currentStep.type !== 'exercise') {
+      return;
+    }
+
+    if (midiStatus !== 'connected') {
+      return;
+    }
+
+    if (
+      flowState === 'autoAdvancing' ||
+      flowState === 'stepCompleted' ||
+      flowState === 'lessonCompleted'
+    ) {
+      return;
+    }
+
+    const required = new Set(
+      currentStep.exercise.targetNotes.map((note) => normalizeMidiNoteName(note)),
+    );
+    const detected = new Set(playedNotes.map((note) => normalizeMidiNoteName(note)));
+    const allMatched = Array.from(required).every((note) => detected.has(note));
+
+    if (!allMatched) {
+      return;
+    }
+
+    const now = Date.now();
+    if (shouldIgnoreDuplicateMidiMatch(lastMidiMatchAt, now)) {
+      return;
+    }
+
+    setLastMidiMatchAt(now);
+    setFlowState(transitionFlowState(flowState, 'COMPLETE_STEP'));
+
+    window.setTimeout(() => {
+      void goNext(true);
+    }, 850);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, playedNotes, midiStatus, flowState, lastMidiMatchAt]);
 
   useEffect(() => {
     if (flowState !== 'lessonCompleted' || !lesson) {
@@ -84,18 +163,19 @@ export function LessonPlayer({ lesson, onStartNextLesson }: LessonPlayerProps) {
     setFlowState('idle');
   };
 
-  const onExerciseMatch = async () => {
-    const now = Date.now();
-    if (shouldIgnoreDuplicateMidiMatch(lastMidiMatchAt, now)) {
+  const connectMidiKeyboard = async () => {
+    if (midiStatus === 'unsupported' || midiStatus === 'connecting') {
       return;
     }
 
-    setLastMidiMatchAt(now);
-    setFlowState(transitionFlowState(flowState, 'COMPLETE_STEP'));
+    setMidiStatus('connecting');
 
-    window.setTimeout(() => {
-      void goNext(true);
-    }, 850);
+    try {
+      const connected = await midiService.requestAccess();
+      setMidiStatus(connected ? 'connected' : 'denied');
+    } catch {
+      setMidiStatus('denied');
+    }
   };
 
   return (
@@ -114,14 +194,24 @@ export function LessonPlayer({ lesson, onStartNextLesson }: LessonPlayerProps) {
           <LessonStepExercise
             step={currentStep}
             isMatched={flowState === 'stepCompleted' || flowState === 'autoAdvancing'}
+            playedNotes={playedNotes}
+            midiStatus={midiStatus}
           />
-          <button
-            type="button"
-            onClick={() => void onExerciseMatch()}
-            className="rounded border px-3 py-2"
-          >
-            Simulate MIDI Match
-          </button>
+          {midiStatus !== 'connected' ? (
+            <button
+              type="button"
+              aria-label="Connect MIDI keyboard"
+              onClick={() => void connectMidiKeyboard()}
+              className="rounded border px-3 py-2"
+              disabled={midiStatus === 'unsupported' || midiStatus === 'connecting'}
+            >
+              {midiStatus === 'unsupported'
+                ? 'Web MIDI Unsupported'
+                : midiStatus === 'connecting'
+                  ? 'Connecting...'
+                  : 'Connect MIDI Keyboard'}
+            </button>
+          ) : null}
         </div>
       )}
 

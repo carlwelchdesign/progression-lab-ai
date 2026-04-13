@@ -14,10 +14,55 @@ export interface MidiService {
   subscribeToNotes(handler: (event: MidiNoteEvent) => void): MidiSubscription;
 }
 
+const SEMITONE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const BASE_SEMITONES: Record<string, number> = {
+  C: 0,
+  D: 2,
+  E: 4,
+  F: 5,
+  G: 7,
+  A: 9,
+  B: 11,
+};
+
+export function normalizeMidiNoteName(note: string): string {
+  const trimmed = note.trim();
+  const parsed = trimmed.match(/^([A-Ga-g])([#b]?)(-?\d+)$/);
+
+  if (!parsed) {
+    return trimmed.toUpperCase();
+  }
+
+  const [, letterRaw, accidental, octaveRaw] = parsed;
+  const letter = letterRaw.toUpperCase();
+  let semitone = BASE_SEMITONES[letter] ?? 0;
+  let octave = Number.parseInt(octaveRaw, 10);
+
+  if (accidental === '#') {
+    semitone += 1;
+  }
+
+  if (accidental === 'b') {
+    semitone -= 1;
+  }
+
+  while (semitone < 0) {
+    semitone += 12;
+    octave -= 1;
+  }
+
+  while (semitone >= 12) {
+    semitone -= 12;
+    octave += 1;
+  }
+
+  return `${SEMITONE_NAMES[semitone]}${octave}`;
+}
+
 const toNoteName = (noteNumber: number): string => {
-  const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const names = SEMITONE_NAMES;
   const octave = Math.floor(noteNumber / 12) - 1;
-  return `${names[noteNumber % 12]}${octave}`;
+  return normalizeMidiNoteName(`${names[noteNumber % 12]}${octave}`);
 };
 
 export class WebMidiService implements MidiService {
