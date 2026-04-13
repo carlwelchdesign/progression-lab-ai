@@ -77,7 +77,8 @@ export async function POST(
   );
   if (hasReachedLimit(accessContext.entitlements.aiGenerationsPerMonth, aiGenerationsUsed)) {
     return createPlanLimitResponse({
-      limitType: 'aiGenerations',
+      code: 'AI_GENERATION_LIMIT_REACHED',
+      message: 'You have reached your monthly AI generation limit for this plan',
       plan: accessContext.plan,
       used: aiGenerationsUsed,
       limit: accessContext.entitlements.aiGenerationsPerMonth,
