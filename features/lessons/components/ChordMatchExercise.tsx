@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
+  Chip,
   CircularProgress,
   Collapse,
   IconButton,
@@ -55,16 +56,14 @@ export default function ChordMatchExercise({
     successFiredRef.current = false;
   }, [chord]);
 
-  // Normalized target notes — use prop override when provided, otherwise derive from voicing
-  const targetNotes = useMemo(
-    () =>
-      targetNotesProp
-        ? targetNotesProp.map(normalizeNote)
-        : voicing
-          ? voicing.rightHand.map(normalizeNote)
-          : [],
+  // Display names (pre-normalization) — used for chip labels so flats show as flats
+  const targetNotesDisplay = useMemo(
+    () => targetNotesProp ?? voicing?.rightHand ?? [],
     [targetNotesProp, voicing],
   );
+
+  // Normalized target notes for matching
+  const targetNotes = useMemo(() => targetNotesDisplay.map(normalizeNote), [targetNotesDisplay]);
 
   // Check if every target note is being held
   const isMatch = useMemo(() => {
@@ -123,6 +122,24 @@ export default function ChordMatchExercise({
       {/* Piano with target highlights + live MIDI input */}
       <MidiInteractivePiano targetNotes={targetNotes} pressedNotes={pressedNotes} />
 
+      {/* Per-note chips — light up as each note is held */}
+      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+        {targetNotesDisplay.map((note) => {
+          const normalizedPressed = new Set([...pressedNotes].map(normalizeNote));
+          const isHeld = normalizedPressed.has(normalizeNote(note));
+          return (
+            <Chip
+              key={note}
+              label={note}
+              size="small"
+              color={isHeld ? 'success' : 'default'}
+              variant={isHeld ? 'filled' : 'outlined'}
+              sx={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '0.75rem' }}
+            />
+          );
+        })}
+      </Stack>
+
       {/* MIDI status + octave transpose control */}
       <Box>
         <MidiStatusBadge
@@ -144,13 +161,6 @@ export default function ChordMatchExercise({
           Correct! Moving on…
         </Alert>
       </Collapse>
-
-      {/* Hint: show target notes when no MIDI device */}
-      {status === 'unsupported' || status === 'no-device' ? (
-        <Typography variant="caption" color="text.disabled">
-          Target notes: {targetNotes.join(' – ')}
-        </Typography>
-      ) : null}
     </Stack>
   );
 }
