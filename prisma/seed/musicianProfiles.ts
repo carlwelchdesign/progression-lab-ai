@@ -2,6 +2,16 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+type MusicianProfileClient = {
+  musicianProfile: {
+    upsert: (args: {
+      where: { slug: string };
+      update: (typeof MUSICIANS)[number];
+      create: (typeof MUSICIANS)[number];
+    }) => Promise<unknown>;
+  };
+};
+
 const MUSICIANS = [
   {
     slug: 'stevie-wonder',
@@ -165,8 +175,9 @@ Return valid JSON matching the GeneratedCurriculumData schema exactly.`,
 
 async function main() {
   console.log('Seeding musician profiles...');
+  const musicianProfileClient = prisma as unknown as MusicianProfileClient;
   for (const musician of MUSICIANS) {
-    await prisma.musicianProfile.upsert({
+    await musicianProfileClient.musicianProfile.upsert({
       where: { slug: musician.slug },
       update: musician,
       create: musician,
