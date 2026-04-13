@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Alert, Box, Button, CircularProgress, Container, Stack, Typography } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useGeneratedCurriculum } from '../hooks/useGeneratedCurriculum';
 import type { GeneratedLesson } from '../types';
 import type { CourseLesson } from '../../course/data/courseContent';
-import CourseLessonPlayer from '../../course/components/CourseLessonPlayer';
+import MusicianLessonPlayer from './MusicianLessonPlayer';
 import { useLessonProgress } from '../../lessons/hooks/useLessonProgress';
 
-// Adapt GeneratedLesson → CourseLesson (structurally identical, just needs cast)
 function toCourseLessonArray(lessons: GeneratedLesson[]): CourseLesson[] {
   return lessons as unknown as CourseLesson[];
 }
@@ -24,7 +24,7 @@ type Props = {
 export default function MusicianStylePage({ slug }: Props) {
   const router = useRouter();
   const { state, regenerate, acceptStale } = useGeneratedCurriculum(slug);
-  const { markComplete } = useLessonProgress();
+  const { isCompleted, markComplete } = useLessonProgress();
   const [activeLessonIdx, setActiveLessonIdx] = useState<number | null>(null);
 
   // ── Loading ───────────────────────────────────────────────────────────────
@@ -53,8 +53,8 @@ export default function MusicianStylePage({ slug }: Props) {
             Generating your {state.musician.displayName} curriculum…
           </Typography>
           <Typography color="text.secondary" sx={{ maxWidth: 420, textAlign: 'center' }}>
-            Our AI is analysing {state.musician.displayName}&apos;s style and building a
-            personalised lesson plan based on your skill level.
+            Analysing {state.musician.displayName}&apos;s style and building a personalised lesson
+            plan based on your skill level.
           </Typography>
           <CircularProgress />
         </Stack>
@@ -71,29 +71,26 @@ export default function MusicianStylePage({ slug }: Props) {
   const intro =
     state.phase === 'ready' ? state.curriculum.musicianIntro : state.cached.musicianIntro;
 
+  const completedCount = lessons.filter((l) => isCompleted(l.id)).length;
+  const firstIncompleteIdx = lessons.findIndex((l) => !isCompleted(l.id));
+
   // ── Active lesson player ──────────────────────────────────────────────────
   if (activeLessonIdx !== null) {
     const lesson = lessons[activeLessonIdx];
     const isLast = activeLessonIdx === lessons.length - 1;
 
-    const handleComplete = () => {
-      void markComplete(lesson.id);
-      if (!isLast) {
-        setActiveLessonIdx(activeLessonIdx + 1);
-      } else {
-        setActiveLessonIdx(null);
-      }
-    };
-
     return (
-      <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 } }}>
-        <CourseLessonPlayer
-          key={lesson.id}
-          lesson={lesson}
-          onComplete={handleComplete}
-          onBack={() => setActiveLessonIdx(null)}
-        />
-      </Container>
+      <MusicianLessonPlayer
+        key={lesson.id}
+        lesson={lesson}
+        lessonNumber={activeLessonIdx + 1}
+        totalLessons={lessons.length}
+        musicianName={musician.displayName}
+        isLast={isLast}
+        onComplete={() => void markComplete(lesson.id)}
+        onNext={() => setActiveLessonIdx(activeLessonIdx + 1)}
+        onBack={() => setActiveLessonIdx(null)}
+      />
     );
   }
 
@@ -124,6 +121,16 @@ export default function MusicianStylePage({ slug }: Props) {
           </Typography>
         </Box>
 
+        {/* Progress summary */}
+        {completedCount > 0 && (
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <CheckCircleIcon sx={{ fontSize: 18, color: 'success.main' }} />
+            <Typography variant="body2" color="text.secondary">
+              {completedCount} of {lessons.length} lesson{lessons.length !== 1 ? 's' : ''} complete
+            </Typography>
+          </Stack>
+        )}
+
         {/* Stale banner */}
         {state.phase === 'stale' && (
           <Alert
@@ -131,7 +138,7 @@ export default function MusicianStylePage({ slug }: Props) {
             action={
               <Stack direction="row" spacing={1}>
                 <Button size="small" onClick={acceptStale}>
-                  Use existing
+                  Keep existing
                 </Button>
                 <Button size="small" startIcon={<RefreshIcon />} onClick={regenerate}>
                   Refresh
@@ -145,35 +152,81 @@ export default function MusicianStylePage({ slug }: Props) {
 
         {/* Lesson list */}
         <Stack spacing={1.5}>
-          {lessons.map((lesson, idx) => (
-            <Box
-              key={lesson.id}
-              sx={{
-                p: 2,
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-                cursor: 'pointer',
-                '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
-              }}
-              onClick={() => setActiveLessonIdx(idx)}
-            >
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="subtitle2" fontWeight={600}>
-                    Lesson {idx + 1}: {lesson.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.disabled">
-                    ~{lesson.estimatedMinutes} min ·{' '}
-                    {lesson.steps.filter((s) => s.type === 'exercise').length} exercises
-                  </Typography>
-                </Box>
-                <Button size="small" variant="outlined">
-                  Start
-                </Button>
-              </Stack>
-            </Box>
-          ))}
+          {lessons.map((lesson, idx) => {
+            const done = isCompleted(lesson.id);
+            const isCurrent = idx === firstIncompleteIdx;
+            const exerciseCount = lesson.steps.filter((s) => s.type === 'exercise').length;
+
+            return (
+              <Box
+                key={lesson.id}
+                sx={{
+                  p: 2,
+                  border: '1px solid',
+                  borderColor: isCurrent ? 'primary.main' : done ? 'success.main' : 'divider',
+                  borderRadius: 1.5,
+                  cursor: 'pointer',
+                  bgcolor: isCurrent ? 'action.hover' : 'transparent',
+                  '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+                  transition: 'border-color 0.2s, background-color 0.2s',
+                }}
+                onClick={() => setActiveLessonIdx(idx)}
+              >
+                <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
+                  <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0 }}>
+                    {done ? (
+                      <CheckCircleIcon
+                        sx={{ fontSize: 20, color: 'success.main', flexShrink: 0 }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: '50%',
+                          border: '2px solid',
+                          borderColor: isCurrent ? 'primary.main' : 'divider',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          fontWeight={700}
+                          color={isCurrent ? 'primary.main' : 'text.disabled'}
+                        >
+                          {idx + 1}
+                        </Typography>
+                      </Box>
+                    )}
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="subtitle2" fontWeight={600} noWrap>
+                        {lesson.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.disabled">
+                        ~{lesson.estimatedMinutes} min · {exerciseCount} exercise
+                        {exerciseCount !== 1 ? 's' : ''}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                  <Button
+                    size="small"
+                    variant={isCurrent ? 'contained' : 'outlined'}
+                    color={done ? 'inherit' : 'primary'}
+                    sx={{ flexShrink: 0 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveLessonIdx(idx);
+                    }}
+                  >
+                    {done ? 'Review' : isCurrent ? 'Continue' : 'Start'}
+                  </Button>
+                </Stack>
+              </Box>
+            );
+          })}
         </Stack>
 
         {/* Regenerate */}

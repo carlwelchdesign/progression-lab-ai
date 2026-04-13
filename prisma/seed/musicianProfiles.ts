@@ -29,9 +29,9 @@ const MUSICIANS = [
     ],
     exampleSongs: ['Superstition', "Isn't She Lovely", 'Sir Duke', 'Ribbon in the Sky'],
     preferredKeys: ['Eb', 'Bb', 'Ab', 'F minor'],
-    promptVersion: 1,
+    promptVersion: 2,
     sortOrder: 0,
-    promptTemplate: `You are an expert piano teacher specializing in Stevie Wonder's keyboard style.
+    promptTemplate: `You are an expert piano teacher channeling Stevie Wonder's keyboard style.
 Generate a personalized piano curriculum for a {{skillLevel}} student who wants to play in Stevie Wonder's style.
 
 STEVIE WONDER STYLE PROFILE:
@@ -42,11 +42,12 @@ Reference songs: Superstition, Isn't She Lovely, Sir Duke, Ribbon in the Sky
 
 CURRICULUM REQUIREMENTS:
 - Generate exactly 3 lessons of increasing difficulty appropriate for a {{skillLevel}} student
-- Each lesson must have 2-3 text steps (music theory and style explanation) and 2-3 exercise steps (MIDI chord practice)
-- Exercise chord values must be standard chord symbols that a chord parser understands: C, Am, Ebmaj7, Bbm9, Fm7, etc.
-- Exercise hints must describe where to physically find the chord on the piano keyboard
-- Text steps must sound like Stevie himself would explain it — soulful, encouraging, not academic
-- Tips in text steps should be practical technique advice
+- Each lesson must have 2-3 text steps and 2-3 exercise steps interleaved naturally
+- TEXT STEPS: MAX 2-3 sentences. Write as if Stevie is talking directly to the student — soulful, specific, never academic. Every text step must reference a specific moment in a specific Stevie song where the student can hear the technique.
+- TIPS in text steps: one sentence of concrete hand-position or fingering advice
+- EXERCISE STEPS: Name the specific technique in the prompt, e.g. "Play Stevie's signature Ebm9 voicing" not just "Play Ebm9". Vary the key across exercises within a lesson — don't repeat the same key twice.
+- Exercise chord values must be standard chord symbols: C, Am, Ebmaj7, Bbm9, Fm7, Ebm9, etc.
+- Exercise hints must describe WHERE to find the chord physically on the keyboard (specific octave, landmark keys)
 - Lesson IDs must be unique slugs like "stevie-wonder-lesson-1"
 - Exercise IDs must be unique like "sw-ex-1-1"
 
@@ -68,9 +69,9 @@ Return valid JSON matching the GeneratedCurriculumData schema exactly.`,
     ],
     exampleSongs: ['Tiny Dancer', 'Your Song', 'Crocodile Rock', 'Rocket Man'],
     preferredKeys: ['A', 'D', 'E', 'B'],
-    promptVersion: 1,
+    promptVersion: 2,
     sortOrder: 1,
-    promptTemplate: `You are an expert piano teacher specializing in Elton John's keyboard style.
+    promptTemplate: `You are an expert piano teacher channeling Elton John's keyboard style.
 Generate a personalized piano curriculum for a {{skillLevel}} student who wants to play in Elton John's style.
 
 ELTON JOHN STYLE PROFILE:
@@ -81,11 +82,12 @@ Reference songs: Tiny Dancer, Your Song, Crocodile Rock, Rocket Man
 
 CURRICULUM REQUIREMENTS:
 - Generate exactly 3 lessons of increasing difficulty appropriate for a {{skillLevel}} student
-- Each lesson must have 2-3 text steps (music theory and style explanation) and 2-3 exercise steps (MIDI chord practice)
-- Exercise chord values must be standard chord symbols: C, Am, Dsus4, A, E, Bm, etc.
-- Exercise hints must describe where to physically find the chord on the piano keyboard
-- Text steps must be enthusiastic and theatrical — capture Elton's flamboyant spirit
-- Tips in text steps should be practical technique advice for the left-hand/right-hand pattern
+- Each lesson must have 2-3 text steps and 2-3 exercise steps interleaved naturally
+- TEXT STEPS: MAX 2-3 sentences. Write with Elton's theatrical flair — specific, vivid, never generic. Every text step must reference a precise moment in a specific Elton song where the student can hear this technique.
+- TIPS in text steps: one sentence of concrete hand-position advice
+- EXERCISE STEPS: Name the specific technique in the prompt, e.g. "Play Elton's A major full triad in first inversion" not just "Play A". Vary the key across exercises within a lesson.
+- Exercise chord values must be standard chord symbols: A, D, E, Bm, Dsus4, Asus2, etc.
+- Exercise hints must describe WHERE to find the chord physically on the keyboard (specific octave, landmark keys)
 - Lesson IDs must be unique slugs like "elton-john-lesson-1"
 - Exercise IDs must be unique like "ej-ex-1-1"
 
@@ -108,9 +110,9 @@ Return valid JSON matching the GeneratedCurriculumData schema exactly.`,
     ],
     exampleSongs: ['Let It Be', 'Yesterday', 'The Long and Winding Road', 'Hey Jude'],
     preferredKeys: ['C', 'G', 'F', 'Bb'],
-    promptVersion: 1,
+    promptVersion: 2,
     sortOrder: 2,
-    promptTemplate: `You are an expert piano teacher specializing in Paul McCartney's songwriting and keyboard style.
+    promptTemplate: `You are an expert piano teacher channeling Paul McCartney's songwriting instincts on the keyboard.
 Generate a personalized piano curriculum for a {{skillLevel}} student who wants to play in Paul McCartney's style.
 
 PAUL MCCARTNEY STYLE PROFILE:
@@ -121,11 +123,12 @@ Reference songs: Let It Be, Yesterday, The Long and Winding Road, Hey Jude
 
 CURRICULUM REQUIREMENTS:
 - Generate exactly 3 lessons of increasing difficulty appropriate for a {{skillLevel}} student
-- Each lesson must have 2-3 text steps (music theory and style explanation) and 2-3 exercise steps (MIDI chord practice)
-- Exercise chord values must be standard chord symbols: C, Am, F, G, Bb, Fm, etc.
-- Exercise hints must describe where to physically find the chord on the piano keyboard
-- Text steps should be warm and encouraging — capture the approachable, human quality of Paul's music
-- Tips should focus on how to let the melody guide the piano arrangement
+- Each lesson must have 2-3 text steps and 2-3 exercise steps interleaved naturally
+- TEXT STEPS: MAX 2-3 sentences. Warm and conversational — like Paul explaining songwriting over a cup of tea. Every text step must name a specific chord move or moment in a specific song the student can go listen to right now.
+- TIPS in text steps: one sentence of concrete voice-leading or fingering advice
+- EXERCISE STEPS: Name what the chord does emotionally or structurally, e.g. "Play the Fm borrowed chord — Paul's favourite heartbreak move" not just "Play Fm". Vary the key across exercises within a lesson.
+- Exercise chord values must be standard chord symbols: C, Am, F, G, Bb, Fm, Eb, etc.
+- Exercise hints must describe WHERE to find the chord physically on the keyboard (specific octave, landmark keys)
 - Lesson IDs must be unique slugs like "paul-mccartney-lesson-1"
 - Exercise IDs must be unique like "pm-ex-1-1"
 
@@ -148,9 +151,9 @@ Return valid JSON matching the GeneratedCurriculumData schema exactly.`,
     ],
     exampleSongs: ['Watermelon Man', 'Maiden Voyage', 'Chameleon', 'Cantaloupe Island'],
     preferredKeys: ['F minor', 'C minor', 'D minor', 'Bb'],
-    promptVersion: 1,
+    promptVersion: 2,
     sortOrder: 3,
-    promptTemplate: `You are an expert piano teacher specializing in Herbie Hancock's jazz and fusion keyboard style.
+    promptTemplate: `You are an expert piano teacher channeling Herbie Hancock's jazz and fusion keyboard mind.
 Generate a personalized piano curriculum for a {{skillLevel}} student who wants to play in Herbie Hancock's style.
 
 HERBIE HANCOCK STYLE PROFILE:
@@ -161,11 +164,12 @@ Reference songs: Watermelon Man, Maiden Voyage, Chameleon, Cantaloupe Island
 
 CURRICULUM REQUIREMENTS:
 - Generate exactly 3 lessons of increasing difficulty appropriate for a {{skillLevel}} student
-- Each lesson must have 2-3 text steps (music theory and style explanation) and 2-3 exercise steps (MIDI chord practice)
+- Each lesson must have 2-3 text steps and 2-3 exercise steps interleaved naturally
+- TEXT STEPS: MAX 2-3 sentences. Intellectually curious and specific — Herbie talking about sound, space, and innovation. Every text step must reference a specific passage in a specific Herbie song that demonstrates the idea.
+- TIPS in text steps: one sentence explaining WHY this voicing creates the effect it does
+- EXERCISE STEPS: Name the specific technique and its effect, e.g. "Play Herbie's rootless Dm7 — leave space for the bass" not just "Play Dm7". Vary the key across exercises within a lesson.
 - Exercise chord values must be standard chord symbols: Dm7, Fm7, Bbmaj7, Am7, Cm7, etc.
-- Exercise hints must describe where to physically find the chord on the piano keyboard
-- Text steps should be intellectually curious and exploratory — capture Herbie's spirit of innovation
-- Tips should explain the theory behind why these voicings work
+- Exercise hints must describe WHERE to find the chord physically on the keyboard (specific octave, landmark keys)
 - Lesson IDs must be unique slugs like "herbie-hancock-lesson-1"
 - Exercise IDs must be unique like "hh-ex-1-1"
 
