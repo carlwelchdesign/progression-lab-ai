@@ -1,4 +1,4 @@
-import type { MusicianProfile, PrismaClient } from '@prisma/client';
+import { Prisma, type MusicianProfile, type PrismaClient } from '@prisma/client';
 
 import type { MusicianProfileSummary } from '../types';
 
@@ -29,26 +29,122 @@ function mapMusicianProfile(profile: MusicianProfile): MusicianProfileRecord {
   };
 }
 
+function isMissingColumnError(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+    return false;
+  }
+
+  if (error.code !== 'P2022') {
+    return false;
+  }
+
+  const column =
+    typeof error.meta?.column === 'string'
+      ? error.meta.column
+      : typeof error.meta?.message === 'string'
+        ? error.meta.message
+        : '';
+
+  return column.includes('aliases') || column.includes('isCustom');
+}
+
+function mapLegacyMusicianProfile(
+  profile: Omit<MusicianProfile, 'aliases' | 'isCustom'>,
+): MusicianProfileRecord {
+  return {
+    id: profile.id,
+    slug: profile.slug,
+    displayName: profile.displayName,
+    genre: profile.genre,
+    era: profile.era,
+    tagline: profile.tagline,
+    signatureTechniques: profile.signatureTechniques,
+    exampleSongs: profile.exampleSongs,
+    preferredKeys: profile.preferredKeys,
+    sortOrder: profile.sortOrder,
+    isCustom: false,
+    aliases: [],
+    isActive: profile.isActive,
+    promptTemplate: profile.promptTemplate,
+    promptVersion: profile.promptVersion,
+  };
+}
+
 export async function listActiveMusicians(
   prismaClient: PrismaClient,
 ): Promise<MusicianProfileRecord[]> {
-  const records = await prismaClient.musicianProfile.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: 'asc' },
-  });
+  try {
+    const records = await prismaClient.musicianProfile.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' },
+    });
 
-  return records.map(mapMusicianProfile);
+    return records.map(mapMusicianProfile);
+  } catch (error) {
+    if (!isMissingColumnError(error)) {
+      throw error;
+    }
+
+    const records = await prismaClient.musicianProfile.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' },
+      select: {
+        id: true,
+        slug: true,
+        displayName: true,
+        genre: true,
+        era: true,
+        tagline: true,
+        signatureTechniques: true,
+        exampleSongs: true,
+        preferredKeys: true,
+        sortOrder: true,
+        isActive: true,
+        promptTemplate: true,
+        promptVersion: true,
+      },
+    });
+
+    return records.map(mapLegacyMusicianProfile);
+  }
 }
 
 export async function findMusicianBySlug(
   prismaClient: PrismaClient,
   slug: string,
 ): Promise<MusicianProfileRecord | null> {
-  const record = await prismaClient.musicianProfile.findUnique({
-    where: { slug },
-  });
+  try {
+    const record = await prismaClient.musicianProfile.findUnique({
+      where: { slug },
+    });
 
-  return record ? mapMusicianProfile(record) : null;
+    return record ? mapMusicianProfile(record) : null;
+  } catch (error) {
+    if (!isMissingColumnError(error)) {
+      throw error;
+    }
+
+    const record = await prismaClient.musicianProfile.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        slug: true,
+        displayName: true,
+        genre: true,
+        era: true,
+        tagline: true,
+        signatureTechniques: true,
+        exampleSongs: true,
+        preferredKeys: true,
+        sortOrder: true,
+        isActive: true,
+        promptTemplate: true,
+        promptVersion: true,
+      },
+    });
+
+    return record ? mapLegacyMusicianProfile(record) : null;
+  }
 }
 
 export async function searchMusicians(
