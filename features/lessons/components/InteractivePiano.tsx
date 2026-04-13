@@ -168,6 +168,21 @@ export default function InteractivePiano({
     return key.isBlack ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.13)';
   };
 
+  const getLabelColor = (key: PianoKey): string => {
+    const pc = key.noteName;
+    const t = targetSet.has(pc);
+    const p = pressedSet.has(pc);
+    if (t && p) return 'rgba(0,0,0,0.75)'; // dark on green
+    if (t) return 'rgba(0,0,0,0.8)'; // dark on red — stand out
+    if (p) return 'rgba(255,255,255,0.95)'; // light on primary blue
+    return key.isBlack ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.28)';
+  };
+
+  const getLabelWeight = (key: PianoKey): string => {
+    const pc = key.noteName;
+    return targetSet.has(pc) || pressedSet.has(pc) ? '700' : '400';
+  };
+
   return (
     <svg
       viewBox={`0 0 ${viewW} ${WH}`}
@@ -175,9 +190,10 @@ export default function InteractivePiano({
       style={{ display: 'block' }}
       aria-hidden="true"
     >
+      {/* Key bodies — white first (bottom layer), then black on top */}
       {keys.map((key) => (
         <rect
-          key={`${key.noteName}${key.octave}`}
+          key={`rect-${key.noteName}${key.octave}`}
           x={key.x + (key.isBlack ? 0 : 0.5)}
           y={0.5}
           width={key.width - (key.isBlack ? 0 : 1)}
@@ -189,6 +205,30 @@ export default function InteractivePiano({
           strokeWidth={0.75}
         />
       ))}
+
+      {/* Key labels — rendered after rects so they appear on top */}
+      {keys.map((key) => {
+        // Only white keys get always-visible labels; black keys show label only when active
+        const pc = key.noteName;
+        const isActive = targetSet.has(pc) || pressedSet.has(pc);
+        if (key.isBlack && !isActive) return null;
+
+        return (
+          <text
+            key={`label-${key.noteName}${key.octave}`}
+            x={key.x + key.width / 2}
+            y={key.isBlack ? BH - 5 : WH - 6}
+            textAnchor="middle"
+            fontSize={key.isBlack ? 4.5 : 5.5}
+            fontFamily="system-ui, -apple-system, sans-serif"
+            fontWeight={getLabelWeight(key)}
+            fill={getLabelColor(key)}
+            style={{ pointerEvents: 'none', userSelect: 'none' }}
+          >
+            {key.noteName}
+          </text>
+        );
+      })}
     </svg>
   );
 }
