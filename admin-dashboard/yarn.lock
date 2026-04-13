@@ -87,10 +87,8 @@
     "@babel/helper-string-parser" "^7.27.1"
     "@babel/helper-validator-identifier" "^7.28.5"
 
-"@carlwelchdesign/webauthn-core@^0.1.1":
+"@carlwelchdesign/webauthn-core@file:../packages/webauthn-core":
   version "0.1.1"
-  resolved "https://npm.pkg.github.com/download/@carlwelchdesign/webauthn-core/0.1.1/2a05aad05670d2c435f2565d98991a4322f4a66a#2a05aad05670d2c435f2565d98991a4322f4a66a"
-  integrity sha512-MGh3cmgMCBn9sEgdd1IH33dauhrP0KAXxz/3ZqlsehKPnF+oPDFmZwybiJBxM3j0bluONw7vJGpVv9niDRGjKw==
   dependencies:
     "@simplewebauthn/server" "^13.3.0"
 

@@ -226,6 +226,15 @@ export default function AppWrapper({ children }: Props) {
                   {item.label}
                 </Button>
               ))}
+              <Button component={Link} href="/lessons" color="inherit">
+                {t('lessons', { ns: 'nav' })}
+              </Button>
+              <Button component={Link} href="/course" color="inherit">
+                {t('course', { ns: 'nav' })}
+              </Button>
+              <Button component={Link} href="/styles" color="inherit">
+                {t('styles', { ns: 'nav' })}
+              </Button>
               <Button component={Link} href="/pricing" color="inherit">
                 {pricingLabel}
               </Button>
@@ -290,6 +299,15 @@ export default function AppWrapper({ children }: Props) {
                 <ListItemText primary={item.label} />
               </ListItemButton>
             ))}
+            <ListItemButton component={Link} href="/lessons" onClick={() => setMobileOpen(false)}>
+              <ListItemText primary={t('lessons', { ns: 'nav' })} />
+            </ListItemButton>
+            <ListItemButton component={Link} href="/course" onClick={() => setMobileOpen(false)}>
+              <ListItemText primary={t('course', { ns: 'nav' })} />
+            </ListItemButton>
+            <ListItemButton component={Link} href="/styles" onClick={() => setMobileOpen(false)}>
+              <ListItemText primary={t('styles', { ns: 'nav' })} />
+            </ListItemButton>
             <ListItemButton component={Link} href="/pricing" onClick={() => setMobileOpen(false)}>
               <ListItemText primary={pricingLabel} />
             </ListItemButton>

@@ -8,7 +8,14 @@ type PageSuspenseFallbackProps = {
   messageKey?: string;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
   padded?: boolean;
-  variant?: 'default' | 'studio' | 'pricing' | 'account' | 'progressions' | 'sharedProgression';
+  variant?:
+    | 'default'
+    | 'studio'
+    | 'pricing'
+    | 'account'
+    | 'progressions'
+    | 'sharedProgression'
+    | 'lessons';
 };
 
 export default function PageSuspenseFallback({
@@ -33,6 +40,7 @@ export default function PageSuspenseFallback({
     account: [72, 72, 120],
     progressions: [88, 88, 88],
     sharedProgression: [56, 180, 56],
+    lessons: [56, 88, 88, 88],
   } as const;
 
   return (

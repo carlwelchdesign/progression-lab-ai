@@ -112,6 +112,7 @@ model User {
   webauthnChallenges WebAuthnChallenge[]
   createdPromoCodes PromoCode[] @relation("PromoCodeCreatedBy")
   promoCodeRedemptions PromoCodeRedemption[]
+  promoCodeConfigUpdates PromoCodeConfig[] @relation("PromoCodeConfigUpdatedBy")
 }
 
 model BoardroomBoard {
@@ -282,6 +283,23 @@ model PromoCodeRedemption {
   @@unique([promoCodeId, userId])
   @@index([userId, redeemedAt])
   @@index([promoCodeId, redeemedAt])
+}
+
+model PromoCodeConfig {
+  id                   String   @id @default("singleton")
+  // Customizable prefixes for auto-generated promo codes (comma-separated)
+  // e.g., "EARLY,BETA,LAUNCH,START,PROMO,GROWTH,ACCESS"
+  prefixes             String   @default("EARLY,BETA,LAUNCH,START,PROMO,GROWTH,ACCESS")
+  // Number of random suffix characters
+  suffixLength         Int      @default(4)
+  // Separator between prefix and suffix (e.g., "-" for "EARLY-ABC1")
+  separator            String   @default("-")
+  // Optional config for future extensibility
+  metadata             Json?
+  updatedAt            DateTime @updatedAt
+  updatedByUserId      String?
+
+  updatedByUser        User?    @relation("PromoCodeConfigUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 }
 
 model UsageEvent {

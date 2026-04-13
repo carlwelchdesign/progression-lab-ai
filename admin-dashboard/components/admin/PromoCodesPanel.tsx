@@ -33,14 +33,12 @@ import {
   revokePromoCode,
   fetchPromoCodeRedemptions,
 } from './adminApi';
+import {
+  fetchPromoCodeConfig,
+  generatePromoCode as generatePromoCodeFromConfig,
+  type PromoCodeConfig,
+} from '../../lib/promoCodeConfig';
 import type { CreatePromoCodeInput, PromoCodeRow, PromoCodeRedemptionRow } from './types';
-
-function generateCode(): string {
-  const words = ['PRODUCER', 'STUDIO', 'COLLAB', 'ARTIST', 'BEAT', 'SOUND', 'WAVE'];
-  const word = words[Math.floor(Math.random() * words.length)];
-  const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${word}-${suffix}`;
-}
 
 const EMPTY_FORM: CreatePromoCodeInput = {
   code: '',
@@ -71,6 +69,8 @@ export default function PromoCodesPanel({ role }: Props) {
     items: PromoCodeRedemptionRow[];
     loading: boolean;
   } | null>(null);
+  const [promoConfig, setPromoConfig] = useState<PromoCodeConfig | null>(null);
+  const [configLoading, setConfigLoading] = useState(true);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -84,15 +84,46 @@ export default function PromoCodesPanel({ role }: Props) {
     }
   }, []);
 
+  const loadConfig = useCallback(async () => {
+    setConfigLoading(true);
+    try {
+      const config = await fetchPromoCodeConfig();
+      setPromoConfig(config);
+    } catch (e) {
+      console.error('Failed to load promo config:', e);
+      // Fall back to defaults
+      setPromoConfig({
+        prefixes: 'EARLY,BETA,LAUNCH,START,PROMO,GROWTH,ACCESS',
+        suffixLength: 4,
+        separator: '-',
+      });
+    } finally {
+      setConfigLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadConfig();
+  }, [load, loadConfig]);
+
+  function handleGenerateCode() {
+    if (!promoConfig) return;
+    try {
+      const code = generatePromoCodeFromConfig(promoConfig);
+      setForm((f) => ({ ...f, code }));
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Failed to generate code');
+    }
+  }
 
   async function handleCreate() {
     setIsSaving(true);
     setSaveError(null);
     try {
-      const item = await createPromoCode({ ...form, code: form.code || generateCode() });
+      const codeToUse =
+        form.code || (promoConfig ? generatePromoCodeFromConfig(promoConfig) : 'DEFAULT');
+      const item = await createPromoCode({ ...form, code: codeToUse });
       setCodes((prev) => [item, ...prev]);
       setCreateOpen(false);
       setForm(EMPTY_FORM);
@@ -249,7 +280,8 @@ export default function PromoCodesPanel({ role }: Props) {
               <Button
                 variant="outlined"
                 size="small"
-                onClick={() => setForm((f) => ({ ...f, code: generateCode() }))}
+                onClick={handleGenerateCode}
+                disabled={!promoConfig || configLoading}
               >
                 Generate
               </Button>
