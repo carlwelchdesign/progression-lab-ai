@@ -226,6 +226,9 @@ export default function AppWrapper({ children }: Props) {
                   {item.label}
                 </Button>
               ))}
+              <Button component={Link} href="/live-chord-explorer" color="inherit">
+                Chord Explorer
+              </Button>
               <Button component={Link} href="/pricing" color="inherit">
                 {pricingLabel}
               </Button>
@@ -290,6 +293,13 @@ export default function AppWrapper({ children }: Props) {
                 <ListItemText primary={item.label} />
               </ListItemButton>
             ))}
+            <ListItemButton
+              component={Link}
+              href="/live-chord-explorer"
+              onClick={() => setMobileOpen(false)}
+            >
+              <ListItemText primary="Chord Explorer" />
+            </ListItemButton>
             <ListItemButton component={Link} href="/pricing" onClick={() => setMobileOpen(false)}>
               <ListItemText primary={pricingLabel} />
             </ListItemButton>
