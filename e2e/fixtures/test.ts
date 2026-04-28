@@ -1,6 +1,7 @@
 import { expect, test as base, type Page, type Route } from '@playwright/test';
 import { readFileSync } from 'fs';
 import path from 'path';
+import type { UserRole } from '@prisma/client';
 
 import { createSessionToken } from '../../lib/auth';
 import HomePage from '../page-objects/home-page';
@@ -64,7 +65,7 @@ class ApiMocker {
   async mockAuthenticatedUser() {
     const user = authenticatedUser.user;
     ensureAuthSecretLoaded();
-    const sessionToken = createSessionToken(user.id, user.email, user.role);
+    const sessionToken = createSessionToken(user.id, user.email, user.role as UserRole);
 
     await this.page.context().addCookies(
       APP_ORIGINS.flatMap((origin) => [

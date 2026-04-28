@@ -8,7 +8,10 @@ const mockShowError = jest.fn();
 const mockShowInfo = jest.fn();
 const mockShowSuccess = jest.fn();
 const mockEnsureCsrfCookie = jest.fn();
-const mockCreateCsrfHeaders = jest.fn(() => ({ 'x-csrf-token': 'token' }));
+const mockCreateCsrfHeaders = jest.fn((headers?: HeadersInit) => ({
+  ...Object.fromEntries(new Headers(headers).entries()),
+  'x-csrf-token': 'token',
+}));
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -36,7 +39,7 @@ jest.mock('../../../../components/providers/AppSnackbarProvider', () => ({
 
 jest.mock('../../../../lib/csrfClient', () => ({
   ensureCsrfCookie: () => mockEnsureCsrfCookie(),
-  createCsrfHeaders: (...args: unknown[]) => mockCreateCsrfHeaders(...args),
+  createCsrfHeaders: (headers?: HeadersInit) => mockCreateCsrfHeaders(headers),
 }));
 
 const statusPayload = {

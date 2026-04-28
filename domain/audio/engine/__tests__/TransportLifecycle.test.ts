@@ -12,7 +12,10 @@ import { stopAllAudioPlayback } from '../TransportLifecycle';
 
 describe('TransportLifecycle', () => {
   it('clears state and releases sources on stop', () => {
-    const scheduledPlaybackTimeouts = [setTimeout(() => undefined, 5), setTimeout(() => undefined, 5)];
+    const scheduledPlaybackTimeouts = [
+      setTimeout(() => undefined, 5),
+      setTimeout(() => undefined, 5),
+    ];
     const activeMetronomePulseTimeouts = [setTimeout(() => undefined, 5)];
 
     const setScheduledPlaybackTimeouts = jest.fn();
@@ -22,6 +25,8 @@ describe('TransportLifecycle', () => {
     const setMetronomeClickBeat = jest.fn();
     const releaseInstrumentSamplers = jest.fn();
     const releaseMetronomeSynths = jest.fn();
+    const stopTransport = jest.fn(() => Tone.Transport.stop());
+    const cancelTransport = jest.fn(() => Tone.Transport.cancel());
 
     const activePart = { dispose: jest.fn() };
     const metronomeLoop = { dispose: jest.fn() };
@@ -38,6 +43,8 @@ describe('TransportLifecycle', () => {
       setMetronomeClickBeat,
       releaseInstrumentSamplers,
       releaseMetronomeSynths,
+      stopTransport,
+      cancelTransport,
     });
 
     expect(setScheduledPlaybackTimeouts).toHaveBeenCalledWith([]);
@@ -47,6 +54,8 @@ describe('TransportLifecycle', () => {
     expect(metronomeLoop.dispose).toHaveBeenCalledTimes(1);
     expect(setMetronomeLoop).toHaveBeenCalledWith(null);
     expect(setMetronomeClickBeat).toHaveBeenCalledWith(0);
+    expect(stopTransport).toHaveBeenCalledTimes(1);
+    expect(cancelTransport).toHaveBeenCalledTimes(1);
     expect(Tone.Transport.stop).toHaveBeenCalledTimes(1);
     expect(Tone.Transport.cancel).toHaveBeenCalledTimes(1);
     expect(releaseInstrumentSamplers).toHaveBeenCalledTimes(1);

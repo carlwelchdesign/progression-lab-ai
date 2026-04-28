@@ -46,3 +46,17 @@ export function createCsrfHeaders(headers?: HeadersInit): Headers {
 
   return resolvedHeaders;
 }
+
+/**
+ * Performs a state-changing request with CSRF protections applied.
+ * Ensures a token cookie exists and injects the token into request headers.
+ */
+export async function fetchWithCsrf(input: RequestInfo | URL, init: RequestInit = {}) {
+  await ensureCsrfCookie();
+
+  return fetch(input, {
+    ...init,
+    credentials: init.credentials ?? 'include',
+    headers: createCsrfHeaders(init.headers),
+  });
+}
