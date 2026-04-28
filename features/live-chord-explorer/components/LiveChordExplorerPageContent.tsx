@@ -349,6 +349,53 @@ export default function LiveChordExplorerPageContent() {
           >
             {harmonicAnchor ? (
               <>
+                {/* Selected suggestion detail */}
+                <Box
+                  sx={{
+                    flexShrink: 0,
+                    height: { xs: 'auto', md: 360 },
+                    minHeight: { xs: 0, md: 0 },
+                    overflow: 'hidden',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <SuggestionDetailPanel
+                    suggestion={selectedSuggestion}
+                    harmonicAnchor={harmonicAnchor}
+                  />
+                </Box>
+
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{
+                    flexShrink: 0,
+                    px: 1.5,
+                    pt: 1,
+                    pb: 0.75,
+                  }}
+                >
+                  <Typography
+                    variant="overline"
+                    sx={{
+                      color: 'text.disabled',
+                      fontSize: '0.6rem',
+                      letterSpacing: '0.1em',
+                      lineHeight: 1,
+                    }}
+                  >
+                    Chord options
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'text.disabled', fontSize: '0.65rem' }}
+                  >
+                    {filteredSuggestions.length} shown
+                  </Typography>
+                </Stack>
+
                 {/* Category filter tabs */}
                 <Tabs
                   value={activeCategory}
@@ -408,9 +455,6 @@ export default function LiveChordExplorerPageContent() {
                     ))
                   )}
                 </Box>
-
-                {/* Selected suggestion detail */}
-                <SuggestionDetailPanel suggestion={selectedSuggestion} />
               </>
             ) : (
               /* Empty state when no anchor has been captured yet */
